@@ -1,0 +1,2 @@
+disallowed-types = ["std::sync::Mutex"]
+too-many-arguments-threshold = 12

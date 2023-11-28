@@ -1,0 +1,90 @@
+site_name: "BitBazaar"
+site_url: "https://zakstucke.github.io/bitbazaar/" # Trailing slash is recommended
+repo_url: "https://github.com/zakstucke/bitbazaar"
+
+extra_css:
+    - stylesheets/extra.css
+
+theme:
+    name: "material"
+    custom_dir: docs/overrides
+    features:
+        # These both seem to have a lot of problems now with the finished setup, easier to just disable:
+        # - navigation.instant
+        # - navigation.instant.progress
+        - navigation.tracking
+        - navigation.tabs
+        - navigation.expand
+        - navigation.path
+        - navigation.sections
+        - search.suggest
+        - search.highlight
+        - content.code.copy
+
+    logo: assets/images/logo.svg
+    favicon: assets/images/favicon.png
+    palette:
+        # https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/
+        scheme: slate # This is just dark mode:
+        primary: custom
+        accent: custom
+
+plugins:
+    - git-revision-date-localized:
+          fallback_to_build_date: true
+          enable_creation_date: true
+    - git-committers:
+          repository: zakstucke/bitbazaar
+          branch: main
+    - search
+    - macros:
+          module_name: doc_macros
+
+    # https://mkdocstrings.github.io/recipes/?h=recip#automatic-code-reference-pages
+    - gen-files:
+          scripts:
+              - docs/python_autodoc.py
+
+    - literate-nav:
+          nav_file: SUMMARY.md
+    - section-index
+
+    - mkdocstrings:
+          handlers:
+              python:
+                  options:
+                      merge_init_into_class: true
+                      inherited_members: true
+
+    - exclude:
+          glob:
+              # Etch files shouldn't be in the output:
+              - "*.etch.*"
+
+markdown_extensions:
+    - pymdownx.highlight:
+          anchor_linenums: true
+          line_spans: __span
+          pygments_lang_class: true
+    - admonition
+    - pymdownx.details
+    - pymdownx.inlinehilite
+    - pymdownx.superfences
+
+nav:
+    - Home:
+          - index.md
+    - Code Reference:
+          # defer to gen-files + literate-nav https://mkdocstrings.github.io/recipes/?h=recip#automatic-code-reference-pages
+          - Python: py_ref/
+          - Rust-backed Python Library: py_rust_ref/
+
+          # https://github.com/squidfunk/mkdocs-material/issues/889 the weird speech marks & target allow the link to open in a new tab
+          - JS: /bitbazaar/js_ref/" target="_blank
+          # https://github.com/squidfunk/mkdocs-material/issues/889 the weird speech marks & target allow the link to open in a new tab
+          - Rust: /bitbazaar/rust_ref/doc/bitbazaar/index.html" target="_blank
+
+    - Contributing:
+          - CONTRIBUTING.md
+          - CODE_OF_CONDUCT.md
+    - LICENSE.md

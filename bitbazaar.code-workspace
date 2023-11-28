@@ -1,0 +1,181 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    // Prettier config is its own subpackage
+    "prettier.prettierPath": "./prettier/node_modules/prettier",
+    "prettier.configPath": "./prettier/prettier.config.cjs",
+
+    "eslint.workingDirectories": ["./js"],
+
+    "python.defaultInterpreterPath": "./py/.venv/bin/python",
+    "ruff.path": ["./py/.venv/bin/ruff"],
+
+    // Add the paths to any rust Cargo.tomls not in root, e.g. "./backend/rust/rust_lib/Cargo.toml"
+    "rust-analyzer.linkedProjects": [
+      "./rust/Cargo.toml",
+      "./py_rust/Cargo.toml",
+    ],
+
+
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[yaml]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[markdown]": {
+      // Disable markdown formatting because sometimes indents are important in ways the formatter doesn't understand:
+      "editor.formatOnSave": false,
+      "editor.formatOnPaste": false
+    },
+    "[html]": {
+      // Disable html formatting because sometimes indents are important in ways the formatter doesn't understand:
+      "editor.formatOnSave": false,
+      "editor.formatOnPaste": false
+    },
+    "[toml]": {
+      // Having endless problems with toml formatting, need to use the same formatter in pre-commit and vscode, nothing supports both
+      // prettier has support for toml via a plugin, but its buggy and doesn't quite work with prettier, use that for both once it does.
+      // "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnPaste": false,
+      "editor.formatOnSave": false,
+    },
+    "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer",
+      "editor.formatOnSave": true
+    },
+    "rust-analyzer.check.command": "clippy",
+    "[python]": {
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        // Ruff will auto fix issues and sort imports (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+        "source.fixAll": true
+      },
+      // Ruff (replaces black) formats python code (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+      "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "mypy.enabled": false, // Mypy extension might be installed, don't want to use
+    // This enables pyright type checking:
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+
+    "yaml.schemas": {
+      // Mkdocs support https://squidfunk.github.io/mkdocs-material/creating-your-site/#minimal-configuration
+      "https://squidfunk.github.io/mkdocs-material/schema.json": "mkdocs.yml"
+    },
+    "yaml.customTags": [
+      // Mkdocs support https://squidfunk.github.io/mkdocs-material/creating-your-site/#minimal-configuration
+      "!ENV scalar",
+      "!ENV sequence",
+      "tag:yaml.org,2002:python/name:material.extensions.emoji.to_svg",
+      "tag:yaml.org,2002:python/name:material.extensions.emoji.twemoji",
+      "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format"
+    ],
+    // For the tailwind extension if using:
+    "tailwindCSS.experimental.classRegex": [
+      // Allows tailwind autocomplete to work in "classnames" function and "cx" shorthand for it.
+      // https://github.com/tailwindlabs/tailwindcss/issues/7553
+      ["(?:classnames|cx)\\(([^)]*)\\)", "\"([^\"]*)\""],
+      ["(?:classnames|cx)\\(([^)]*)\\)", "'([^']*')"],
+      ["(?:classnames|cx)\\(([^)]*)\\)", "`([^`]*`)"],
+
+      // Also allow it to work in any variable starting with Classes:
+      "Classes=\"([^\"]*)", // <div *.Classes="..." />
+      "Classes = \"([^\"]*)", // *.Classes = "..."
+      "Classes={\"([^\"}]*)", // <div *.Classes={"..."} />
+      "Classes={`([^`}]*)", // <div *.Classes={`...`} />
+      "Classes: \"([^\"]*)", // <div *.Classes: "..." />
+      "Classes: `([^`]*)" // <div *.Classes: `...` />
+    ],
+    "tailwindCSS.files.exclude": [
+      "**/.git/**",
+      "**/node_modules/**",
+      "**/venv/**",
+      "**/.venv/**"
+    ],
+    "scss.lint.unknownAtRules": "ignore",
+    "search.useIgnoreFiles": false, // Otherwise, things in .gitignore will not be searchable, its better to exclude them manually:
+    "notebook.output.textLineLimit": 100,
+    "debug.allowBreakpointsEverywhere": true,
+    "files.exclude": {
+      "**/__pypackages__/**": true,
+      "**/.pytest_cache/**": true,
+      "**/.pytype/**": true,
+      "**/.venv/**": true,
+      "**/venv/**": true,
+      "**/site/**": true,
+      "**/coverage": true,
+      "**/htmlcov": true,
+      "**/__pycache__": true,
+      "**/.vscode/**": true,
+      "**/.mypy_cache/**": true,
+      "**/.git/**": true,
+      "**/ipynb_checkpoints/**": true,
+      "**/.ipynb": true,
+      "**/target/**": true
+    },
+    "files.watcherExclude": {
+      "**/.venv/**": true,
+      "**/venv/**": true,
+      "**/site/**": true,
+      "**/coverage": true,
+      "**/htmlcov": true,
+      "**/__pycache__": true,
+      "**/.vscode/**": true,
+      "**/.mypy_cache/**": true,
+      "**/.git/**": true,
+      "**/ipynb_checkpoints/**": true,
+      "**/.ipynb": true
+    },
+    // Extra things to exclude from search, but will still show in the filetree (files.exclude files are automatically excluded from search and filetree)
+    "search.exclude": {
+      "**/docs/js_ref/**": true,
+      "**/docs/rust_ref/**": true,
+      "**/py_stubs/**": true,
+      "**/dist/**": true
+    }
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "justMyCode": false,
+        "name": "Python: Monitor Port 54321",
+        "type": "python",
+        "request": "attach",
+        "connect": {
+          "host": "localhost",
+          "port": 54321
+        }
+      },
+      {
+        "name": "Rust (manual pid attach)",
+        "type": "lldb",
+        "request": "attach",
+        "pid": "${command:pickProcess}"
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "tester",
+        "type": "shell",
+        "command": "echo Hello",
+        // Means won't open a vscode terminal, delete to see output.
+        "presentation": { "reveal": "silent" }
+      },
+    ]
+  }
+}

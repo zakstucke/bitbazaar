@@ -1,0 +1,2 @@
+exclude_dirs: ["tests", "*/test_*.py"]
+skips: ["B101", "B601"]

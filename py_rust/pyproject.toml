@@ -1,0 +1,37 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "bitbazaar_rs._rs"
+dependencies = []
+
+[project]
+name = "bitbazaar_rs"
+description = "An assortment of publicly available cross-language utilities useful to my projects."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "Zachary Stucke", email = "zakstucke@gmail.com"},
+]
+requires-python = ">=3.11"
+classifiers = [
+  'Development Status :: 1 - Planning',
+  'Typing :: Typed',
+  'Operating System :: POSIX :: Linux',
+  'Operating System :: Microsoft :: Windows',
+  'Operating System :: MacOS',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: Implementation :: CPython',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3 :: Only',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Programming Language :: Rust',
+  'License :: OSI Approved',
+]
+
+[project.urls]
+"Sourcecode" = "https://github.com/zakstucke/bitbazaar"
+"Documentation" = "https://zakstucke.github.io/bitbazaar"

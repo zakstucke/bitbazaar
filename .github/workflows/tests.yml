@@ -1,0 +1,235 @@
+name: Tests
+
+# Run when a new PR is created for main branch:
+on:
+    pull_request:
+        branches:
+            - "main"
+
+jobs:
+    # This can be used as the status check for branch protection, saves added each and every actual test job to the rules.
+    # https://github.com/marketplace/actions/alls-green
+    check_all_passed: # This job does nothing and is only used for the branch protection
+        if: always()
+        runs-on: ubuntu-latest
+        needs:
+            - qa
+            - tests_docs
+            - tests_python
+            - tests_js
+            - tests_py_rust
+            - tests_rust
+
+        steps:
+            - name: Decide whether the needed jobs succeeded or failed
+              uses: re-actors/alls-green@release/v1
+              id: all-green
+              with:
+                  jobs: ${{ toJSON(needs) }}
+                  # Everything but qa might be skipped if nothing's changed in its folder:
+                  allowed-skips: tests_docs, tests_python, tests_js, tests_py_rust, tests_rust,
+    qa:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-python@v4
+              with:
+                  python-version: "3.12"
+                  cache: pip
+            - uses: ./.github/actions/install-pre-commit
+
+            # Python project
+            - name: Set up PDM
+              uses: pdm-project/setup-pdm@v3
+              with:
+                  python-version: "3.12"
+                  cache: true
+                  cache-dependency-path: "py/pdm.lock"
+
+            - name: Install dependencies
+              run: |
+                  pdm sync -p ./py -G:all
+
+            # Js project
+            - name: Install Node.js
+              uses: actions/setup-node@v2
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: "js/package-lock.json"
+            - name: Install Node.js dependencies
+              run: |
+                  npm --prefix ./js install
+
+            - uses: dtolnay/rust-toolchain@nightly
+              with:
+                  components: rustfmt, clippy
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: "./rust -> target"
+
+            - name: Run QA
+              run: |
+                  ./dev_scripts/test.sh qa
+
+    whos_changed:
+        uses: ./.github/workflows/whos-changed.yml
+
+    tests_docs:
+        name: Test documentation build
+        needs: whos_changed
+        # Only run if applicable things have changed:
+        if: needs.whos_changed.outputs.docs-changed == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up PDM
+              uses: pdm-project/setup-pdm@v3
+              with:
+                  python-version: "3.12"
+                  cache: true
+                  cache-dependency-path: "docs/pdm.lock"
+
+            - name: Install Node.js
+              uses: actions/setup-node@v2
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              run: |
+                  pdm sync -p ./docs
+
+            - name: Test docs
+              run: |
+                  ./dev_scripts/test.sh docs
+
+    tests_python:
+        needs: whos_changed
+        # Only run if applicable things have changed:
+        if: needs.whos_changed.outputs.py-changed == 'true'
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # Ubuntu test on all versions:
+                    - { python: "3.11", os: "ubuntu-latest", coverage: false }
+                    - { python: "3.12", os: "ubuntu-latest", coverage: true } # Only run coverage check on the newest version to save time
+
+                    # Make sure other os types work on newest version:
+                    # - { python: "3.12", os: "macOS-latest" } # Mac uses 10x minutes, skipping for now considering devs usually use mac and v similar to linux
+                    - { python: "3.12", os: "windows-latest", coverage: false } # 2x minutes, most different architecture so worth testing
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up PDM
+              uses: pdm-project/setup-pdm@v3
+              with:
+                  python-version: ${{ matrix.python }}
+                  cache: true
+                  cache-dependency-path: "py/pdm.lock"
+
+            - name: Install dependencies
+              run: |
+                  pdm sync -p ./py -G:all
+
+            - name: Run tests (linux)
+              if: matrix.os == 'ubuntu-latest'
+              run: |
+                  COVERAGE=${{ matrix.coverage }} ./dev_scripts/test.sh py
+
+            - name: Run tests (windows)
+              if: matrix.os == 'windows-latest'
+              run: |
+                  $env:COVERAGE=${{ matrix.coverage }}
+                  bash ./dev_scripts/test.sh py
+
+    tests_js:
+        needs: whos_changed
+        # Only run if applicable things have changed:
+        if: needs.whos_changed.outputs.js-changed == 'true'
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install Node.js
+              uses: actions/setup-node@v2
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: "js/package-lock.json"
+
+            - name: Install Node.js dependencies
+              run: |
+                  npm --prefix ./js install
+
+            - name: Run tests
+              run: |
+                  ./dev_scripts/test.sh js
+
+    tests_py_rust:
+        needs: whos_changed
+        # Only run if applicable things have changed:
+        if: needs.whos_changed.outputs.py-rust-changed == 'true'
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # Ubuntu test on all versions:
+                    - { python: "3.11", os: "ubuntu-latest" }
+                    - { python: "3.12", os: "ubuntu-latest" }
+
+                    # Make sure other os types work on newest version:
+                    # - { python: "3.12", os: "macOS-latest" } # Mac uses 10x minutes, skipping for now considering devs usually use mac and v similar to linux
+                    - { python: "3.12", os: "windows-latest" } # 2x minutes, most different architecture so worth testing
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install rust toolchain
+              uses: dtolnay/rust-toolchain@nightly
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: "./rust -> target"
+
+            - uses: actions/setup-python@v4
+              with:
+                  python-version: "${{ matrix.python }}"
+
+            - name: Setup venv (problems with the automatic creating in scripts as it uses pipx and for some reason ends with wrong py version)
+              run: |
+                  pip install virtualenv
+                  python -m virtualenv ./py_rust/.venv
+
+            - name: Run tests (linux)
+              if: matrix.os == 'ubuntu-latest'
+              run: |
+                  ./dev_scripts/test.sh py_rust
+
+            - name: Run tests (windows)
+              if: matrix.os == 'windows-latest'
+              run: |
+                  bash ./dev_scripts/test.sh py_rust
+
+    tests_rust:
+        needs: whos_changed
+        # Only run if applicable things have changed:
+        if: needs.whos_changed.outputs.rust-changed == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install rust toolchain
+              uses: dtolnay/rust-toolchain@nightly
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: "./rust -> target"
+
+            - name: Run tests
+              run: |
+                  ./dev_scripts/test.sh rust

@@ -1,0 +1,23 @@
+[package]
+name = "bitbazaar"
+version = "0.0.0"
+edition = "2021"
+readme = "README.md"
+license = "MIT"
+
+[lib]
+name = "bitbazaar"
+crate-type = ["lib"]
+path = "bitbazaar/lib.rs"
+
+[dependencies]
+
+[profile.profiler]
+inherits = "release"  # Adds on top of the default release profile
+incremental = true
+debug = true
+strip = false
+
+# Modifying the test runtime (from release is just so much faster)
+[profile.test]
+inherits = "release"  # Adds on top of the default release profile

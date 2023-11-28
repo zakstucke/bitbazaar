@@ -1,0 +1,113 @@
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+# limit which files are included in the sdist (.tar.gz) asset,
+# see https://github.com/pydantic/pydantic/pull/4542
+include = [
+  '/README.md',
+  '/LICENSE.md',
+  '/bitbazaar',
+  '/tests',
+  '/requirements.txt',
+]
+
+[tool.pdm]
+
+[tool.pdm.dev-dependencies]
+test = ["pyright>=1.1.329", "pytest>=7.4.2", "coverage[toml]>=7.3.2"]
+dev = ["ipykernel>=6.25.2"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+exclude = [
+  "**/__pycache__",
+  "**/.pytest_cache",
+  "**/.pytype",
+  "**/py_stubs",
+  # Only ever expecting these 2 variations:
+  "**/venv",
+  "**/.venv",
+  "**/node_modules",
+  # Huge rust folders
+  "**/target",
+  # Django specific:
+  "**/migrations",
+]
+pythonVersion = "3.11"  # Run using the minimum supported version
+typeCheckingMode = "basic"  # Additional strict rules are enabled manually
+stubPath = "./py_stubs"  # Copy custom stubs such as e.g. django-stubs in here so they are used in vscode
+useLibraryCodeForTypes = true
+reportOptionalSubscript = true
+reportOptionalMemberAccess = true
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalContextManager = true
+reportOptionalOperand = true
+reportUnnecessaryCast = true
+reportUnnecessaryTypeIgnoreComment = true
+reportMissingImports = true
+deprecateTypingAliases = true
+reportMissingTypeStubs = false
+reportPrivateImportUsage = false  # Always useful to access internals of libraries
+reportUnusedExpression = false  # Ruff can handle this
+reportTypedDictNotRequiredAccess = false  # Lots of libraries don't work with this, if they're generating typed dicts in the wrong way, maybe enable in the future
+# Below rules should probably be disabled if lots of errors on an existing project, but good for new:
+reportImportCycles = true
+reportUnknownParameterType = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+
+[tool.coverage.paths]
+tests = ["tests"]
+source = [
+  'bitbazaar/',
+  # This handles the fact that mac/windows/ubuntu github action runners all have different paths
+  # This tells coverage to treat the paths as identical and not error:
+  '/Users/runner/work/bitbazaar/bitbazaar/bitbazaar/',
+  '/home/runner/work/bitbazaar/bitbazaar/bitbazaar/',
+  'D:\a\bitbazaar\bitbazaar\bitbazaar',
+]
+
+[tool.coverage.run]
+source = ["bitbazaar"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
+
+[project]
+name = "bitbazaar"
+version = "0.0.0"
+description = "An assortment of publicly available cross-language utilities useful to my projects."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "Zachary Stucke", email = "zakstucke@gmail.com"},
+]
+requires-python = ">=3.11"
+classifiers = [
+  'Development Status :: 1 - Planning',
+  'Typing :: Typed',
+  'Operating System :: POSIX :: Linux',
+  'Operating System :: Microsoft :: Windows',
+  'Operating System :: MacOS',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: Implementation :: CPython',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3 :: Only',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'License :: OSI Approved',
+]
+dependencies = []
+
+[project.urls]
+"Sourcecode" = "https://github.com/zakstucke/bitbazaar"
+"Documentation" = "https://zakstucke.github.io/bitbazaar"

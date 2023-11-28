@@ -1,0 +1,44 @@
+line-length = 100
+ignore-init-module-imports = true  # Makes unused imports in __init__.py give message to add to __all__ rather than redundant import
+unfixable = [
+  # Don't remove unused imports or variables on save, can be quite annoying when writing code:
+  "F401",
+  "F841",
+]
+select = [
+  "E",  # pycodestyle
+  "D",  # pydocstyle for docstrings
+  "F",  # pyflakes
+  "A",  # prevent using keywords that clobber python builtins
+  "B",  # bugbear: security warnings
+  "UP",  # alert you when better syntax is available in your python version
+  "RUF",  # the ruff developer's own rules
+  "PD",  # Pandas rules
+  "ISC",  # implicit string concatenation
+  "I",  # Isort import sorting
+]
+ignore = [
+  "ISC001",  # Conflicts with the formatter, not needed
+  "E712",  # Allow using if x == False, as it's not always equivalent to if x.
+  "E501",  # Suppress line-too-long warnings: trust ruff formatter to handle as needed.
+  "E402",  # Allow imports not at top of file
+  "UP032",  # Ignore convert "{}".format(...) to f"{...}"
+  "UP015",  # Stops trying to remove "r" from open("..", "r") as it's the default, good to be clear
+  "RUF010",  # Ignore converting f"{str(x)}" to f"{x!s}" simply because it's less obvious and less people know about it
+]
+
+[per-file-ignores]
+"**/{tests}/**/*" = [
+  # Don't need docstrings linting for tests
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D106",
+  "D107",
+]
+
+[pydocstyle]
+convention = "google"
