@@ -24,7 +24,7 @@ An assortment of publicly available cross-language utilities useful to my projec
 
 ### Python
 
-Current version: `0.0.0`
+Current version: `0.0.1`
 
 You can install _BitBazaar_ via [pip](https://pip.pypa.io/) from [PyPI](https://pypi.org/):
 
@@ -34,7 +34,7 @@ pip install bitbazaar
 
 ### Javascript
 
-Current version: `0.0.0`
+Current version: `0.0.1`
 
 You can install _BitBazaar_ via [npm](https://www.npmjs.com/):
 
@@ -44,7 +44,7 @@ npm install bitbazaar
 
 ### Rust-backed Python library
 
-Current version: `0.0.0`
+Current version: `0.0.1`
 
 You can install _BitBazaar_ via [pip](https://pip.pypa.io/) from [PyPI](https://pypi.org/):
 
@@ -62,7 +62,7 @@ Otherwise, you can install from source which requires Rust stable to be installe
 
 ### Rust
 
-Current version: `0.0.0`
+Current version: `0.0.1`
 
 This project isn't released to a private registry store and is only accessible from github.
 In below scripts replace `<ACCESS_TOKEN>` with the one supplied to you.
@@ -72,7 +72,7 @@ In below scripts replace `<ACCESS_TOKEN>` with the one supplied to you.
 
 [dependencies]
 # Cargo is intelligent enough to find the specific crate/Cargo.toml in the repo (Note this means 2 Cargo.toml in the same repo will break)
-bitbazaar = { git = "https://<ACCESS_TOKEN>@github.com/zakstucke/bitbazaar.git", tag = "v0.0.0_rs" }
+bitbazaar = { git = "https://<ACCESS_TOKEN>@github.com/zakstucke/bitbazaar.git", tag = "v0.0.1_rs" }
 ```
 
 This installs the specific subdirectory at the target version tag (pointing to the specific commit that released that version)
