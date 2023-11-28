@@ -5,8 +5,7 @@
     "scripts": {
         "test": "vitest",
         "lint": "eslint",
-        "build": "tsup",
-        "postinstall": "patch-package"
+        "build": "tsup"
     },
     "repository": {
         "type": "git",
@@ -31,7 +30,6 @@
         "happy-dom": "12.10.3",
         "tsup": ">=7.2.0",
         "typescript": ">=5.2.2",
-        "vitest": ">=0.34.6",
-        "patch-package": "8.0.0"
+        "vitest": ">=0.34.6"
     }
 }

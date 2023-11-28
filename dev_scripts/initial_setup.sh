@@ -32,6 +32,8 @@ initial_setup () {
     npm i
     cd ..
 
+
+
     echo "Setting up rust backed python project..."
     ./dev_scripts/py_rust.sh ensure_venv
 }
