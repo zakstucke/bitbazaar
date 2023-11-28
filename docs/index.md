@@ -62,20 +62,16 @@ Otherwise, you can install from source which requires Rust stable to be installe
 
 ### Rust
 
-Current version: `0.0.1`
+Current version: `0.0.0`
 
-This project isn't released to a private registry store and is only accessible from github.
-In below scripts replace `<ACCESS_TOKEN>` with the one supplied to you.
+You can install _BitBazaar_ via [crates.io](https://crates.io/):
 
 ```yaml
 # Cargo.toml
 
 [dependencies]
-# Cargo is intelligent enough to find the specific crate/Cargo.toml in the repo (Note this means 2 Cargo.toml in the same repo will break)
-bitbazaar = { git = "https://<ACCESS_TOKEN>@github.com/zakstucke/bitbazaar.git", tag = "v0.0.1_rs" }
+bitbazaar = "1.0.0" # With the up to date version
 ```
-
-This installs the specific subdirectory at the target version tag (pointing to the specific commit that released that version)
 
 ## Usage
 
