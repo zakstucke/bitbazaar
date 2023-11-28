@@ -1,0 +1,23 @@
+# DOCUMENTATION SUB PROJECT
+
+[project]
+requires-python = ">=3.11"
+license = {text = "MIT"}
+classifiers = [
+  # Prevent accidental upload to public pypi:
+  # https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#classifiers
+  "Private :: Do Not Upload",
+]
+dependencies = [
+  "mkdocs-material>=9.4.4",
+  "mkdocstrings[python]>=0.23.0",
+  "mkdocs-git-revision-date-localized-plugin>=1.2.0",
+  "mkdocs-git-committers-plugin-2>=1.2.0",
+  "pymdown-extensions>=10.3",
+  "mkdocs-gen-files>=0.5.0",
+  "mkdocs-literate-nav>=0.6.1",
+  "mkdocs-section-index>=0.3.8",
+  "setuptools>=61.0",
+  "mkdocs-macros-plugin>=1.0.4",
+  "mkdocs-exclude>=1.0.2",
+]
