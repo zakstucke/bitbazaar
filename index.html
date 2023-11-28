@@ -1115,15 +1115,12 @@
 <p>Otherwise, you can install from source which requires Rust stable to be installed.</p>
 <h3 id="rust">Rust</h3>
 <p>Current version: <code>0.0.1</code></p>
-<p>This project isn't released to a private registry store and is only accessible from github.
-In below scripts replace <code>&lt;ACCESS_TOKEN&gt;</code> with the one supplied to you.</p>
+<p>You can install <em>BitBazaar</em> via <a href="https://crates.io/">crates.io</a>:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Cargo.toml</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p p-Indicator">[</span><span class="nv">dependencies</span><span class="p p-Indicator">]</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Cargo is intelligent enough to find the specific crate/Cargo.toml in the repo (Note this means 2 Cargo.toml in the same repo will break)</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="l l-Scalar l-Scalar-Plain">bitbazaar = { git = &quot;https://&lt;ACCESS_TOKEN&gt;@github.com/zakstucke/bitbazaar.git&quot;, tag = &quot;v0.0.1_rs&quot; }</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="l l-Scalar l-Scalar-Plain">bitbazaar = &quot;1.0.0&quot;</span><span class="w"> </span><span class="c1"># With the up to date version</span>
 </span></code></pre></div>
-<p>This installs the specific subdirectory at the target version tag (pointing to the specific commit that released that version)</p>
 <h2 id="usage">Usage</h2>
 <p>Please see the <a href="https://zakstucke.github.io/bitbazaar">documentation</a> for details.</p>
 <h2 id="contributing">Contributing</h2>
