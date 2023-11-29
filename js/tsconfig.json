@@ -25,5 +25,5 @@
         "resolveJsonModule": true
     },
     "exclude": ["bitbazaar/*.spec.(js|jsx|ts|tsx)", "bitbazaar/*.test.(js|jsx|ts|tsx)"],
-    "include": ["bitbazaar/**/*", "tests/**/*", "lib/index.d.ts"]
+    "include": ["bitbazaar/**/*", "tests/**/*"]
 }
