@@ -23,6 +23,8 @@
         "dist"
     ],
     "devDependencies": {
+        "@types/chroma-js": "^2.4.2",
+        "@types/html-minifier-terser": "7.0.1",
         "@typescript-eslint/eslint-plugin": ">=6.9.0",
         "@typescript-eslint/parser": ">=6.9.0",
         "@vitest/coverage-istanbul": "^0.34.6",
@@ -30,21 +32,20 @@
         "happy-dom": "12.10.3",
         "tsup": ">=7.2.0",
         "typescript": ">=5.2.2",
-        "vitest": ">=0.34.6",
-        "@types/html-minifier-terser": "7.0.1",
-        "@types/chroma-js": "^2.4.2"
+        "vitest": ">=0.34.6"
     },
     "peerDependencies": {
-        "vite": "^4.5.0",
-        "chroma-js": "^2.4.2"
+        "chroma-js": "^2.4.2",
+        "vite": "^4.5.0"
     },
     "dependencies": {
+        "@preact/preset-vite": "2.6.0",
+        "@prefresh/vite": "2.4.3",
         "html-minifier-terser": "7.2.0",
+        "install": "^0.13.0",
         "vite-plugin-checker": "0.6.2",
         "vite-plugin-inspect": "0.7.41",
         "vite-plugin-pwa": "0.16.7",
-        "vite-plugin-rewrite-all": "1.0.1",
-        "@preact/preset-vite": "2.6.0",
-        "@prefresh/vite": "2.4.3"
+        "vite-plugin-rewrite-all": "1.0.1"
     }
 }
