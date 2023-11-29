@@ -9,7 +9,6 @@ const excludeGlobs: string[] = [
     "**/.venv/**",
     "**/node_modules/**",
     "**/dist/**",
-    "**/lib/**",
     "**/cypress/**",
     "**/coverage/**",
     "**/.eslintrc.*/**",

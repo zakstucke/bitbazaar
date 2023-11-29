@@ -14,6 +14,6 @@ export const tsup: Options = {
     entryPoints: ["bitbazaar/index.ts"],
     watch: env === "development",
     target: "es2020",
-    outDir: env === "production" ? "dist" : "lib",
+    outDir: "dist",
     entry: ["bitbazaar/**/*.ts"], // look at all files in the project
 };

@@ -234,8 +234,8 @@ jobs:
               uses: release-drafter/release-drafter@v5
               with:
                   publish: true
-                  tag: "v${{ inputs.py_version }}_js"
-                  name: "v${{ inputs.py_version }} - JS"
+                  tag: "v${{ inputs.js_version }}_js"
+                  name: "v${{ inputs.js_version }} - JS"
               env:
                   GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -286,8 +286,8 @@ jobs:
               uses: release-drafter/release-drafter@v5
               with:
                   publish: true
-                  tag: "v${{ inputs.py_version }}_py_rs"
-                  name: "v${{ inputs.py_version }} - Rust-backed Python Library"
+                  tag: "v${{ inputs.py_rust_version }}_py_rs"
+                  name: "v${{ inputs.py_rust_version }} - Rust-backed Python Library"
               env:
                   GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 

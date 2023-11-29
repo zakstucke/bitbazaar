@@ -1,10 +1,10 @@
+import preact from "@preact/preset-vite";
 import { minify } from "html-minifier-terser";
 import checker from "vite-plugin-checker";
 import Inspect from "vite-plugin-inspect";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig, UserConfig } from "vitest/config";
 
-import preact from "@preact/preset-vite";
 import { genPath } from "@root/utils/genPath";
 
 import fs from "fs/promises";

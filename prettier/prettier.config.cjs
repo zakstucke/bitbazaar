@@ -14,7 +14,7 @@ module.exports = {
     importOrderCaseInsensitive: true,
     importOrder: [
         "<THIRD_PARTY_MODULES>",
-        "^@(.*)$",
+        "^@root(.*)$",
         "^../(.*)$",
         "^[./]",
         "(?=./styles.module.scss)",
