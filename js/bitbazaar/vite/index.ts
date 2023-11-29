@@ -1,3 +1,3 @@
-export { createConfig } from "./config";
+export { createConfig } from "./createConfig";
 
-export type { TopViteConfig } from "./config";
+export type { TopViteConfig } from "./createConfig";

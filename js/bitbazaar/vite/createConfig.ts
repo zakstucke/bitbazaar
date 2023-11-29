@@ -1,6 +1,5 @@
 import preact from "@preact/preset-vite";
 import { minify } from "html-minifier-terser";
-import { resolve } from "path";
 import checker from "vite-plugin-checker";
 import Inspect from "vite-plugin-inspect";
 import { VitePWA } from "vite-plugin-pwa";
@@ -13,16 +12,12 @@ import { genBackendProxies, ProxyConf } from "./genProxy";
 
 const baseNonFrontendGlobs: string[] = [
     "**/.git/**",
-    "**/backend/**",
     "**/venv/**",
     "**/.venv/**",
     "**/node_modules/**",
     "**/dist/**",
     "**/cypress/**",
-    "**/test_media/**",
-    "**/static/**",
     "**/coverage/**",
-    "**/process_data/**",
     "**/htmlcov/**",
     "**/.{idea,git,cache,output,temp,mypy_cache,pytype}/**",
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*",
@@ -63,9 +58,27 @@ export interface TopViteConfig {
 
     /** Include the inspect plugin, which allows you to see how vite is transforming code: */
     inspect?: boolean;
+
+    /** Allows vite to handle custom import phrases, note if they're in tsconfig not 100% sure if this is needed.
+    *   E.g. import { resolve } from "path";
+        alias: {
+            "@": resolve("./bitbazaar"),
+        }
+
+        Or better yet, just use the tsconfig paths:
+        import tsconfig from "./tsconfig.json";
+        alias: tsconfig.compilerOptions.paths,
+     */
+    alias?: Exclude<UserConfig["resolve"], undefined>["alias"];
+
+    // If not using a separate vitest.config.ts, can pass test config here:
+    test?: UserConfig["test"];
 }
 
-/** Vite config creator
+/** An opinionated outer config wrapper for vite (layers upon layers!!). To prevent having unique & complex config setups across multiple similar projects.
+ * This handles index minification, css, scss, preact, pwa, service worker etc and the fact they can't come from a separate CDN.
+ * Designed to work with a custom index.html file.
+ *
  * CSS:
  * - css/scss is handled automatically, postcss.config.cjs is being detected automatically
  * - foo.module.s?css identifies local, everything else is treated as global
@@ -73,7 +86,7 @@ export interface TopViteConfig {
  *
  * HTML ENTRY:
  * - Vite looks for an index.html file at the root, there's currently no way to configure this.
- * - If you need to preprocess in any way, e.g. django or etch. You'll have to have a source you preprocess first.
+ * - If you need to preprocess in any way, e.g. django or etch. You'll have to have a source you preprocess first before running vite, writing it to root/index.html.
  * - Vite will process it further
  * - The final minified index.html will be added to the assets folder, where it should be the root of a static site, or server manually from a backend server.
  */
@@ -235,12 +248,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
         plugins,
         resolve: {
             // Providing absolute paths:
-            alias: {
-                helpers: resolve("./frontend/src/helpers"),
-                apps: resolve("./frontend/src/apps"),
-                scss_global: resolve("./frontend/src/scss_global"),
-                fbs: resolve("./front_back_shared"),
-            },
+            alias: conf.alias,
             // Fixes esm problem with rrd:
             // react-router-dom specifies "module" field in package.json for ESM entry
             // if it's not mapped, it uses the "main" field which is CommonJS that redirects to CJS preact
@@ -269,19 +277,13 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
             "process.env.NODE_ENV": JSON.stringify(mode),
         },
 
-        // Only enabled during dev by default,
-        // this tells esbuild to look and see what node_modules are being used from each js file,
-        // then pre-optimises them.
-        optimizeDeps: {
-            entries: ["./frontend/**/*.{js,jsx,ts,tsx}", "./index.html"],
-        },
-
         // (Attempted!) size and perf optimisations:
         json: {
             stringify: true,
         },
+
         esbuild: {
-            legalComments: "none",
+            legalComments: "linked",
             exclude: nonFrontendGlobs,
         },
     };
