@@ -1,7 +1,7 @@
 import { assert, describe, it } from "vitest";
 
-import { hello } from "/bitbazaar";
-import { add } from "/bitbazaar/utils";
+import { hello } from "@root";
+import { add } from "@root/utils";
 
 describe("Basics", () => {
     it("hello", () => {

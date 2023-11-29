@@ -315,7 +315,7 @@ jobs:
               uses: release-drafter/release-drafter@v5
               with:
                   publish: true
-                  tag: "v${{ inputs.py_rust_version }}_rs"
-                  name: "v${{ inputs.py_rust_version }} - Rust"
+                  tag: "v${{ inputs.rust_version }}_rs"
+                  name: "v${{ inputs.rust_version }} - Rust"
               env:
                   GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
