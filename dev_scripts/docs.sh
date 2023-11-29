@@ -8,6 +8,8 @@ js_sub_build () {
     # Find all the index files and pass them to typedoc:
     index_paths=$(find ./js/bitbazaar \( -name "index.ts" -o -name "index.js" -o -name "index.cjs" -o -name "index.tsx" -o -name "index.jsx" \) -exec printf "%s " {} +)
 
+    # Typedoc needs the target package's deps to be installed:
+    npm install --prefix ./js install
     npx --yes typedoc@0.25.3 --out ./docs/js_ref --readme none --tsconfig ./js/tsconfig.json $index_paths
 }
 
