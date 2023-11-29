@@ -1,6 +1,6 @@
 import { ProxyOptions, UserConfig } from "vite";
 
-import { genPath } from "../utils/genPath";
+import { genPath } from "@root/utils/genPath";
 
 export interface ProxyConf {
     // Where matches should be sent to:
