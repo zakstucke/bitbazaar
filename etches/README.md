@@ -5,6 +5,10 @@
 
 [license]: https://github.com/zakstucke/bitbazaar/blob/main/LICENSE.md
 
+An assortment of publicly available cross-language utilities useful to my projects.
+
+### Python
+
 [![PyPI](https://img.shields.io/pypi/v/bitbazaar.svg)][pypi status]
 [![Status](https://img.shields.io/pypi/status/bitbazaar.svg)][pypi status]
 [![Python Version](https://img.shields.io/pypi/pyversions/bitbazaar)][pypi status]
@@ -12,21 +16,7 @@
 
 [pypi status]: https://pypi.org/project/bitbazaar/
 
-[![PyPI](https://img.shields.io/pypi/v/bitbazaar_rs.svg)][pypi status]
-[![Status](https://img.shields.io/pypi/status/bitbazaar_rs.svg)][pypi status]
-[![Python Version](https://img.shields.io/pypi/pyversions/bitbazaar_rs)][pypi status]
-
-[pypi status]: https://pypi.org/project/bitbazaar_rs/
-
-An assortment of publicly available cross-language utilities useful to my projects.
-
-## Installation
-
-### Python
-
-Current version: `{{ PY_VERSION }}`
-
-You can install _BitBazaar_ via [pip](https://pip.pypa.io/) from [PyPI](https://pypi.org/):
+You can install **BitBazaar** via [pip](https://pip.pypa.io/) from [PyPI](https://pypi.org/):
 
 ```console
 pip install bitbazaar
@@ -34,9 +24,10 @@ pip install bitbazaar
 
 ### Javascript
 
-Current version: `{{ JS_VERSION }}`
+[![npm version](https://img.shields.io/npm/v/bitbazaar.svg?style=flat)](https://www.npmjs.com/package/bitbazaar)
+![Coverage](https://img.shields.io/badge/Coverage-100%25-green)
 
-You can install _BitBazaar_ via [npm](https://www.npmjs.com/):
+You can install **BitBazaar** via [npm](https://www.npmjs.com/):
 
 ```console
 npm install bitbazaar
@@ -44,9 +35,13 @@ npm install bitbazaar
 
 ### Rust-backed Python library
 
-Current version: `{{ PY_RUST_VERSION }}`
+[![PyPI](https://img.shields.io/pypi/v/bitbazaar_rs.svg)][pypi status]
+[![Status](https://img.shields.io/pypi/status/bitbazaar_rs.svg)][pypi status]
+[![Python Version](https://img.shields.io/pypi/pyversions/bitbazaar_rs)][pypi status]
 
-You can install _BitBazaar_ via [pip](https://pip.pypa.io/) from [PyPI](https://pypi.org/):
+[pypi status]: https://pypi.org/project/bitbazaar_rs/
+
+You can install **BitBazaar** via [pip](https://pip.pypa.io/) from [PyPI](https://pypi.org/):
 
 ```console
 pip install bitbazaar_rs
@@ -62,9 +57,9 @@ Otherwise, you can install from source which requires Rust stable to be installe
 
 ### Rust
 
-Current version: `{{ RUST_VERSION }}`
+[![Crates.io](https://img.shields.io/crates/v/bitbazaar.svg)](https://crates.io/crates/bitbazaar)
 
-You can install _BitBazaar_ via [crates.io](https://crates.io/):
+You can install **BitBazaar** via [crates.io](https://crates.io/):
 
 ```yaml
 # Cargo.toml
@@ -85,7 +80,7 @@ To learn more, see the [Contributor Guide](CONTRIBUTING.md).
 ## License
 
 Distributed under the terms of the [MIT license](LICENSE.md),
-_BitBazaar_ is free and open source software.
+**BitBazaar** is free and open source software.
 
 ## Issues
 
