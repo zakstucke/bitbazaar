@@ -12,5 +12,11 @@ module.exports = {
     importOrderSeparation: true,
     importOrderSortSpecifiers: true,
     importOrderCaseInsensitive: true,
-    importOrder: ["<THIRD_PARTY_MODULES>", "^../(.*)$", "^[./]", "(?=./styles.module.scss)"],
+    importOrder: [
+        "<THIRD_PARTY_MODULES>",
+        "^@(.*)$",
+        "^../(.*)$",
+        "^[./]",
+        "(?=./styles.module.scss)",
+    ],
 };

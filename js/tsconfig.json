@@ -1,6 +1,10 @@
 {
     "compilerOptions": {
         "baseUrl": ".",
+        "paths": {
+            "@root": ["bitbazaar"],
+            "@root/*": ["bitbazaar/*"]
+        },
         "declaration": true,
         "target": "ESNext",
         "lib": ["esnext", "dom"],
@@ -21,8 +25,5 @@
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true
     },
-    "include": [
-        "bitbazaar/**/*",
-        "lib/index.d.ts" // declaration file path
-    ]
+    "include": ["bitbazaar/**/*", "tests/**/*", "lib/index.d.ts"]
 }

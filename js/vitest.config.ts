@@ -1,5 +1,7 @@
 import { defineConfig } from "vitest/config";
 
+import tsconfig from "./tsconfig.json";
+
 const nonFrontendGlobs: string[] = [
     "**/.git/**",
     "**/venv/**",
@@ -13,6 +15,10 @@ const nonFrontendGlobs: string[] = [
 ];
 
 export default defineConfig({
+    resolve: {
+        // @ts-expect-error
+        alias: tsconfig.compilerOptions.paths,
+    },
     test: {
         environment: "happy-dom",
         setupFiles: [
@@ -20,7 +26,7 @@ export default defineConfig({
             "./tests/setupTests.ts",
         ],
         coverage: {
-            provider: "v8",
+            provider: "istanbul",
             all: true,
             lines: 100,
             functions: 100,
