@@ -5,8 +5,8 @@ import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig, UserConfig } from "vitest/config";
 
 import preact from "@preact/preset-vite";
+import { genPath } from "@root/utils/genPath";
 
-import { genPath } from "../utils/genPath";
 import fs from "fs/promises";
 
 import { genBackendProxies, ProxyConf } from "./genProxy";
@@ -17,10 +17,12 @@ const baseNonFrontendGlobs: string[] = [
     "**/.venv/**",
     "**/node_modules/**",
     "**/dist/**",
+    "**/lib/**",
     "**/cypress/**",
     "**/coverage/**",
-    "**/htmlcov/**",
-    "**/.{idea,git,cache,output,temp,mypy_cache,pytype}/**",
+    "**/.eslintrc.*/**",
+    "**/*.etch.*",
+    "**/.{idea,git,cache,output,temp,mypy_cache,pytype,pytest,pyright}/**",
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*",
 ];
 
