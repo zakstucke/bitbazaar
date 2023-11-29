@@ -14,9 +14,9 @@
     "author": "zakstucke@gmail.com",
     "license": "MIT",
     "type": "module",
-    "main": "dist/index.cjs",
-    "module": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "main": "dist/bitbazaar/index.cjs",
+    "module": "dist/bitbazaar/index.js",
+    "types": "dist/bitbazaar/index.d.ts",
     "sideEffects": false,
     "files": [
         "dist"
