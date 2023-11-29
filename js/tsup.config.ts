@@ -4,11 +4,11 @@ import type { Options } from "tsup";
 export const tsup: Options = {
     clean: true, // clean up the dist folder
     dts: true, // generate dts files
-    format: ["esm"], // Only support ESM, fixes lots of import problems
+    format: ["cjs", "esm"],
     minify: false, // Again allow downstream consumers to minify
-    bundle: false, // Don't bundle, allow downstream consumers to bundle
+    bundle: true, // Don't bundle, allow downstream consumers to bundle
     skipNodeModulesBundle: true,
     target: "es2020",
     outDir: "./dist",
-    entry: ["bitbazaar/**/*.ts"], // look at all files in the project
+    entry: ["bitbazaar/*/index.ts", "bitbazaar/*/index.ts"], // look at all files in the project
 };
