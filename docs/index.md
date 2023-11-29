@@ -62,7 +62,7 @@ Otherwise, you can install from source which requires Rust stable to be installe
 
 ### Rust
 
-Current version: `0.0.0`
+Current version: `0.0.1`
 
 You can install _BitBazaar_ via [crates.io](https://crates.io/):
 
