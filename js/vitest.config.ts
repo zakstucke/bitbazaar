@@ -26,12 +26,12 @@ export default defineConfig({
             "./tests/setupTests.ts",
         ],
         coverage: {
-            provider: "v8",
+            provider: "istanbul",
             all: true,
-            lines: 0,
-            functions: 0,
-            branches: 0,
-            statements: 0,
+            lines: 100,
+            functions: 100,
+            branches: 100,
+            statements: 100,
         },
         testTimeout: 15000,
         // Not sure if this does anything, but maybe makes loading faster:

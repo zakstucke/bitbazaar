@@ -31,7 +31,8 @@
         "tsup": ">=7.2.0",
         "typescript": ">=5.2.2",
         "vitest": ">=0.34.6",
-        "@types/html-minifier-terser": "7.0.1"
+        "@types/html-minifier-terser": "7.0.1",
+        "@types/chroma-js": "^2.4.2"
     },
     "peerDependencies": {
         "vite": "^4.5.0",

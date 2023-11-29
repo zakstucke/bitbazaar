@@ -6,9 +6,9 @@ import { defineConfig, UserConfig } from "vitest/config";
 
 import preact from "@preact/preset-vite";
 
+import { genPath } from "../utils/genPath";
 import fs from "fs/promises";
 
-import { genPath } from "./genPath";
 import { genBackendProxies, ProxyConf } from "./genProxy";
 
 const baseNonFrontendGlobs: string[] = [
@@ -186,7 +186,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
             name: "move-webmanifest", // the name of your custom plugin. Could be anything.
             apply: "build",
             enforce: "post",
-            closeBundle: async () => {
+            closeBundle: /* istanbul ignore next */ async () => {
                 const oldLoc = genPath(assetsPath, {
                     extra: ["manifest.webmanifest"],
                 });

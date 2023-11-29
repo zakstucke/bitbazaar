@@ -1,10 +1,10 @@
-import { ChromaStatic } from "chroma-js";
+import type { ChromaStatic, Color } from "chroma-js";
 
 interface SteppedScaleProps {
     /** Chroma instance to use, allows using a modified version to reduce bundle size downstream if needed. */
     chroma: ChromaStatic;
-    /** The color to create a scale around. */
-    color: string;
+    /** The color to create a scale around. Expects a hex or similar that chroma can receive. */
+    color: string | number | Color;
     /** The number of steps to create. Including the base color entered. */
     numberOfSteps: number;
 }
@@ -28,12 +28,11 @@ export const createSteppedScale = ({
 
     const baseNum = Math.ceil(numberOfSteps / 2);
 
+    const steps: string[] = [];
+
     // Try up to 5 times to produce values that don't end in white or black (i.e. the step size too large)
     const numAttempts = 5;
     for (let attempt = 1; attempt <= numAttempts; attempt++) {
-        const isFinalAttempt = attempt === numAttempts;
-
-        const steps: string[] = [];
         // Reduce the step size each attempt, to try and get a scale that doesn't hit white or black:
         const stepSize = 0.5 * (1 / attempt);
         let failed = false;
@@ -51,21 +50,20 @@ export const createSteppedScale = ({
                     .hex();
             }
 
-            // If we've hit white or black (and isn't final attempt), step size still too large, try again with smaller:
-            if (!isFinalAttempt && (derivCol === whiteHex || derivCol === blackHex)) {
+            if (derivCol === whiteHex || derivCol === blackHex) {
                 failed = true;
-                break;
             }
 
             steps.push(derivCol);
         }
 
         if (!failed) {
-            return steps;
+            break;
         }
+
+        // Reset steps to try again:
+        steps.length = 0;
     }
 
-    throw new Error(
-        `Failed to create scale for color: ${color} with ${numberOfSteps} steps within the attempt limit of ${numAttempts}.`,
-    );
+    return steps;
 };

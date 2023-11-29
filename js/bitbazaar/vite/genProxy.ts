@@ -1,6 +1,6 @@
 import { ProxyOptions, UserConfig } from "vite";
 
-import { genPath } from "./genPath";
+import { genPath } from "../utils/genPath";
 
 export interface ProxyConf {
     // Where matches should be sent to:
@@ -12,7 +12,7 @@ export interface ProxyConf {
     negate?: boolean;
 }
 
-type ViteProxy_T = Exclude<UserConfig["server"], undefined>["proxy"];
+type ViteProxy_T = Exclude<Exclude<UserConfig["server"], undefined>["proxy"], undefined>;
 
 const genTargetOptions = (target: string): ProxyOptions => {
     return {
