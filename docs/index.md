@@ -34,7 +34,7 @@ pip install bitbazaar
 
 ### Javascript
 
-Current version: `0.0.1`
+Current version: `0.0.2`
 
 You can install _BitBazaar_ via [npm](https://www.npmjs.com/):
 
