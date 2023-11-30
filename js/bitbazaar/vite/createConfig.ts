@@ -215,9 +215,9 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                     minifyCSS: true,
                     minifyJS: true,
                 });
-                // Naming base rather than index to work more nicely with nginx:
+                // Naming other than index.html to work more nicely with nginx:
                 const newIndexLoc = genPath(conf.sameDomStaticPath, {
-                    extra: ["base.html"],
+                    extra: ["site_index.html"],
                 });
                 // eslint-disable-next-line no-console
                 console.log(
