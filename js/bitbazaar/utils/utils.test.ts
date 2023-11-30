@@ -14,6 +14,10 @@ describe("Utils", () => {
             assert.equal(genPath("test.txt"), "/test.txt");
             // Url looking path no where:
             assert.equal(genPath("http://test.com"), "http://test.com");
+            // Relative path should add at end but not beginning:
+            assert.equal(genPath("./test"), "./test/");
+            // Double for good measure:
+            assert.equal(genPath("../test/"), "../test/");
         });
         it("Overrides", () => {
             assert.equal(genPath("/test/", { eSlash: false, sShlash: false }), "test");

@@ -5,7 +5,7 @@
 export const genPath = (
     path: string,
     {
-        sShlash = undefined, // If isn't a root url (e.g. starting with http), then will default to true, otherwise false
+        sShlash = undefined, // If isn't a root url (e.g. starting with http), or a relative path, then will default to true, otherwise false
         eSlash = undefined, // NOTE! defaults to true if dir, false if file
         extra = undefined, // Extra sections to add to the end of the path, the sSlash/eSlash applies after this has been added:
     }: {
@@ -14,6 +14,12 @@ export const genPath = (
         extra?: string[];
     } = {},
 ): string => {
+    // Strip any leading or trailing whitespace:
+    path = path.trim();
+    if (extra) {
+        extra = extra.map((e) => e.trim());
+    }
+
     if (extra) {
         // Adding sections, start with / at end:
         if (!path.endsWith("/")) {
@@ -28,7 +34,7 @@ export const genPath = (
 
     // Decide whether sSlash should default to true or false depending on whether it looks like a root url:
     if (sShlash === undefined) {
-        sShlash = !path.startsWith("http");
+        sShlash = !path.startsWith("http") && !path.startsWith(".");
     }
 
     // Decide whether eSlash should default to true or false
