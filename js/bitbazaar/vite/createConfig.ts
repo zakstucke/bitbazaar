@@ -286,7 +286,6 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
         },
 
         esbuild: {
-            legalComments: "linked",
             exclude: nonFrontendGlobs,
         },
     };
