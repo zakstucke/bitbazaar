@@ -27,6 +27,8 @@ const baseNonFrontendGlobs: string[] = [
 ];
 
 export interface TopViteConfig {
+    port: number;
+
     siteName: string;
     siteDescription: string;
 
@@ -61,6 +63,8 @@ export interface TopViteConfig {
 
     /** Include the inspect plugin, which allows you to see how vite is transforming code: */
     inspect?: boolean;
+
+    serverFs?: Exclude<UserConfig["server"], undefined>["fs"];
 
     /** Allows vite to handle custom import phrases, note if they're in tsconfig not 100% sure if this is needed.
     *   E.g. import { resolve } from "path";
@@ -260,13 +264,14 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
         server: {
             // open: true, // Open the web page on start
             host: "localhost",
-            port: 3000,
+            port: conf.port,
             watch: {
                 // Don't check non frontend files:
                 ignored: nonFrontendGlobs,
             },
             // Proxy all backend requests to django/fastapi:
             proxy: genBackendProxies(conf.proxy),
+            fs: conf.serverFs,
         },
         // When being served from django in production, js internal assets urls need to use url to the js assets inside the static url,
         // rather than in dev where they're just served from the root:
@@ -274,6 +279,8 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
         // The production build config:
         build: {
             outDir: genPath(assetsPath),
+            // Disabled by default when outside root, just a precautionary check I'm happy to disable:
+            emptyOutDir: true,
         },
         define: {
             // Vite doesn't have process, so define the specifically needed ones directly:
