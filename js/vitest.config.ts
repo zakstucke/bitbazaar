@@ -35,6 +35,7 @@ export default defineConfig({
             functions: 100,
             branches: 100,
             statements: 100,
+            include: ["bitbazaar/**/*.{js,jsx,ts,tsx}"],
             exclude: excludeGlobs,
         },
         testTimeout: 15000,

@@ -21,7 +21,8 @@
         "moduleDetection": "force",
         "forceConsistentCasingInFileNames": true,
         "allowSyntheticDefaultImports": true,
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "jsx": "react-jsx"
     },
     "exclude": ["bitbazaar/*.spec.(js|jsx|ts|tsx)", "bitbazaar/*.test.(js|jsx|ts|tsx)"],
     "include": ["bitbazaar/**/*", "tests/**/*"]
