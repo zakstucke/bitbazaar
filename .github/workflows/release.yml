@@ -217,16 +217,17 @@ jobs:
                   cache: npm
                   cache-dependency-path: "js/package-lock.json"
 
-            - name: Install deps, build lib
+            - name: Install deps, build lib and copy package.json and README.md to dist which is published as root
               run: |
                   cd js
                   npm install
                   npm run build
-                  rm -rf ./node_modules
+                  cp package.json dist/
+                  cp README.md dist/
 
             - name: Publish publicly to NPM
               run: |
-                  cd js
+                  cd js/dist
                   npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
                   npm publish
 
