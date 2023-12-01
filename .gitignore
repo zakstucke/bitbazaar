@@ -25,6 +25,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+sds/sworker/
 develop-eggs/
 dist/
 downloads/

@@ -7,7 +7,7 @@ export const tsup: Options = {
     clean: true, // clean up the dist folder
     dts: true, // generate dts files
     format: ["cjs", "esm"], // generate cjs and esm files
-    minify: true,
+    minify: false, // Allow downstream to minify, makes debugging downstream easier if can actually see and edit the code.
     // This ones important as it fixes .js and .cjs etc import file endings which wouldn't otherwise.
     // It also compiles all nested files into the specific entrypoints, in our case just the main entry and top level submodules, which are all that should be imported.
     bundle: true,
