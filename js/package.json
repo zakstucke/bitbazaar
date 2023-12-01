@@ -1,6 +1,6 @@
 {
     "name": "bitbazaar",
-    "version": "0.0.14",
+    "version": "0.0.15",
     "description": "An assortment of publicly available cross-language utilities useful to my projects.",
     "scripts": {
         "test": "vitest",
