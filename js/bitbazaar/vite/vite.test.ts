@@ -4,6 +4,7 @@ import { createConfig, TopViteConfig } from ".";
 import { genBackendProxies } from "./genProxy";
 
 const defaultConf: TopViteConfig = {
+    port: 3000,
     favicon192PngPath: "test",
     favicon512PngPath: "test",
     proxy: {
