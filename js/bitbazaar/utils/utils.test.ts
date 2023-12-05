@@ -1,9 +1,27 @@
-import { add, genPath } from ".";
 import { describe, expect, it } from "bun:test";
+
+import { add, areTestsRunning, assertNever, genPath } from ".";
 
 describe("Utils", () => {
     it("add", () => {
         expect(add(1, 2)).toBe(3);
+    });
+    it("areTestsRunning", () => {
+        expect(areTestsRunning).toBe(true);
+    });
+    it("assertNever", () => {
+        expect(() => {
+            const x: number = 3;
+            switch (x) {
+                case 1:
+                    break;
+                case 2:
+                    break;
+                default:
+                    // @ts-expect-error checking raises:
+                    assertNever(x);
+            }
+        }).toThrow();
     });
     describe("genPath", () => {
         it("Defaults", () => {

@@ -19,10 +19,12 @@ module.exports = {
         "<THIRD_PARTY_MODULES>",
         "@root(.*)$",
         "@scripts(.*)$",
+        "^..$", // index
         // Two layers up if not a css file:
         "^../(?!.*.(scss|css|less)$)(.*)$",
         // One layer up if a css file:
         "^./(?!.*.(scss|css|less)$)(.*)$",
+        "^.$", // index
         // Non module css: (check no .module. in the name)
         "^.*(?<!\\.module)\\.(scss|css|less)$",
         // Then module css:

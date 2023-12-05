@@ -17,25 +17,32 @@
     "types": "index.d.ts",
     "sideEffects": false,
     "devDependencies": {
-        "bun-types": ">=1.0.15",
+        "@happy-dom/global-registrator": "12.10.3",
+        "@testing-library/react": "^14.1.2",
+        "@types/chroma-js": "^2.4.2",
+        "@types/html-minifier-terser": "7.0.1",
+        "@types/react": "^18.2.31",
+        "@types/react-dom": "^18.2.14",
         "@typescript-eslint/eslint-plugin": ">=6.9.0",
         "@typescript-eslint/parser": ">=6.9.0",
-        "eslint-plugin-react-hooks": ">=4.6.0",
+        "bun-types": ">=1.0.15",
         "eslint": ">=8.52.0",
-        "typescript": ">=5.2.2",
-        "@happy-dom/global-registrator": "12.10.3",
+        "eslint-plugin-react-hooks": ">=4.6.0",
         "tsup": ">=7.2.0",
-        "@types/chroma-js": "^2.4.2",
-        "@types/html-minifier-terser": "7.0.1"
+        "typescript": ">=5.2.2"
     },
     "peerDependencies": {
         "chroma-js": "^2.4.2",
-        "vite": "^4.5.0"
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "vite": "^4.5.0",
+        "wouter": "^3.0.0-rc.1"
     },
     "dependencies": {
         "@preact/preset-vite": "2.6.0",
         "@prefresh/vite": "2.4.3",
         "html-minifier-terser": "7.2.0",
+        "install": "^0.13.0",
         "vite-plugin-checker": "0.6.2",
         "vite-plugin-inspect": "0.7.41",
         "vite-plugin-pwa": "0.16.7",

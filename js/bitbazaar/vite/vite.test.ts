@@ -1,10 +1,12 @@
-import { createConfig, TopViteConfig } from ".";
 import { describe, expect, it } from "bun:test";
+
 import { tmpdir } from "os";
 
 import fs from "fs/promises";
 
 import { genBackendProxies } from "./genProxy";
+
+import { createConfig, TopViteConfig } from ".";
 
 const defaultConf: TopViteConfig = {
     port: 3000,

@@ -1,6 +1,7 @@
-import { createSteppedScale } from ".";
 import { describe, expect, it } from "bun:test";
 import chroma from "chroma-js";
+
+import { createSteppedScale } from ".";
 
 const checkScale = (numSteps: number, scale: string[], source: string) => {
     const sourceIndex = Math.ceil(numSteps / 2) - 1;
