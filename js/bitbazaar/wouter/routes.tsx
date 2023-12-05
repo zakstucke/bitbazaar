@@ -14,19 +14,15 @@ import { ValiWrapper } from "./valiWrapper";
 export const routes = <const T extends Record<string, InnerRouteConfig_T<any>>>({
     Comp404,
     routes,
-    routingType,
 }: {
     Comp404: React.ComponentType;
     routes: T;
-    routingType: "memory";
 }): {
     switch: JSX.Element;
     paths: {
         [K in keyof T]: T[K] extends InnerRouteConfig_T<infer X> ? RouteConfig_T<X> : never;
     };
 } => {
-    if (routingType !== "memory") throw new Error("Only memory routing is supported");
-
     const output: Record<string, RouteConfig_T<any>> = {};
     Object.entries(routes).forEach(([key, props]) => {
         output[key] = {

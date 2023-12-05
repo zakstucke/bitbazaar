@@ -28,7 +28,6 @@ describe("Wouter", () => {
         const About = ({}: RouteParamsOutput_T<typeof aboutParams>) => <p>About</p>;
 
         const myRoutes = routes({
-            routingType: "memory",
             Comp404: Error404,
             routes: {
                 home: route({
@@ -108,7 +107,6 @@ describe("Wouter", () => {
             };
 
             const myRoutes = routes({
-                routingType: "memory",
                 Comp404: Error404,
                 routes: {
                     home: route({
