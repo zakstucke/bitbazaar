@@ -1,0 +1,7 @@
+telemetry = false
+
+[test]
+preload = ["./tests/happydom.ts", "./tests/setupTests.ts"]
+coverage = true
+coverageSkipTestFiles = true
+coverageThreshold = 1.0

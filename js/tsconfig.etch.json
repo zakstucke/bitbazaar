@@ -2,10 +2,10 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "@root": ["./bitbazaar"],
-            "@root/*": ["./bitbazaar/*"],
-            "@scripts": ["./scripts"],
-            "@scripts/*": ["./scripts/*"]
+            {%- for alias, path in JS_ALIASES.items() %}
+            "{{ alias }}": ["{{ path }}"],
+            "{{ alias }}/*": ["{{ path }}/*"],
+            {%- endfor %}
         },
         "declaration": true,
         "noImplicitAny": false,
@@ -40,7 +40,7 @@
         "node_modules/**/*",
         "dist/**/*",
         "lib/**/*",
-        "**/*.etch.*"
+        "**/*.etch.*",
     ],
     "include": ["**/*"]
 }

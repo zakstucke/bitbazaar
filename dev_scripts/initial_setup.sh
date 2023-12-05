@@ -4,6 +4,14 @@
 set -e
 
 initial_setup () {
+    # Make sure bun installed as used in e.g. prettier scripts, update if so:
+    if command -v bun > /dev/null 2>&1; then
+        bun upgrade
+    else
+        echo "bun could not be found, installing..."
+        curl -fsSL https://bun.sh/install | bash # for macOS, Linux, and WSL
+    fi
+
     # Make sure nightly is installed as needed for formatting in pre-commit:
     rustup toolchain install nightly
 

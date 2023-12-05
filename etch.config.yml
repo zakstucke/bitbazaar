@@ -1,17 +1,20 @@
 ignore_files:
     - .gitignore
 
-setup:
-    - export PY_VERSION="$(./dev_scripts/pkg.sh ver_py)"
-    - export JS_VERSION="$(./dev_scripts/pkg.sh ver_js)"
-    - export RUST_VERSION="$(./dev_scripts/pkg.sh ver_rust)"
-    - export PY_RUST_VERSION="$(./dev_scripts/pkg.sh ver_py_rust)"
-
 context:
-    - PY_VERSION
-    - JS_VERSION
-    - RUST_VERSION
-    - PY_RUST_VERSION
+    - JS_ALIASES: { "@root": "./bitbazaar", "@scripts": "./scripts" }
+    - PY_VERSION:
+      type: cli
+      value: ./dev_scripts/pkg.sh ver_py
+    - JS_VERSION:
+      type: cli
+      value: ./dev_scripts/pkg.sh ver_js
+    - RUST_VERSION:
+      type: cli
+      value: ./dev_scripts/pkg.sh ver_rust
+    - PY_RUST_VERSION:
+      type: cli
+      value: ./dev_scripts/pkg.sh ver_py_rust
 # EXAMPLE CONFIG:
 # # Git-style ignore files to read, respect & exclude for the search:
 # ignore_files:
@@ -37,9 +40,9 @@ context:
 # # https://jinja.palletsprojects.com/en/3.0.x/api/#jinja2.Environment
 # jinja:
 #     # (These are the existing defaults for the most common config, more is avail in the link above)
-#     - block_start_string: "{%"
-#     - block_end_string: "%}"
-#     - variable_start_string: "{{"
-#     - variable_end_string: "}}"
-#     - comment_start_string: "{#"
-#     - comment_end_string: "#}"
+#      block_start_string: "{%"
+#      block_end_string: "%}"
+#      variable_start_string: "{{"
+#      variable_end_string: "}}"
+#      comment_start_string: "{#"
+#      comment_end_string: "#}"

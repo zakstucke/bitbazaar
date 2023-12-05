@@ -1,7 +1,5 @@
 import type { Options } from "tsup";
 
-const env = process.env.NODE_ENV;
-
 // https://dev.to/orabazu/how-to-bundle-a-tree-shakable-typescript-library-with-tsup-and-publish-with-npm-3c46
 export const tsup: Options = {
     clean: true, // clean up the dist folder
@@ -16,4 +14,5 @@ export const tsup: Options = {
     outDir: "dist",
     // Only include the top level entry and submodule entries:
     entry: ["bitbazaar/index.ts", "bitbazaar/*/index.ts"],
+    tsconfig: "./tsconfig.json",
 };

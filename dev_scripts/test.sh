@@ -28,6 +28,9 @@ pre_till_success () {
     index=0
     success=false
 
+    # Trap interrupts and exit instead of continuing the loop
+    trap "echo Exited!; exit;" SIGINT SIGTERM
+
     while [ $index -lt 5 ]; do
         index=$((index+1))
         echo "pre-commit attempt $index"
@@ -77,13 +80,13 @@ pyright () {
 
 js () {
     cd ./js/
-    npm run test -- run --coverage $@
+    bun test $@
     cd ..
 }
 
 eslint () {
     cd ./js/
-    npm run lint -- "./**/*.{js,jsx,ts,tsx}"
+    bunx --bun lint "./**/*.{js,jsx,ts,tsx}"
     cd ..
 }
 

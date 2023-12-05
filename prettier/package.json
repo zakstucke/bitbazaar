@@ -8,6 +8,7 @@
     "license": "UNLICENSED",
     "dependencies": {
         "@trivago/prettier-plugin-sort-imports": "4.3.0",
+        "prettier-plugin-tailwindcss": "0.4.1",
         "prettier": "2.8.8"
     }
 }

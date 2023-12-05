@@ -1,9 +1,9 @@
 import preact from "@preact/preset-vite";
 import { minify } from "html-minifier-terser";
+import { defineConfig, UserConfig } from "vite";
 import checker from "vite-plugin-checker";
 import Inspect from "vite-plugin-inspect";
 import { VitePWA } from "vite-plugin-pwa";
-import { defineConfig, UserConfig } from "vitest/config";
 
 import { genPath } from "@root/utils/genPath";
 
@@ -77,9 +77,6 @@ export interface TopViteConfig {
         alias: tsconfig.compilerOptions.paths,
      */
     alias?: Exclude<UserConfig["resolve"], undefined>["alias"];
-
-    // If not using a separate vitest.config.ts, can pass test config here:
-    test?: UserConfig["test"];
 }
 
 /** An opinionated outer config wrapper for vite (layers upon layers!!). To prevent having unique & complex config setups across multiple similar projects.
@@ -192,13 +189,19 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
             name: "move-webmanifest", // the name of your custom plugin. Could be anything.
             apply: "build",
             enforce: "post",
-            closeBundle: /* istanbul ignore next */ async () => {
+            closeBundle: async () => {
                 const oldLoc = genPath(assetsPath, {
                     extra: ["manifest.webmanifest"],
                 });
                 const newLoc = genPath(conf.sameDomStaticPath, {
                     extra: ["sworker", "manifest.webmanifest"],
                 });
+
+                // Create the sworker if missing in destination:
+                if (!(await fs.exists(genPath(conf.sameDomStaticPath, { extra: ["sworker"] })))) {
+                    await fs.mkdir(genPath(conf.sameDomStaticPath, { extra: ["sworker"] }));
+                }
+
                 // eslint-disable-next-line no-console
                 console.log(`Moving webmanifest from ${oldLoc} to ${newLoc}`);
                 await fs.rename(oldLoc, newLoc);
@@ -227,7 +230,10 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                 console.log(
                     `Minified index.html from ${indexSrc.length} to ${indexMinified.length} bytes, writing to ${newIndexLoc}.`,
                 );
+
                 await fs.writeFile(newIndexLoc, indexMinified);
+                // Remove original:
+                await fs.rm(indexLoc);
             },
         },
     ];

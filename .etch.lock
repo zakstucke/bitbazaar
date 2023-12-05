@@ -1,11 +1,12 @@
 {
-    "version": "0.0.8",
+    "version": "0.0.12",
     "files": {
         "py/LICENSE.etch.md": 2448964748,
         "py/README.etch.md": 1158138010,
         "LICENSE.etch.md": 2448964748,
         "js/LICENSE.etch.md": 2448964748,
         "js/README.etch.md": 1158138010,
+        "js/tsconfig.etch.json": 180542722,
         "rust/LICENSE.etch.md": 2448964748,
         "rust/README.etch.md": 1158138010,
         "README.etch.md": 1158138010,

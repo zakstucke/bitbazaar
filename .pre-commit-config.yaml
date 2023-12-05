@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/zakstucke/etcher
-      rev: v0.0.8
+      rev: v0.0.12
       hooks:
           - id: etch
 
@@ -11,6 +11,7 @@ repos:
             additional_dependencies:
                 - "prettier@2.8.8"
                 - "@trivago/prettier-plugin-sort-imports@4.3.0"
+                - "prettier-plugin-tailwindcss@0.4.1"
             args:
                 - --loglevel=warn
                 - --config=./prettier/prettier.config.cjs
@@ -95,6 +96,7 @@ repos:
       rev: v1.0.0
       hooks:
           - id: check-json5
+            exclude: ^.*\.etch\..*$
 
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v2.3.0

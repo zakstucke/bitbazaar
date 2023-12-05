@@ -1,16 +1,15 @@
-import chroma from "chroma-js";
-import { assert, describe, expect, it } from "vitest";
-
 import { createSteppedScale } from ".";
+import { describe, expect, it } from "bun:test";
+import chroma from "chroma-js";
 
 const checkScale = (numSteps: number, scale: string[], source: string) => {
     const sourceIndex = Math.ceil(numSteps / 2) - 1;
-    assert.equal(scale.length, numSteps);
-    assert.equal(scale[sourceIndex].toUpperCase(), source.toUpperCase());
+    expect(scale.length).toBe(numSteps);
+    expect(scale[sourceIndex].toUpperCase()).toBe(source.toUpperCase());
     let lastLuminance = chroma(scale[0]).luminance();
     for (let i = 1; i < scale.length; i++) {
         const luminance = chroma(scale[i]).luminance();
-        assert.ok(luminance > lastLuminance);
+        expect(luminance).toBeGreaterThan(lastLuminance);
         lastLuminance = luminance;
     }
 };
@@ -48,7 +47,7 @@ describe("Color", () => {
                 color: input,
                 numberOfSteps: 5,
             });
-            expect(scale).toEqual(Array(5).fill(output));
+            expect(scale).toEqual([output, output, output, output, output]);
         });
     });
 });

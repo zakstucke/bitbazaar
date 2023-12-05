@@ -8,15 +8,24 @@ module.exports = {
     trailingComma: "all",
     bracketSpacing: true,
     arrowParens: "always",
-    plugins: [require.resolve("@trivago/prettier-plugin-sort-imports")],
+    plugins: [
+        require.resolve("@trivago/prettier-plugin-sort-imports"),
+        require.resolve("prettier-plugin-tailwindcss"),
+    ],
     importOrderSeparation: true,
     importOrderSortSpecifiers: true,
     importOrderCaseInsensitive: true,
     importOrder: [
         "<THIRD_PARTY_MODULES>",
-        "^@root(.*)$",
-        "^../(.*)$",
-        "^[./]",
-        "(?=./styles.module.scss)",
+        "@root(.*)$",
+        "@scripts(.*)$",
+        // Two layers up if not a css file:
+        "^../(?!.*.(scss|css|less)$)(.*)$",
+        // One layer up if a css file:
+        "^./(?!.*.(scss|css|less)$)(.*)$",
+        // Non module css: (check no .module. in the name)
+        "^.*(?<!\\.module)\\.(scss|css|less)$",
+        // Then module css:
+        "^.*\\.module\\.(scss|css|less)$",
     ],
 };

@@ -1,31 +1,29 @@
-import { assert, describe, it } from "vitest";
-
 import { add, genPath } from ".";
+import { describe, expect, it } from "bun:test";
 
 describe("Utils", () => {
     it("add", () => {
-        assert.equal(add(1, 2), 3);
+        expect(add(1, 2)).toBe(3);
     });
     describe("genPath", () => {
         it("Defaults", () => {
             // Dir looking path slashes everywhere:
-            assert.equal(genPath("test"), "/test/");
+            expect(genPath("test")).toBe("/test/");
             // File looking path not at end:
-            assert.equal(genPath("test.txt"), "/test.txt");
+            expect(genPath("test.txt")).toBe("/test.txt");
             // Url looking path no where:
-            assert.equal(genPath("http://test.com"), "http://test.com");
+            expect(genPath("http://test.com")).toBe("http://test.com");
             // Relative path should add at end but not beginning:
-            assert.equal(genPath("./test"), "./test/");
+            expect(genPath("./test")).toBe("./test/");
             // Double for good measure:
-            assert.equal(genPath("../test/"), "../test/");
+            expect(genPath("../test/")).toBe("../test/");
         });
         it("Overrides", () => {
-            assert.equal(genPath("/test/", { eSlash: false, sShlash: false }), "test");
+            expect(genPath("/test/", { eSlash: false, sShlash: false })).toBe("test");
         });
         it("Extra", () => {
-            assert.equal(genPath("test", { extra: ["foo", "bar"] }), "/test/foo/bar/");
-            assert.equal(
-                genPath("test/", { eSlash: false, extra: ["foo", "bar"] }),
+            expect(genPath("test", { extra: ["foo", "bar"] })).toBe("/test/foo/bar/");
+            expect(genPath("test/", { eSlash: false, extra: ["foo", "bar"] })).toBe(
                 "/test/foo/bar",
             );
         });
