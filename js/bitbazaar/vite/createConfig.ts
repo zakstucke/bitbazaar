@@ -26,6 +26,16 @@ const baseNonFrontendGlobs: string[] = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*",
 ];
 
+/** fs.exists() doesn't seem to be available downstream, e.g. in vite build(), this gets around it with parts that do seem to work with vite build()  */
+const pathExists = async (path: string): Promise<boolean> => {
+    try {
+        await fs.access(path);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 export interface TopViteConfig {
     port: number;
 
@@ -198,7 +208,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                 });
 
                 // Create the sworker if missing in destination:
-                if (!(await fs.exists(genPath(conf.sameDomStaticPath, { extra: ["sworker"] })))) {
+                if (!(await pathExists(genPath(conf.sameDomStaticPath, { extra: ["sworker"] })))) {
                     await fs.mkdir(genPath(conf.sameDomStaticPath, { extra: ["sworker"] }));
                 }
 
