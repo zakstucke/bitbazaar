@@ -22,14 +22,13 @@ ensure_venv () {
     fi
 
     ./dev_scripts/utils.sh py_install_if_missing maturin
-    cd ./py_rust/
 
-
-    cd ..
 }
 
-# Build and install, takes the virtualenv dir with no end slash to install to as an argument
+# Build and install, takes the virtualenv dir with no end slash to install to as an argument, defaults to the py_rust venv
 install () {
+    VENV_PATH=${1-./py_rust/.venv}
+
     ensure_venv
 
     cd ./py_rust/
@@ -39,9 +38,9 @@ install () {
 
     # Activate the target venv: (runs from windows in CI too)
     if [[ "$OSTYPE" == "msys" ]]; then
-        source $1/Scripts/activate
+        source $VENV_PATH/Scripts/activate
     else
-        source $1/bin/activate
+        source $VENV_PATH/bin/activate
     fi
 
     # Make sure it contains pip (pdm) doesn't by default:

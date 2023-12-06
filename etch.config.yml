@@ -2,19 +2,19 @@ ignore_files:
     - .gitignore
 
 context:
-    - JS_ALIASES: { "@root": "./bitbazaar", "@scripts": "./scripts" }
     - PY_VERSION:
-      type: cli
-      value: ./dev_scripts/pkg.sh ver_py
+          type: cli
+          value: ./dev_scripts/pkg.sh ver_py
     - JS_VERSION:
-      type: cli
-      value: ./dev_scripts/pkg.sh ver_js
+          type: cli
+          value: ./dev_scripts/pkg.sh ver_js
+    - JS_ALIASES: { "@root": "./bitbazaar", "@scripts": "./scripts" }
     - RUST_VERSION:
-      type: cli
-      value: ./dev_scripts/pkg.sh ver_rust
+          type: cli
+          value: ./dev_scripts/pkg.sh ver_rust
     - PY_RUST_VERSION:
-      type: cli
-      value: ./dev_scripts/pkg.sh ver_py_rust
+          type: cli
+          value: ./dev_scripts/pkg.sh ver_py_rust
 # EXAMPLE CONFIG:
 # # Git-style ignore files to read, respect & exclude for the search:
 # ignore_files:

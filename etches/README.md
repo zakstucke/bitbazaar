@@ -53,8 +53,6 @@ Binaries are available for:
 -   **MacOS**: `x86_64` & `arm64`
 -   **Windows**: `amd64` & `win32` (NOTE: disabled currently, see build workflow for bug that needs fixing)
 
-Otherwise, you can install from source which requires Rust stable to be installed.
-
 ### Rust
 
 [![Crates.io](https://img.shields.io/crates/v/bitbazaar.svg)](https://crates.io/crates/bitbazaar)

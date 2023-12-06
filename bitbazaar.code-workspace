@@ -23,23 +23,28 @@
 
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.formatOnSave": true
+      "editor.formatOnSave": true,
+        "editor.formatOnPaste": false
     },
     "[javascriptreact]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": false
     },
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": false
     },
     "[typescriptreact]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": false
     },
     "[yaml]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.formatOnSave": true
+      "editor.formatOnSave": true,
+      "editor.formatOnPaste": false
     },
     "[markdown]": {
       // Disable markdown formatting because sometimes indents are important in ways the formatter doesn't understand:
@@ -56,15 +61,17 @@
       // prettier has support for toml via a plugin, but its buggy and doesn't quite work with prettier, use that for both once it does.
       // "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.formatOnPaste": false,
-      "editor.formatOnSave": false,
+      "editor.formatOnSave": false
     },
     "[rust]": {
       "editor.defaultFormatter": "rust-lang.rust-analyzer",
-      "editor.formatOnSave": true
+      "editor.formatOnSave": true,
+      "editor.formatOnPaste": false
     },
     "rust-analyzer.check.command": "clippy",
     "[python]": {
       "editor.formatOnSave": true,
+      "editor.formatOnPaste": false,
       "editor.codeActionsOnSave": {
         // Ruff will auto fix issues and sort imports (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
         "source.fixAll": true

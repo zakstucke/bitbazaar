@@ -4,9 +4,9 @@ import { tmpdir } from "os";
 
 import fs from "fs/promises";
 
-import { genBackendProxies } from "./genProxy";
-
 import { createConfig, TopViteConfig } from ".";
+
+import { genBackendProxies } from "./genProxy";
 
 const defaultConf: TopViteConfig = {
     port: 3000,

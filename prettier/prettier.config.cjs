@@ -22,9 +22,9 @@ module.exports = {
         "^..$", // index
         // Two layers up if not a css file:
         "^../(?!.*.(scss|css|less)$)(.*)$",
+        "^.$", // index
         // One layer up if a css file:
         "^./(?!.*.(scss|css|less)$)(.*)$",
-        "^.$", // index
         // Non module css: (check no .module. in the name)
         "^.*(?<!\\.module)\\.(scss|css|less)$",
         // Then module css:
