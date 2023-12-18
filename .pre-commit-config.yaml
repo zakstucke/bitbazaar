@@ -70,7 +70,7 @@ repos:
           - id: fmt
             name: fmt
             description: "Format files with cargo fmt. Have to use nightly as some format config used isn't stable"
-            entry: cargo +nightly fmt
+            entry: cargo fmt
             language: rust
             types: [rust]
             args: [--manifest-path=./rust/Cargo.toml, --]
@@ -80,7 +80,7 @@ repos:
             entry: cargo check
             language: rust
             types: [rust]
-            args: [--manifest-path=./rust/Cargo.toml]
+            args: [--manifest-path=./rust/Cargo.toml, --all-features]
             pass_filenames: false
           - id: clippy
             name: clippy
@@ -97,7 +97,7 @@ repos:
           - id: fmt
             name: fmt
             description: "Format files with cargo fmt. Have to use nightly as some format config used isn't stable"
-            entry: cargo +nightly fmt
+            entry: cargo fmt
             language: rust
             types: [rust]
             args: [--manifest-path=./py_rust/Cargo.toml, --]
@@ -107,7 +107,7 @@ repos:
             entry: cargo check
             language: rust
             types: [rust]
-            args: [--manifest-path=./py_rust/Cargo.toml]
+            args: [--manifest-path=./py_rust/Cargo.toml, --all-features]
             pass_filenames: false
           - id: clippy
             name: clippy

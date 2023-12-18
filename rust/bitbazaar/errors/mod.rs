@@ -3,7 +3,6 @@ mod macros;
 mod test_errs;
 mod traced_error;
 
-pub use macros::*;
 pub use traced_error::TracedErr;
 
 #[cfg(test)]
@@ -22,7 +21,7 @@ mod tests {
             format!("{}", test_errs::create_err_from_err()),
             format!(
                 "{}\nGenericErr: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:6:5".yellow()
+                "bitbazaar/errors/test_errs.rs:8:5".yellow()
             ),
         );
 
@@ -34,7 +33,7 @@ mod tests {
             ),
             format!(
                 "{}\nGenericErr: Goodbye, world!\n",
-                "bitbazaar/errors/test_errs.rs:11:5".yellow()
+                "bitbazaar/errors/test_errs.rs:13:5".yellow()
             ),
         );
 
@@ -69,7 +68,7 @@ mod tests {
             format!("{}", err),
             format!(
                 "{}\nGenericErr: NEW. OLD: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:6:5".yellow()
+                "bitbazaar/errors/test_errs.rs:8:5".yellow()
             ),
         );
     }
@@ -84,7 +83,7 @@ mod tests {
             format!("{}", py_err),
             format!(
                 "Exception: {}\nGenericErr: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:6:5".yellow()
+                "bitbazaar/errors/test_errs.rs:8:5".yellow()
             )
         )
     }

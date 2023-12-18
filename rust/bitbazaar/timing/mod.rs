@@ -24,7 +24,6 @@ pub fn format_duration(duration: std::time::Duration) -> String {
     format!("{}{}", time_value, time_unit)
 }
 
-pub use macros::*;
 pub use recorder::{TimeRecorder, GLOBAL_TIME_RECORDER};
 
 #[cfg(test)]
