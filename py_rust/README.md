@@ -63,7 +63,7 @@ You can install **BitBazaar** via [crates.io](https://crates.io/):
 # Cargo.toml
 
 [dependencies]
-bitbazaar = "1.0.0" # With the up to date version
+bitbazaar = "0.0.1"
 ```
 
 ## Usage
