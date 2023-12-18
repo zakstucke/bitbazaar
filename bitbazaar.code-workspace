@@ -19,6 +19,7 @@
       "./rust/Cargo.toml",
       "./py_rust/Cargo.toml",
     ],
+    "rust-analyzer.cargo.allFeatures": true,
 
 
     "[javascript]": {
@@ -73,8 +74,7 @@
       "editor.formatOnSave": true,
       "editor.formatOnPaste": false,
       "editor.codeActionsOnSave": {
-        // Ruff will auto fix issues and sort imports (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
-        "source.fixAll": true
+        "source.fixAll": "explicit"
       },
       // Ruff (replaces black) formats python code (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
       "editor.defaultFormatter": "charliermarsh.ruff"

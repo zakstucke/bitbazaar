@@ -113,7 +113,7 @@ py_rust () {
 }
 
 rust () {
-    cargo test --manifest-path ./rust/Cargo.toml
+    cargo test --manifest-path ./rust/Cargo.toml --all-features $@
 }
 
 docs () {
