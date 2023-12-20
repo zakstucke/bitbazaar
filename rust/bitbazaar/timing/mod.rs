@@ -1,23 +1,30 @@
 mod macros;
 mod recorder;
 
+/// Format a duration in a human readable format.
 pub fn format_duration(duration: std::time::Duration) -> String {
     let time_unit;
     let time_value;
 
-    let elapsed_ms = duration.as_millis();
-    if elapsed_ms >= 1 {
-        time_unit = "ms";
-        time_value = elapsed_ms;
+    let elapsed_s = duration.as_secs() as u128;
+    if elapsed_s >= 1 {
+        time_unit = "s";
+        time_value = elapsed_s;
     } else {
-        let elapsed_us = duration.as_micros();
-        if elapsed_us >= 1 {
-            time_unit = "μs";
-            time_value = elapsed_us;
+        let elapsed_ms = duration.as_millis();
+        if elapsed_ms >= 1 {
+            time_unit = "ms";
+            time_value = elapsed_ms;
         } else {
-            let elapsed_ns = duration.as_nanos();
-            time_unit = "ns";
-            time_value = elapsed_ns;
+            let elapsed_us = duration.as_micros();
+            if elapsed_us >= 1 {
+                time_unit = "μs";
+                time_value = elapsed_us;
+            } else {
+                let elapsed_ns = duration.as_nanos();
+                time_unit = "ns";
+                time_value = elapsed_ns;
+            }
         }
     }
 
@@ -39,9 +46,8 @@ mod tests {
     #[case(Duration::from_millis(1), "1ms")]
     #[case(Duration::from_micros(1), "1μs")]
     #[case(Duration::from_nanos(1), "1ns")]
-    #[case(Duration::from_millis(1000), "1000ms")]
-    #[case(Duration::from_millis(1001), "1001ms")]
-    #[case(Duration::from_millis(1999), "1999ms")]
+    #[case(Duration::from_millis(999), "999ms")]
+    #[case(Duration::from_millis(1000), "1s")]
     fn test_format_duration(#[case] input: Duration, #[case] expected: String) {
         assert_eq!(expected, format_duration(input));
     }

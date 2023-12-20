@@ -1,12 +1,12 @@
 #[macro_export]
+/// A macro for creating a TracedErr from a string or another existing error.
 macro_rules! err {
 
     ($str_or_err:expr) => {{
-        use spez::spez;
         use $crate::errors::TracedErr;
         use std::error::Error;
 
-        spez! {
+        $crate::spez! {
             for x = $str_or_err;
             // If its an error, directly convert to TracedError
             match<T: Error + Send + 'static> T  -> TracedErr{

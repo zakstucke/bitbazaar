@@ -6,8 +6,10 @@ use parking_lot::Mutex;
 
 use crate::{err, errors::TracedErr, timing::format_duration};
 
+/// A global time recorder, used by the timeit! macro.
 pub static GLOBAL_TIME_RECORDER: Lazy<TimeRecorder> = Lazy::new(TimeRecorder::new);
 
+/// A struct for recording time spent in various blocks of code.
 pub struct TimeRecorder {
     start: chrono::DateTime<chrono::Utc>,
     logs: Arc<Mutex<Vec<(String, std::time::Duration)>>>,
@@ -20,6 +22,7 @@ impl Default for TimeRecorder {
 }
 
 impl TimeRecorder {
+    /// Create a new time recorder.
     pub fn new() -> Self {
         Self {
             start: chrono::Utc::now(),
@@ -27,6 +30,7 @@ impl TimeRecorder {
         }
     }
 
+    /// Time a block of code and log to the time recorder.
     pub fn timeit<R, F: FnOnce() -> R>(&self, description: &str, f: F) -> R {
         let now = std::time::Instant::now();
         let res = f();
@@ -46,6 +50,7 @@ impl TimeRecorder {
         Ok((chrono::Utc::now() - self.start).to_std()?)
     }
 
+    /// Format the logs in a verbose, table format.
     pub fn format_verbose(&self) -> Result<String, TracedErr> {
         use comfy_table::*;
 

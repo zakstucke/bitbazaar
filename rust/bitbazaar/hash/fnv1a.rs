@@ -1,6 +1,8 @@
 const FNV1A_PRIME: u64 = 1099511628211;
 const FNV1A_OFFSET_BASIS: u64 = 14695981039346656037;
 
+/// FNV1a hash function. Note this is completely insecure, and should not be used for secure hashing.
+/// It should be used when speed is needed, and the hash does not need to be secure.
 pub fn fnv1a(input: &[u8]) -> u64 {
     let mut hash = FNV1A_OFFSET_BASIS;
 

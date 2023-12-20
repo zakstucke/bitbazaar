@@ -10,12 +10,12 @@ use super::generic_err::GenericErr;
 // https://stackoverflow.com/questions/74336993/getting-line-numbers-with-when-using-boxdyn-stderrorerror
 // https://github.com/rust-lang/rust/issues/87401
 
-#[derive(Debug)]
 pub struct TracedErrWrapper<T> {
     pub inner: T,
     pub location: &'static Location<'static>,
 }
 
+/// An error type that can be created automatically from any other error, and stores the location the error was created.
 pub type TracedErr = TracedErrWrapper<Box<dyn Error + Send + 'static>>;
 
 // Implement a display formatter for TracedErrWrapper:
@@ -24,6 +24,20 @@ impl<T: std::fmt::Display> std::fmt::Display for TracedErrWrapper<T> {
         write!(
             f,
             "{}\n{}\n",
+            format!("{}", self.location).yellow(),
+            self.inner
+        )?;
+        Ok(())
+    }
+}
+
+// Implement a debug formatter for TracedErrWrapper:
+impl<T: std::fmt::Display> std::fmt::Debug for TracedErrWrapper<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            // This will usually be shown with unwrap():
+            "\n{}\n{}",
             format!("{}", self.location).yellow(),
             self.inner
         )?;

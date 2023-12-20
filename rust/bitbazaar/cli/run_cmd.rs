@@ -1,12 +1,18 @@
 use crate::{err, errors::TracedErr};
 
+/// The result of running a command
 pub struct CmdOut {
+    /// The parsed arguments from the command string used in the call:
     pub args: Vec<String>,
+    /// The stdout of the command:
     pub stdout: String,
+    /// The stderr of the command:
     pub stderr: String,
+    /// The exit code of the command:
     pub code: i32,
 }
 
+/// Run a command entered as a string and return the output
 pub fn run_cmd(cmd_str: &str) -> Result<CmdOut, TracedErr> {
     // Split the string into args, shlex handles posix rules such as keeping quotes and speech marks together automatically:
     let args = shlex::split(cmd_str).ok_or_else(|| err!("Failed to parse command string"))?;
