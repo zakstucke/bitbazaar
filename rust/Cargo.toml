@@ -4,11 +4,17 @@ colored = '2.0'
 comfy-table = '7.1'
 log = '0.4'
 once_cell = '1.18'
+regex = '1.10'
 shlex = '1.2'
 spez = '0.1'
-regex = "1.10"
-fern = {version = "0.6", features = ["date-based"]}
-clap = {version = "4.4", features = ["derive", "string"]}
+
+[dependencies.clap]
+features = ['derive', 'string']
+version = '4.4'
+
+[dependencies.fern]
+features = ['date-based']
+version = '0.6'
 
 [dependencies.parking_lot]
 features = ['nightly', 'deadlock_detection', 'serde']
@@ -21,7 +27,7 @@ version = '0.20'
 
 [dev-dependencies]
 rstest = '0.18.2'
-tempfile = "3.8"
+tempfile = '3.8'
 
 [features]
 pyo3 = ['dep:pyo3']
@@ -37,7 +43,7 @@ edition = '2021'
 license = 'MIT'
 name = 'bitbazaar'
 readme = 'README.md'
-version = '0.0.2'
+version = '0.0.3'
 
 [profile]
 
