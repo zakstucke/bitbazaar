@@ -79,6 +79,11 @@
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>log::warn;
@@ -87,9 +92,11 @@
 
 <span class="kw">use crate</span>::{err, errors::TracedErr, timing::format_duration};
 
-<span class="kw">pub static </span>GLOBAL_TIME_RECORDER: Lazy&lt;TimeRecorder&gt; = Lazy::new(TimeRecorder::new);
+<span class="doccomment">/// A global time recorder, used by the timeit! macro.
+</span><span class="kw">pub static </span>GLOBAL_TIME_RECORDER: Lazy&lt;TimeRecorder&gt; = Lazy::new(TimeRecorder::new);
 
-<span class="kw">pub struct </span>TimeRecorder {
+<span class="doccomment">/// A struct for recording time spent in various blocks of code.
+</span><span class="kw">pub struct </span>TimeRecorder {
     start: chrono::DateTime&lt;chrono::Utc&gt;,
     logs: Arc&lt;Mutex&lt;Vec&lt;(String, std::time::Duration)&gt;&gt;&gt;,
 }
@@ -101,14 +108,16 @@
 }
 
 <span class="kw">impl </span>TimeRecorder {
-    <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Create a new time recorder.
+    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             start: chrono::Utc::now(),
             logs: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
-    <span class="kw">pub fn </span>timeit&lt;R, F: FnOnce() -&gt; R&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, description: <span class="kw-2">&amp;</span>str, f: F) -&gt; R {
+    <span class="doccomment">/// Time a block of code and log to the time recorder.
+    </span><span class="kw">pub fn </span>timeit&lt;R, F: FnOnce() -&gt; R&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, description: <span class="kw-2">&amp;</span>str, f: F) -&gt; R {
         <span class="kw">let </span>now = std::time::Instant::now();
         <span class="kw">let </span>res = f();
         <span class="kw">let </span>elapsed = now.elapsed();
@@ -127,7 +136,8 @@
         <span class="prelude-val">Ok</span>((chrono::Utc::now() - <span class="self">self</span>.start).to_std()<span class="question-mark">?</span>)
     }
 
-    <span class="kw">pub fn </span>format_verbose(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, TracedErr&gt; {
+    <span class="doccomment">/// Format the logs in a verbose, table format.
+    </span><span class="kw">pub fn </span>format_verbose(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, TracedErr&gt; {
         <span class="kw">use </span>comfy_table::<span class="kw-2">*</span>;
 
         <span class="comment">// Printing should only happen at the end synchronously, shouldn&#39;t fail to acquire:

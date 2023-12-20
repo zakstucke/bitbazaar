@@ -72,26 +72,39 @@
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>macros;
 <span class="kw">mod </span>recorder;
 
-<span class="kw">pub fn </span>format_duration(duration: std::time::Duration) -&gt; String {
+<span class="doccomment">/// Format a duration in a human readable format.
+</span><span class="kw">pub fn </span>format_duration(duration: std::time::Duration) -&gt; String {
     <span class="kw">let </span>time_unit;
     <span class="kw">let </span>time_value;
 
-    <span class="kw">let </span>elapsed_ms = duration.as_millis();
-    <span class="kw">if </span>elapsed_ms &gt;= <span class="number">1 </span>{
-        time_unit = <span class="string">&quot;ms&quot;</span>;
-        time_value = elapsed_ms;
+    <span class="kw">let </span>elapsed_s = duration.as_secs() <span class="kw">as </span>u128;
+    <span class="kw">if </span>elapsed_s &gt;= <span class="number">1 </span>{
+        time_unit = <span class="string">&quot;s&quot;</span>;
+        time_value = elapsed_s;
     } <span class="kw">else </span>{
-        <span class="kw">let </span>elapsed_us = duration.as_micros();
-        <span class="kw">if </span>elapsed_us &gt;= <span class="number">1 </span>{
-            time_unit = <span class="string">&quot;μs&quot;</span>;
-            time_value = elapsed_us;
+        <span class="kw">let </span>elapsed_ms = duration.as_millis();
+        <span class="kw">if </span>elapsed_ms &gt;= <span class="number">1 </span>{
+            time_unit = <span class="string">&quot;ms&quot;</span>;
+            time_value = elapsed_ms;
         } <span class="kw">else </span>{
-            <span class="kw">let </span>elapsed_ns = duration.as_nanos();
-            time_unit = <span class="string">&quot;ns&quot;</span>;
-            time_value = elapsed_ns;
+            <span class="kw">let </span>elapsed_us = duration.as_micros();
+            <span class="kw">if </span>elapsed_us &gt;= <span class="number">1 </span>{
+                time_unit = <span class="string">&quot;μs&quot;</span>;
+                time_value = elapsed_us;
+            } <span class="kw">else </span>{
+                <span class="kw">let </span>elapsed_ns = duration.as_nanos();
+                time_unit = <span class="string">&quot;ns&quot;</span>;
+                time_value = elapsed_ns;
+            }
         }
     }
 
@@ -113,9 +126,8 @@
     #[case(Duration::from_millis(<span class="number">1</span>), <span class="string">&quot;1ms&quot;</span>)]
     #[case(Duration::from_micros(<span class="number">1</span>), <span class="string">&quot;1μs&quot;</span>)]
     #[case(Duration::from_nanos(<span class="number">1</span>), <span class="string">&quot;1ns&quot;</span>)]
-    #[case(Duration::from_millis(<span class="number">1000</span>), <span class="string">&quot;1000ms&quot;</span>)]
-    #[case(Duration::from_millis(<span class="number">1001</span>), <span class="string">&quot;1001ms&quot;</span>)]
-    #[case(Duration::from_millis(<span class="number">1999</span>), <span class="string">&quot;1999ms&quot;</span>)]
+    #[case(Duration::from_millis(<span class="number">999</span>), <span class="string">&quot;999ms&quot;</span>)]
+    #[case(Duration::from_millis(<span class="number">1000</span>), <span class="string">&quot;1s&quot;</span>)]
     </span><span class="kw">fn </span>test_format_duration(<span class="attr">#[case] </span>input: Duration, <span class="attr">#[case] </span>expected: String) {
         <span class="macro">assert_eq!</span>(expected, format_duration(input));
     }

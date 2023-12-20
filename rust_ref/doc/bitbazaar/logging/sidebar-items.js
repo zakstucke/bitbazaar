@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"macro":["warn_user_once","warn_user_once_by_id"],"static":["SENT_WARNING_IDS"]};
+window.SIDEBAR_ITEMS = {"enum":["LogTargetVariant"],"fn":["setup_logger"],"struct":["ClapLogLevelArgs","LogTarget"]};

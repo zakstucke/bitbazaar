@@ -31,10 +31,14 @@
 <a href="#31" id="31">31</a>
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
 </pre></div><pre class="rust"><code><span class="kw">const </span>FNV1A_PRIME: u64 = <span class="number">1099511628211</span>;
 <span class="kw">const </span>FNV1A_OFFSET_BASIS: u64 = <span class="number">14695981039346656037</span>;
 
-<span class="kw">pub fn </span>fnv1a(input: <span class="kw-2">&amp;</span>[u8]) -&gt; u64 {
+<span class="doccomment">/// FNV1a hash function. Note this is completely insecure, and should not be used for secure hashing.
+/// It should be used when speed is needed, and the hash does not need to be secure.
+</span><span class="kw">pub fn </span>fnv1a(input: <span class="kw-2">&amp;</span>[u8]) -&gt; u64 {
     <span class="kw">let </span><span class="kw-2">mut </span>hash = FNV1A_OFFSET_BASIS;
 
     <span class="kw">for </span>byte <span class="kw">in </span>input {

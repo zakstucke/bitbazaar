@@ -116,6 +116,20 @@
 <a href="#116" id="116">116</a>
 <a href="#117" id="117">117</a>
 <a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{error::Error, panic::Location};
 
 <span class="kw">use </span>colored::Colorize;
@@ -128,13 +142,13 @@
 // https://stackoverflow.com/questions/74336993/getting-line-numbers-with-when-using-boxdyn-stderrorerror
 // https://github.com/rust-lang/rust/issues/87401
 
-</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>TracedErrWrapper&lt;T&gt; {
     <span class="kw">pub </span>inner: T,
     <span class="kw">pub </span>location: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>Location&lt;<span class="lifetime">&#39;static</span>&gt;,
 }
 
-<span class="kw">pub type </span>TracedErr = TracedErrWrapper&lt;Box&lt;<span class="kw">dyn </span>Error + Send + <span class="lifetime">&#39;static</span>&gt;&gt;;
+<span class="doccomment">/// An error type that can be created automatically from any other error, and stores the location the error was created.
+</span><span class="kw">pub type </span>TracedErr = TracedErrWrapper&lt;Box&lt;<span class="kw">dyn </span>Error + Send + <span class="lifetime">&#39;static</span>&gt;&gt;;
 
 <span class="comment">// Implement a display formatter for TracedErrWrapper:
 </span><span class="kw">impl</span>&lt;T: std::fmt::Display&gt; std::fmt::Display <span class="kw">for </span>TracedErrWrapper&lt;T&gt; {
@@ -142,6 +156,20 @@
         <span class="macro">write!</span>(
             f,
             <span class="string">&quot;{}\n{}\n&quot;</span>,
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.location).yellow(),
+            <span class="self">self</span>.inner
+        )<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+}
+
+<span class="comment">// Implement a debug formatter for TracedErrWrapper:
+</span><span class="kw">impl</span>&lt;T: std::fmt::Display&gt; std::fmt::Debug <span class="kw">for </span>TracedErrWrapper&lt;T&gt; {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="macro">write!</span>(
+            f,
+            <span class="comment">// This will usually be shown with unwrap():
+            </span><span class="string">&quot;\n{}\n{}&quot;</span>,
             <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.location).yellow(),
             <span class="self">self</span>.inner
         )<span class="question-mark">?</span>;
