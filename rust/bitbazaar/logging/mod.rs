@@ -28,24 +28,17 @@ mod tests {
 
     /// Get a logger that simulates the stdout one, that also returns a fn to get all the logs written since the logger was created.
     fn get_stdout_logger(
-        level_filter: log::LevelFilter,
-        include_ts_till: Option<log::LevelFilter>,
-        include_location_till: Option<log::LevelFilter>,
+        get_targets: impl Fn(
+            Arc<Mutex<Vec<String>>>,
+            &dyn Fn(Arc<Mutex<Vec<String>>>) -> fern::Output,
+        ) -> Vec<LogTarget>,
     ) -> (impl Fn() -> Vec<String>, Box<dyn log::Log>) {
         let log_store = Arc::new(Mutex::new(vec![]));
-        let cloned = log_store.clone();
-        let logger = get_logger(vec![LogTarget {
-            msg_prefix: None,
-            level_filter,
-            include_ts_till,
-            include_location_till,
-            variant: LogTargetVariant::Custom {
-                include_color: true,
-                output: fern::Output::call(move |record| {
-                    cloned.lock().push(format!("{}", record.args()))
-                }),
-            },
-        }]);
+        // Need to use a custom variant for tests:
+        let get_output = |log_store: Arc<Mutex<Vec<String>>>| {
+            fern::Output::call(move |record| log_store.lock().push(format!("{}", record.args())))
+        };
+        let logger = get_logger(get_targets(log_store.clone(), &get_output));
         let get_logs = move || log_store.lock().clone();
         (get_logs, logger)
     }
@@ -58,7 +51,20 @@ mod tests {
                 .level(level)
                 .target("bitbazaar::logging::tests")
                 .module_path_static(Some("bitbazaar::logging::tests"))
-                .file_static(Some("logging.rs"))
+                .file_static(Some("bitbazaar::logging::tests"))
+                .line(Some(123))
+                .build(),
+        );
+    }
+
+    fn log_diff_target(logger: &dyn log::Log, level: Level, msg: &str) {
+        logger.log(
+            &log::Record::builder()
+                .args(format_args!("{}", msg))
+                .level(level)
+                .target("IAMDIFF")
+                .module_path_static(Some("IAMDIFF"))
+                .file_static(Some("IAMDIFF"))
                 .line(Some(123))
                 .build(),
         );
@@ -73,7 +79,16 @@ mod tests {
 
     #[rstest]
     fn test_log_formatting_basic() {
-        let (get_logs, logger) = get_stdout_logger(LevelFilter::Debug, None, None);
+        let (get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            vec![LogTarget {
+                variant: LogTargetVariant::Custom {
+                    include_color: true,
+                    output: get_output(log_store),
+                },
+                level_filter: LevelFilter::Debug,
+                ..Default::default()
+            }]
+        });
         log_all(&logger);
         assert_eq!(
             get_logs(),
@@ -87,18 +102,69 @@ mod tests {
     }
 
     #[rstest]
+    // No matchers on either targets, so picked up by both targets:
+    #[case(None, vec!["with_matcher debug: DEBUG LOG", "no_matcher debug: DEBUG LOG", "with_matcher debug: LOG2", "no_matcher debug: LOG2"])]
+    // Matcher matches on first target, so no matcher target should ignore that log, i.e. one each:
+    #[case(Some(regex::Regex::new(
+        r"logging::tests"
+    ).unwrap()), vec!["with_matcher debug: DEBUG LOG", "no_matcher debug: LOG2"])]
+    // Matcher failed, so both should be picked up by the one with no matcher:
+    #[case(Some(regex::Regex::new(r"kdkfjdf").unwrap()), vec!["no_matcher debug: DEBUG LOG", "no_matcher debug: LOG2"])]
+    fn test_log_matchers(
+        #[case] loc_matcher: Option<regex::Regex>,
+        #[case] expected_logs: Vec<&str>,
+    ) {
+        let (get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            vec![
+                // This one has the custom matcher:
+                LogTarget {
+                    msg_prefix: Some("with_matcher".into()),
+                    variant: LogTargetVariant::Custom {
+                        include_color: false,
+                        output: get_output(log_store.clone()),
+                    },
+                    level_filter: LevelFilter::Debug,
+                    loc_matcher: loc_matcher.clone(),
+                    ..Default::default()
+                },
+                // No matcher: should be run on everything not matched by another custom matcher:
+                LogTarget {
+                    msg_prefix: Some("no_matcher".into()),
+                    variant: LogTargetVariant::Custom {
+                        include_color: false,
+                        output: get_output(log_store),
+                    },
+                    level_filter: LevelFilter::Debug,
+                    ..Default::default()
+                },
+            ]
+        });
+        log(&logger, Level::Debug, "DEBUG LOG");
+        log_diff_target(&logger, Level::Debug, "LOG2");
+        assert_eq!(get_logs(), expected_logs);
+    }
+
+    #[rstest]
     fn test_log_formatting_extras() {
         // Should include timestamp for debug and info, location for debug, ingo and warn:
-        let (get_logs, logger) = get_stdout_logger(
-            LevelFilter::Debug,
-            Some(LevelFilter::Info),
-            Some(LevelFilter::Warn),
-        );
+        let (get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            vec![LogTarget {
+                variant: LogTargetVariant::Custom {
+                    include_color: true,
+                    output: get_output(log_store),
+                },
+                level_filter: LevelFilter::Debug,
+                include_ts_till: Some(LevelFilter::Info),
+                include_loc_till: Some(LevelFilter::Warn),
+                ..Default::default()
+            }]
+        });
         log_all(&logger);
         let logs = get_logs();
         assert_eq!(logs.len(), 4);
 
-        let ts_and_loc_re = regex::Regex::new(r"\[\d{2}:\d{2}:\d{2}\]\[logging.rs:123\]").unwrap();
+        let ts_and_loc_re =
+            regex::Regex::new(r"\[\d{2}:\d{2}:\d{2}\]\[bitbazaar::logging::tests:123\]").unwrap();
 
         // Debug should have both:
         assert!(ts_and_loc_re.is_match(&logs[0]), "{}", logs[0]);
@@ -111,7 +177,7 @@ mod tests {
             logs[2],
             format!(
                 "{}{}",
-                "[logging.rs:123] warn: ".yellow().bold(),
+                "[bitbazaar::logging::tests:123] warn: ".yellow().bold(),
                 "WARN LOG"
             )
         );
@@ -129,7 +195,16 @@ mod tests {
     #[case(LevelFilter::Error, vec!["ERROR"])]
     #[case(LevelFilter::Off, vec![])]
     fn test_log_filtering(#[case] level_filter: LevelFilter, #[case] expected_found: Vec<&str>) {
-        let (get_logs, logger) = get_stdout_logger(level_filter, None, None);
+        let (get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            vec![LogTarget {
+                variant: LogTargetVariant::Custom {
+                    include_color: false,
+                    output: get_output(log_store),
+                },
+                level_filter,
+                ..Default::default()
+            }]
+        });
         log_all(&logger);
 
         let logs = get_logs();
@@ -153,14 +228,12 @@ mod tests {
     fn test_log_to_file() {
         let temp_dir = tempdir().unwrap();
         let logger = get_logger(vec![LogTarget {
-            msg_prefix: None,
             level_filter: LevelFilter::Debug,
-            include_ts_till: None,
-            include_location_till: None,
             variant: LogTargetVariant::File {
                 dir: temp_dir.path().to_path_buf(),
                 file_prefix: "foo_".to_string(),
             },
+            ..Default::default()
         }]);
         log_all(&logger);
 

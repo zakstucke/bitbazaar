@@ -6,8 +6,37 @@ use log::Level;
 use crate::{err, errors::TracedErr};
 
 /// A target for logging, e.g. stdout, a file, or a custom writer.
+///
+/// Example stdout logger:
+/// ```
+/// use bitbazaar::logging::{LogTarget, setup_logger};
+/// use log::LevelFilter;
+///
+/// let logger = setup_logger(vec![LogTarget {
+///     level_filter: LevelFilter::Info, // Only log info and above
+///     ..Default::default()
+/// }]).unwrap();
+/// logger.apply().unwrap(); // Register it as the global logger, this can only be done once
+/// ```
+///
+/// Example file logger:
+/// ```
+/// use bitbazaar::logging::{LogTarget, LogTargetVariant, setup_logger};
+/// use log::LevelFilter;
+/// use std::path::PathBuf;
+///
+/// let logger = setup_logger(vec![LogTarget {
+///     level_filter: LevelFilter::Info, // Only log info and above
+///     variant: LogTargetVariant::File {
+///         file_prefix: "my_program_".into(),
+///         dir: PathBuf::from("./logs/"),
+///     },
+///     ..Default::default()
+/// }]).unwrap();
+/// logger.apply().unwrap(); // Register it as the global logger, this can only be done once
+/// ```
 pub struct LogTarget {
-    /// The prefix to add, e.g. the name of the command (e.g. "scaf")
+    /// The prefix to add, e.g. the name of the command (e.g. "etch")
     pub msg_prefix: Option<String>,
     /// The level to log at and above, e.g. `log::LevelFilter::Info`
     pub level_filter: log::LevelFilter,
@@ -16,7 +45,24 @@ pub struct LogTarget {
     /// Include the timestamp in each log, e.g. if Some(log::LevelFilter::Info) then only debug and info will have timestamps.
     pub include_ts_till: Option<log::LevelFilter>,
     /// Include the write location of the log in each log, e.g. if Some(log::LevelFilter::Info) then only debug and info will have locations.
-    pub include_location_till: Option<log::LevelFilter>,
+    pub include_loc_till: Option<log::LevelFilter>,
+    /// A regex that must be satisfied for a log to be accepted by this target.
+    /// E.g. if regex is 'logging::tests' then only locations containing this will be logged by this target.
+    /// Note that when None, will match all locations other than those matched by other targets with a loc_matcher.
+    pub loc_matcher: Option<regex::Regex>,
+}
+
+impl Default for LogTarget {
+    fn default() -> Self {
+        Self {
+            msg_prefix: None,
+            level_filter: log::LevelFilter::Info,
+            variant: LogTargetVariant::Stdout {},
+            include_ts_till: None,
+            include_loc_till: None,
+            loc_matcher: None,
+        }
+    }
 }
 
 impl LogTarget {
@@ -28,13 +74,15 @@ impl LogTarget {
         Option<log::LevelFilter>,
         Option<log::LevelFilter>,
         LogTargetVariant,
+        Option<regex::Regex>,
     ) {
         (
             self.msg_prefix,
             self.level_filter,
             self.include_ts_till,
-            self.include_location_till,
+            self.include_loc_till,
             self.variant,
+            self.loc_matcher,
         )
     }
 }
@@ -63,20 +111,29 @@ pub enum LogTargetVariant {
 }
 
 /// Simple interface to setup a logger and output to a given target.
+/// Returns the logger, must run `logger.apply()?` To actually enable it as the global logger, this can only be done once.
 pub fn setup_logger(targets: Vec<LogTarget>) -> Result<fern::Dispatch, TracedErr> {
     let mut logger = fern::Dispatch::new();
 
+    let all_loc_matchers = targets
+        .iter()
+        .filter_map(|target| target.loc_matcher.clone())
+        .collect::<Vec<_>>();
+
     for target in targets {
-        let (msg_prefix, level_filter, include_ts_till, include_location_till, variant) =
+        let (msg_prefix, level_filter, include_ts_till, include_loc_till, variant, loc_matcher) =
             target.consume();
+
         logger = match variant {
             LogTargetVariant::Stdout {} => logger.chain(
                 create_logger(
                     msg_prefix,
                     level_filter,
                     include_ts_till,
-                    include_location_till,
+                    include_loc_till,
                     true,
+                    loc_matcher,
+                    &all_loc_matchers,
                 )?
                 .chain(std::io::stdout()),
             ),
@@ -99,8 +156,10 @@ pub fn setup_logger(targets: Vec<LogTarget>) -> Result<fern::Dispatch, TracedErr
                         msg_prefix,
                         level_filter,
                         include_ts_till,
-                        include_location_till,
+                        include_loc_till,
                         false,
+                        loc_matcher,
+                        &all_loc_matchers,
                     )?
                     // E.g. if prefix is "foo_" and dir is "logs", filename will be e.g. "logs/foo_2019-10-23.log":
                     .chain(fern::DateBased::new(dir.join(file_prefix), "%Y-%m-%d.log")),
@@ -114,8 +173,10 @@ pub fn setup_logger(targets: Vec<LogTarget>) -> Result<fern::Dispatch, TracedErr
                     msg_prefix,
                     level_filter,
                     include_ts_till,
-                    include_location_till,
+                    include_loc_till,
                     include_color,
+                    loc_matcher,
+                    &all_loc_matchers,
                 )?
                 .chain(output),
             ),
@@ -129,8 +190,10 @@ fn create_logger(
     msg_prefix: Option<String>,
     level_filter: log::LevelFilter,
     include_ts_till: Option<log::LevelFilter>,
-    include_location_till: Option<log::LevelFilter>,
+    include_loc_till: Option<log::LevelFilter>,
     include_color: bool,
+    loc_matcher: Option<regex::Regex>,
+    all_loc_matchers: &[regex::Regex],
 ) -> Result<fern::Dispatch, TracedErr> {
     // Finalise msg_prefix, if not empty/None adding a space after it:
     let msg_prefix = if let Some(msg_prefix) = msg_prefix {
@@ -143,7 +206,7 @@ fn create_logger(
         "".into()
     };
 
-    Ok(fern::Dispatch::new()
+    let mut dispatcher = fern::Dispatch::new()
         .format(move |out, message, record| {
             let level = record.level();
 
@@ -160,9 +223,9 @@ fn create_logger(
                 }
             }
 
-            if let Some(include_location_till) = include_location_till {
-                if level >= include_location_till {
-                    prefix = format!("{}[{}:{}]", prefix, record.file().unwrap_or("unknown"), {
+            if let Some(include_loc_till) = include_loc_till {
+                if level >= include_loc_till {
+                    prefix = format!("{}[{}:{}]", prefix, record.target(), {
                         if let Some(line) = record.line() {
                             line.to_string()
                         } else {
@@ -205,7 +268,23 @@ fn create_logger(
         })
         .level(level_filter)
         // TODO not sure on this level_for thing.
-        .level_for("globset", log::LevelFilter::Warn))
+        .level_for("globset", log::LevelFilter::Warn);
+
+    // Skip log if there's a custom location matcher present that doesn't match the file string:
+    if let Some(loc_matcher) = loc_matcher {
+        dispatcher =
+            dispatcher.filter(move |metadata| -> bool { loc_matcher.is_match(metadata.target()) });
+    } else if !all_loc_matchers.is_empty() {
+        // If there isn't a custom location matcher, don't include if its being picked up by other targets with a loc_matcher:
+        let all_loc_matchers = all_loc_matchers.to_vec();
+        dispatcher = dispatcher.filter(move |metadata| -> bool {
+            !all_loc_matchers
+                .iter()
+                .any(|matcher| matcher.is_match(metadata.target()))
+        });
+    }
+
+    Ok(dispatcher)
 }
 
 fn offset_str(offset: usize, value: &str) -> String {
