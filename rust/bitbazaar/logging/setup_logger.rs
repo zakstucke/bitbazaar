@@ -112,6 +112,8 @@ pub enum LogTargetVariant {
 
 /// Simple interface to setup a logger and output to a given target.
 /// Returns the logger, must run `logger.apply()?` To actually enable it as the global logger, this can only be done once.
+///
+/// See the [`LogTarget`] struct for examples.
 pub fn setup_logger(targets: Vec<LogTarget>) -> Result<fern::Dispatch, TracedErr> {
     let mut logger = fern::Dispatch::new();
 
@@ -266,9 +268,7 @@ fn create_logger(
                 offset_str(final_prefix.len() + 2, message.to_string().as_str())
             ));
         })
-        .level(level_filter)
-        // TODO not sure on this level_for thing.
-        .level_for("globset", log::LevelFilter::Warn);
+        .level(level_filter);
 
     // Skip log if there's a custom location matcher present that doesn't match the file string:
     if let Some(loc_matcher) = loc_matcher {
