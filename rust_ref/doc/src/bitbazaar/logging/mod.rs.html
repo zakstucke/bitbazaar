@@ -196,6 +196,79 @@
 <a href="#196" id="196">196</a>
 <a href="#197" id="197">197</a>
 <a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>clap_log_level_args;
 <span class="kw">mod </span>macros;
 <span class="kw">mod </span>setup_logger;
@@ -226,24 +299,17 @@
 
     <span class="doccomment">/// Get a logger that simulates the stdout one, that also returns a fn to get all the logs written since the logger was created.
     </span><span class="kw">fn </span>get_stdout_logger(
-        level_filter: log::LevelFilter,
-        include_ts_till: <span class="prelude-ty">Option</span>&lt;log::LevelFilter&gt;,
-        include_location_till: <span class="prelude-ty">Option</span>&lt;log::LevelFilter&gt;,
+        get_targets: <span class="kw">impl </span>Fn(
+            Arc&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt;,
+            <span class="kw-2">&amp;</span><span class="kw">dyn </span>Fn(Arc&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt;) -&gt; fern::Output,
+        ) -&gt; Vec&lt;LogTarget&gt;,
     ) -&gt; (<span class="kw">impl </span>Fn() -&gt; Vec&lt;String&gt;, Box&lt;<span class="kw">dyn </span>log::Log&gt;) {
         <span class="kw">let </span>log_store = Arc::new(Mutex::new(<span class="macro">vec!</span>[]));
-        <span class="kw">let </span>cloned = log_store.clone();
-        <span class="kw">let </span>logger = get_logger(<span class="macro">vec!</span>[LogTarget {
-            msg_prefix: <span class="prelude-val">None</span>,
-            level_filter,
-            include_ts_till,
-            include_location_till,
-            variant: LogTargetVariant::Custom {
-                include_color: <span class="bool-val">true</span>,
-                output: fern::Output::call(<span class="kw">move </span>|record| {
-                    cloned.lock().push(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, record.args()))
-                }),
-            },
-        }]);
+        <span class="comment">// Need to use a custom variant for tests:
+        </span><span class="kw">let </span>get_output = |log_store: Arc&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt;| {
+            fern::Output::call(<span class="kw">move </span>|record| log_store.lock().push(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, record.args())))
+        };
+        <span class="kw">let </span>logger = get_logger(get_targets(log_store.clone(), <span class="kw-2">&amp;</span>get_output));
         <span class="kw">let </span>get_logs = <span class="kw">move </span>|| log_store.lock().clone();
         (get_logs, logger)
     }
@@ -256,7 +322,20 @@
                 .level(level)
                 .target(<span class="string">&quot;bitbazaar::logging::tests&quot;</span>)
                 .module_path_static(<span class="prelude-val">Some</span>(<span class="string">&quot;bitbazaar::logging::tests&quot;</span>))
-                .file_static(<span class="prelude-val">Some</span>(<span class="string">&quot;logging.rs&quot;</span>))
+                .file_static(<span class="prelude-val">Some</span>(<span class="string">&quot;bitbazaar::logging::tests&quot;</span>))
+                .line(<span class="prelude-val">Some</span>(<span class="number">123</span>))
+                .build(),
+        );
+    }
+
+    <span class="kw">fn </span>log_diff_target(logger: <span class="kw-2">&amp;</span><span class="kw">dyn </span>log::Log, level: Level, msg: <span class="kw-2">&amp;</span>str) {
+        logger.log(
+            <span class="kw-2">&amp;</span>log::Record::builder()
+                .args(<span class="macro">format_args!</span>(<span class="string">&quot;{}&quot;</span>, msg))
+                .level(level)
+                .target(<span class="string">&quot;IAMDIFF&quot;</span>)
+                .module_path_static(<span class="prelude-val">Some</span>(<span class="string">&quot;IAMDIFF&quot;</span>))
+                .file_static(<span class="prelude-val">Some</span>(<span class="string">&quot;IAMDIFF&quot;</span>))
                 .line(<span class="prelude-val">Some</span>(<span class="number">123</span>))
                 .build(),
         );
@@ -271,7 +350,16 @@
 
     <span class="attr">#[rstest]
     </span><span class="kw">fn </span>test_log_formatting_basic() {
-        <span class="kw">let </span>(get_logs, logger) = get_stdout_logger(LevelFilter::Debug, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>);
+        <span class="kw">let </span>(get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            <span class="macro">vec!</span>[LogTarget {
+                variant: LogTargetVariant::Custom {
+                    include_color: <span class="bool-val">true</span>,
+                    output: get_output(log_store),
+                },
+                level_filter: LevelFilter::Debug,
+                ..Default::default()
+            }]
+        });
         log_all(<span class="kw-2">&amp;</span>logger);
         <span class="macro">assert_eq!</span>(
             get_logs(),
@@ -285,18 +373,69 @@
     }
 
     <span class="attr">#[rstest]
+    </span><span class="comment">// No matchers on either targets, so picked up by both targets:
+    </span><span class="attr">#[case(<span class="prelude-val">None</span>, <span class="macro">vec!</span>[<span class="string">&quot;with_matcher debug: DEBUG LOG&quot;</span>, <span class="string">&quot;no_matcher debug: DEBUG LOG&quot;</span>, <span class="string">&quot;with_matcher debug: LOG2&quot;</span>, <span class="string">&quot;no_matcher debug: LOG2&quot;</span>]</span>)]
+    <span class="comment">// Matcher matches on first target, so no matcher target should ignore that log, i.e. one each:
+    </span><span class="attr">#[case(<span class="prelude-val">Some</span>(regex::Regex::new(
+        <span class="string">r&quot;logging::tests&quot;
+    </span>).unwrap()), <span class="macro">vec!</span>[<span class="string">&quot;with_matcher debug: DEBUG LOG&quot;</span>, <span class="string">&quot;no_matcher debug: LOG2&quot;</span>]</span>)]
+    <span class="comment">// Matcher failed, so both should be picked up by the one with no matcher:
+    </span><span class="attr">#[case(<span class="prelude-val">Some</span>(regex::Regex::new(<span class="string">r&quot;kdkfjdf&quot;</span>).unwrap()), <span class="macro">vec!</span>[<span class="string">&quot;no_matcher debug: DEBUG LOG&quot;</span>, <span class="string">&quot;no_matcher debug: LOG2&quot;</span>]</span>)]
+    <span class="kw">fn </span>test_log_matchers(
+        <span class="attr">#[case] </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
+        <span class="attr">#[case] </span>expected_logs: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
+    ) {
+        <span class="kw">let </span>(get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            <span class="macro">vec!</span>[
+                <span class="comment">// This one has the custom matcher:
+                </span>LogTarget {
+                    msg_prefix: <span class="prelude-val">Some</span>(<span class="string">&quot;with_matcher&quot;</span>.into()),
+                    variant: LogTargetVariant::Custom {
+                        include_color: <span class="bool-val">false</span>,
+                        output: get_output(log_store.clone()),
+                    },
+                    level_filter: LevelFilter::Debug,
+                    loc_matcher: loc_matcher.clone(),
+                    ..Default::default()
+                },
+                <span class="comment">// No matcher: should be run on everything not matched by another custom matcher:
+                </span>LogTarget {
+                    msg_prefix: <span class="prelude-val">Some</span>(<span class="string">&quot;no_matcher&quot;</span>.into()),
+                    variant: LogTargetVariant::Custom {
+                        include_color: <span class="bool-val">false</span>,
+                        output: get_output(log_store),
+                    },
+                    level_filter: LevelFilter::Debug,
+                    ..Default::default()
+                },
+            ]
+        });
+        log(<span class="kw-2">&amp;</span>logger, Level::Debug, <span class="string">&quot;DEBUG LOG&quot;</span>);
+        log_diff_target(<span class="kw-2">&amp;</span>logger, Level::Debug, <span class="string">&quot;LOG2&quot;</span>);
+        <span class="macro">assert_eq!</span>(get_logs(), expected_logs);
+    }
+
+    <span class="attr">#[rstest]
     </span><span class="kw">fn </span>test_log_formatting_extras() {
         <span class="comment">// Should include timestamp for debug and info, location for debug, ingo and warn:
-        </span><span class="kw">let </span>(get_logs, logger) = get_stdout_logger(
-            LevelFilter::Debug,
-            <span class="prelude-val">Some</span>(LevelFilter::Info),
-            <span class="prelude-val">Some</span>(LevelFilter::Warn),
-        );
+        </span><span class="kw">let </span>(get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            <span class="macro">vec!</span>[LogTarget {
+                variant: LogTargetVariant::Custom {
+                    include_color: <span class="bool-val">true</span>,
+                    output: get_output(log_store),
+                },
+                level_filter: LevelFilter::Debug,
+                include_ts_till: <span class="prelude-val">Some</span>(LevelFilter::Info),
+                include_loc_till: <span class="prelude-val">Some</span>(LevelFilter::Warn),
+                ..Default::default()
+            }]
+        });
         log_all(<span class="kw-2">&amp;</span>logger);
         <span class="kw">let </span>logs = get_logs();
         <span class="macro">assert_eq!</span>(logs.len(), <span class="number">4</span>);
 
-        <span class="kw">let </span>ts_and_loc_re = regex::Regex::new(<span class="string">r&quot;\[\d{2}:\d{2}:\d{2}\]\[logging.rs:123\]&quot;</span>).unwrap();
+        <span class="kw">let </span>ts_and_loc_re =
+            regex::Regex::new(<span class="string">r&quot;\[\d{2}:\d{2}:\d{2}\]\[bitbazaar::logging::tests:123\]&quot;</span>).unwrap();
 
         <span class="comment">// Debug should have both:
         </span><span class="macro">assert!</span>(ts_and_loc_re.is_match(<span class="kw-2">&amp;</span>logs[<span class="number">0</span>]), <span class="string">&quot;{}&quot;</span>, logs[<span class="number">0</span>]);
@@ -309,7 +448,7 @@
             logs[<span class="number">2</span>],
             <span class="macro">format!</span>(
                 <span class="string">&quot;{}{}&quot;</span>,
-                <span class="string">&quot;[logging.rs:123] warn: &quot;</span>.yellow().bold(),
+                <span class="string">&quot;[bitbazaar::logging::tests:123] warn: &quot;</span>.yellow().bold(),
                 <span class="string">&quot;WARN LOG&quot;
             </span>)
         );
@@ -327,7 +466,16 @@
     <span class="attr">#[case(LevelFilter::Error, <span class="macro">vec!</span>[<span class="string">&quot;ERROR&quot;</span>]</span>)]
     <span class="attr">#[case(LevelFilter::Off, <span class="macro">vec!</span>[]</span>)]
     <span class="kw">fn </span>test_log_filtering(<span class="attr">#[case] </span>level_filter: LevelFilter, <span class="attr">#[case] </span>expected_found: Vec&lt;<span class="kw-2">&amp;</span>str&gt;) {
-        <span class="kw">let </span>(get_logs, logger) = get_stdout_logger(level_filter, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>);
+        <span class="kw">let </span>(get_logs, logger) = get_stdout_logger(|log_store, get_output| {
+            <span class="macro">vec!</span>[LogTarget {
+                variant: LogTargetVariant::Custom {
+                    include_color: <span class="bool-val">false</span>,
+                    output: get_output(log_store),
+                },
+                level_filter,
+                ..Default::default()
+            }]
+        });
         log_all(<span class="kw-2">&amp;</span>logger);
 
         <span class="kw">let </span>logs = get_logs();
@@ -351,14 +499,12 @@
     </span><span class="kw">fn </span>test_log_to_file() {
         <span class="kw">let </span>temp_dir = tempdir().unwrap();
         <span class="kw">let </span>logger = get_logger(<span class="macro">vec!</span>[LogTarget {
-            msg_prefix: <span class="prelude-val">None</span>,
             level_filter: LevelFilter::Debug,
-            include_ts_till: <span class="prelude-val">None</span>,
-            include_location_till: <span class="prelude-val">None</span>,
             variant: LogTargetVariant::File {
                 dir: temp_dir.path().to_path_buf(),
                 file_prefix: <span class="string">&quot;foo_&quot;</span>.to_string(),
             },
+            ..Default::default()
         }]);
         log_all(<span class="kw-2">&amp;</span>logger);
 
