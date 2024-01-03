@@ -282,23 +282,6 @@
 <a href="#282" id="282">282</a>
 <a href="#283" id="283">283</a>
 <a href="#284" id="284">284</a>
-<a href="#285" id="285">285</a>
-<a href="#286" id="286">286</a>
-<a href="#287" id="287">287</a>
-<a href="#288" id="288">288</a>
-<a href="#289" id="289">289</a>
-<a href="#290" id="290">290</a>
-<a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
-<a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a>
-<a href="#296" id="296">296</a>
-<a href="#297" id="297">297</a>
-<a href="#298" id="298">298</a>
-<a href="#299" id="299">299</a>
-<a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>colored::Colorize;
@@ -563,11 +546,7 @@
                 prefix
             };
 
-            out.finish(<span class="macro">format_args!</span>(
-                <span class="string">&quot;{}{}&quot;</span>,
-                final_prefix,
-                offset_str(final_prefix.len() + <span class="number">2</span>, message.to_string().as_str())
-            ));
+            out.finish(<span class="macro">format_args!</span>(<span class="string">&quot;{}{}&quot;</span>, final_prefix, message));
         })
         .level(level_filter);
 
@@ -586,18 +565,5 @@
     }
 
     <span class="prelude-val">Ok</span>(dispatcher)
-}
-
-<span class="kw">fn </span>offset_str(offset: usize, value: <span class="kw-2">&amp;</span>str) -&gt; String {
-    <span class="comment">// For every line but the first, add the offset as whitespace:
-    </span><span class="kw">let </span><span class="kw-2">mut </span>result = String::new();
-    <span class="kw">for </span>(i, line) <span class="kw">in </span>value.lines().enumerate() {
-        <span class="kw">if </span>i &gt; <span class="number">0 </span>&amp;&amp; !line.is_empty() {
-            result.push_str(<span class="kw-2">&amp;</span><span class="string">&quot; &quot;</span>.repeat(offset));
-        }
-        result.push_str(line);
-        result.push(<span class="string">&#39;\n&#39;</span>);
-    }
-    result.trim_end().to_string()
 }
 </code></pre></div></section></main></body></html>
