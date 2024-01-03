@@ -262,11 +262,7 @@ fn create_logger(
                 prefix
             };
 
-            out.finish(format_args!(
-                "{}{}",
-                final_prefix,
-                offset_str(final_prefix.len() + 2, message.to_string().as_str())
-            ));
+            out.finish(format_args!("{}{}", final_prefix, message));
         })
         .level(level_filter);
 
@@ -285,17 +281,4 @@ fn create_logger(
     }
 
     Ok(dispatcher)
-}
-
-fn offset_str(offset: usize, value: &str) -> String {
-    // For every line but the first, add the offset as whitespace:
-    let mut result = String::new();
-    for (i, line) in value.lines().enumerate() {
-        if i > 0 && !line.is_empty() {
-            result.push_str(&" ".repeat(offset));
-        }
-        result.push_str(line);
-        result.push('\n');
-    }
-    result.trim_end().to_string()
 }
