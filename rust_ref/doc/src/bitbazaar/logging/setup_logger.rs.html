@@ -413,6 +413,8 @@
 
 <span class="doccomment">/// Simple interface to setup a logger and output to a given target.
 /// Returns the logger, must run `logger.apply()?` To actually enable it as the global logger, this can only be done once.
+///
+/// See the [`LogTarget`] struct for examples.
 </span><span class="kw">pub fn </span>setup_logger(targets: Vec&lt;LogTarget&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;fern::Dispatch, TracedErr&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>logger = fern::Dispatch::new();
 
@@ -567,9 +569,7 @@
                 offset_str(final_prefix.len() + <span class="number">2</span>, message.to_string().as_str())
             ));
         })
-        .level(level_filter)
-        <span class="comment">// TODO not sure on this level_for thing.
-        </span>.level_for(<span class="string">&quot;globset&quot;</span>, log::LevelFilter::Warn);
+        .level(level_filter);
 
     <span class="comment">// Skip log if there&#39;s a custom location matcher present that doesn&#39;t match the file string:
     </span><span class="kw">if let </span><span class="prelude-val">Some</span>(loc_matcher) = loc_matcher {
