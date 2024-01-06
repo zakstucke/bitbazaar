@@ -33,8 +33,6 @@
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
 <a href="#35" id="35">35</a>
-<a href="#36" id="36">36</a>
-<a href="#37" id="37">37</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>once_cell::sync::Lazy;
 <span class="kw">use </span>parking_lot::Mutex;
 
@@ -45,13 +43,12 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>warn_user_once_by_id {
     (<span class="macro-nonterminal">$id</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
-        <span class="kw">use </span>colored::Colorize;
         <span class="kw">use </span>log::warn;
 
         <span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>states) = <span class="macro-nonterminal">$crate::logging::SENT_WARNING_IDS</span>.lock() {
             <span class="kw">if </span>!states.contains(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$id</span>) {
                 <span class="kw">let </span>message = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>));
-                <span class="macro">warn!</span>(<span class="string">&quot;{}&quot;</span>, message.bold());
+                <span class="macro">warn!</span>(<span class="string">&quot;{}&quot;</span>, message);
                 states.push(<span class="macro-nonterminal">$id</span>);
             }
         }
@@ -62,13 +59,12 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>warn_user_once {
     ($(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
-        <span class="kw">use </span>colored::Colorize;
         <span class="kw">use </span>log::warn;
 
         <span class="kw">static </span>WARNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(<span class="bool-val">false</span>);
         <span class="kw">if </span>!WARNED.swap(<span class="bool-val">true</span>, std::sync::atomic::Ordering::SeqCst) {
             <span class="kw">let </span>message = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>));
-            <span class="macro">warn!</span>(<span class="string">&quot;{}&quot;</span>, message.bold());
+            <span class="macro">warn!</span>(<span class="string">&quot;{}&quot;</span>, message);
         }
     };
 }

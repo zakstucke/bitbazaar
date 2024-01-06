@@ -86,9 +86,9 @@
 <a href="#86" id="86">86</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">use </span>log::warn;
 <span class="kw">use </span>once_cell::sync::Lazy;
 <span class="kw">use </span>parking_lot::Mutex;
+<span class="kw">use </span>tracing::warn;
 
 <span class="kw">use crate</span>::{err, errors::TracedErr, timing::format_duration};
 
