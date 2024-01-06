@@ -1,3 +1,5 @@
+use tracing::level_filters::LevelFilter;
+
 /// A simple clap argument group for controlling the log level for cli usage.
 #[derive(Debug, clap::Args)]
 pub struct ClapLogLevelArgs {
@@ -30,14 +32,14 @@ pub struct ClapLogLevelArgs {
 }
 
 impl ClapLogLevelArgs {
-    /// Convert the clap log level argument group into a log level filter that can be passed to `setup_logger`.
-    pub fn level_filter(&self) -> log::LevelFilter {
+    /// Convert the clap log level argument group into a log level filter that can be passed to `create_subscriber`.
+    pub fn level_filter(&self) -> LevelFilter {
         if self.silent {
-            log::LevelFilter::Off
+            LevelFilter::OFF
         } else if self.verbose {
-            log::LevelFilter::Debug
+            LevelFilter::DEBUG
         } else {
-            log::LevelFilter::Info
+            LevelFilter::INFO
         }
     }
 }

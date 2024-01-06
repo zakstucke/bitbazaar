@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use log::warn;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use tracing::warn;
 
 use crate::{err, errors::TracedErr, timing::format_duration};
 
