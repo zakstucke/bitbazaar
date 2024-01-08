@@ -1,5 +1,5 @@
-#[macro_export]
 /// A macro for creating a TracedErr from a string or another existing error.
+#[macro_export]
 macro_rules! err {
 
     ($str_or_err:expr) => {{
@@ -23,5 +23,20 @@ macro_rules! err {
         use $crate::errors::TracedErr;
 
         TracedErr::from_str(format!($str, $($arg),*))
+    }};
+}
+
+/// When working in a function that cannot return a result, wrap a block in this macro to panic with the formatted error if it errors.
+#[macro_export]
+macro_rules! panic_on_err {
+    ($closure:block) => {{
+        use $crate::errors::TracedErr;
+
+        match (|| -> Result<_, TracedErr> { $closure })() {
+            Ok(s) => s,
+            Err(e) => {
+                panic!("{}", e);
+            }
+        }
     }};
 }
