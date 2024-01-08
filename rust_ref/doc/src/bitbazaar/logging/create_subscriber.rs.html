@@ -388,6 +388,24 @@
 <a href="#388" id="388">388</a>
 <a href="#389" id="389">389</a>
 <a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{path::PathBuf, str::FromStr};
 
 <span class="kw">use </span>tracing::{Dispatch, Level, Metadata, Subscriber};
@@ -581,6 +599,24 @@
 ///            },
 ///        },
 ///        include_color: false,
+///    },
+///    ..Default::default()
+/// }]).unwrap();
+/// sub.init(); // Register it as the global sub, this can only be done once
+/// ```
+///
+/// Example sub with open telemetry:
+/// E.g. jaeger running locally on localhost:4317 (`docker pull jaegertracing/all-in-one:latest &amp;&amp; docker run -d --name jaeger -e COLLECTOR_OTLP_ENABLED=true -p 16686:16686 -p 4317:4317 -p 4318:4318 jaegertracing/all-in-one:latest`)
+/// ```no_run
+/// use bitbazaar::logging::{SubCustomWriter, create_subscriber, SubLayer, SubLayerVariant, SubLayerFilter};
+/// use tracing_subscriber::prelude::*;
+/// use tracing::Level;
+///
+/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+///    filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
+///    variant: SubLayerVariant::OpenTelemetry {
+///        endpoint: &quot;http://localhost:4317&quot;.into(),
+///        headers: vec![], // Additional headers to send to the provider
 ///    },
 ///    ..Default::default()
 /// }]).unwrap();

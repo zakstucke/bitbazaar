@@ -43,7 +43,7 @@
 <a href="#43" id="43">43</a>
 <a href="#44" id="44">44</a>
 <a href="#45" id="45">45</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>tracing::level_filters::LevelFilter;
+</pre></div><pre class="rust"><code><span class="kw">use </span>tracing::Level;
 
 <span class="doccomment">/// A simple clap argument group for controlling the log level for cli usage.
 </span><span class="attr">#[derive(Debug, clap::Args)]
@@ -77,14 +77,14 @@
 }
 
 <span class="kw">impl </span>ClapLogLevelArgs {
-    <span class="doccomment">/// Convert the clap log level argument group into a log level filter that can be passed to `create_subscriber`.
-    </span><span class="kw">pub fn </span>level_filter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; LevelFilter {
+    <span class="doccomment">/// Convert the clap log level argument group into a log level that can be passed to `create_subscriber`. Will be None when Silent
+    </span><span class="kw">pub fn </span>level(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Level&gt; {
         <span class="kw">if </span><span class="self">self</span>.silent {
-            LevelFilter::OFF
-        } <span class="kw">else if </span><span class="self">self</span>.verbose {
-            LevelFilter::DEBUG
+            <span class="prelude-val">None
+        </span>} <span class="kw">else if </span><span class="self">self</span>.verbose {
+            <span class="prelude-val">Some</span>(Level::TRACE)
         } <span class="kw">else </span>{
-            LevelFilter::INFO
+            <span class="prelude-val">Some</span>(Level::INFO)
         }
     }
 }
