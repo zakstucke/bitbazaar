@@ -193,6 +193,10 @@
 <a href="#193" id="193">193</a>
 <a href="#194" id="194">194</a>
 <a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{error::Error, panic::Location};
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
@@ -223,15 +227,26 @@
 <span class="doccomment">/// An error type that can be created automatically from any other error, and stores the location the error was created.
 </span><span class="kw">pub type </span>TracedErr = TracedErrWrapper&lt;Box&lt;<span class="kw">dyn </span>Error + Send + <span class="lifetime">&#39;static</span>&gt;&gt;;
 
+<span class="kw">impl</span>&lt;T: std::fmt::Display&gt; TracedErrWrapper&lt;T&gt; {
+    <span class="doccomment">/// Convert the error to a string, including the location it was created.
+    </span><span class="kw">pub fn </span>fmt_as_str(<span class="kw-2">&amp;</span><span class="self">self</span>, colored: bool) -&gt; String {
+        <span class="kw">let </span>loc = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.location);
+        <span class="macro">format!</span>(
+            <span class="string">&quot;{}\n{}\n&quot;</span>,
+            <span class="kw">if </span>colored {
+                loc.yellow().to_string()
+            } <span class="kw">else </span>{
+                loc
+            },
+            <span class="self">self</span>.inner
+        )
+    }
+}
+
 <span class="comment">// Implement a display formatter for TracedErrWrapper:
 </span><span class="kw">impl</span>&lt;T: std::fmt::Display&gt; std::fmt::Display <span class="kw">for </span>TracedErrWrapper&lt;T&gt; {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
-        <span class="macro">write!</span>(
-            f,
-            <span class="string">&quot;{}\n{}\n&quot;</span>,
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.location).yellow(),
-            <span class="self">self</span>.inner
-        )<span class="question-mark">?</span>;
+        <span class="macro">write!</span>(f, <span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.fmt_as_str(<span class="bool-val">true</span>),)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
@@ -239,13 +254,7 @@
 <span class="comment">// Implement a debug formatter for TracedErrWrapper:
 </span><span class="kw">impl</span>&lt;T: std::fmt::Display&gt; std::fmt::Debug <span class="kw">for </span>TracedErrWrapper&lt;T&gt; {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
-        <span class="macro">write!</span>(
-            f,
-            <span class="comment">// This will usually be shown with unwrap():
-            </span><span class="string">&quot;\n{}\n{}&quot;</span>,
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.location).yellow(),
-            <span class="self">self</span>.inner
-        )<span class="question-mark">?</span>;
+        <span class="macro">write!</span>(f, <span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.fmt_as_str(<span class="bool-val">true</span>),)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
@@ -355,15 +364,14 @@
 }
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
-</span><span class="kw">static </span>UNEXPECTED_ERR_DEBUG: std::sync::atomic::AtomicBool =
-    std::sync::atomic::AtomicBool::new(<span class="bool-val">false</span>);
+</span><span class="kw">static </span>AXUM_DEBUG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(<span class="bool-val">false</span>);
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
-</span><span class="doccomment">/// When this is called. Unexpected errors that don&#39;t implement custom responses, will show the full traced err output.
+</span><span class="doccomment">/// Defaults to `false`. When `true`, unexpected errors that don&#39;t implement custom responses, will show the full traced err output.
 /// By default, only a generic &quot;Internal server error.&quot; string is shown for security.
 /// Useful when e.g. debug=true in development, but not in production to prevent sensitive leaks.
-</span><span class="kw">pub fn </span>enable_axum_traced_err_details() {
-    UNEXPECTED_ERR_DEBUG.store(<span class="bool-val">true</span>, std::sync::atomic::Ordering::Relaxed);
+</span><span class="kw">pub fn </span>set_axum_debug(debug: bool) {
+    AXUM_DEBUG.store(debug, std::sync::atomic::Ordering::Relaxed);
 }
 
 <span class="doccomment">/// When axum enabled, implement IntoResponse to return a 500 error:
@@ -373,11 +381,11 @@
         <span class="comment">// Use the custom response if available:
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(into_response) = <span class="self">self</span>.into_response {
             into_response()
-        } <span class="kw">else if </span>UNEXPECTED_ERR_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
-            <span class="comment">// When enabled, show the full traced error in the response.
-            </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>)).into_response()
+        } <span class="kw">else if </span>AXUM_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
+            <span class="comment">// When enabled (debug), show the full traced error in the response.
+            </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="self">self</span>.fmt_as_str(<span class="bool-val">false</span>)).into_response()
         } <span class="kw">else </span>{
-            <span class="comment">// When UNEXPECTED_ERR_DEBUG disabled, just show a generic error to prevent sensitive leaks.
+            <span class="comment">// When AXUM_DEBUG disabled, just show a generic error to prevent sensitive leaks.
             </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="string">&quot;Internal server error.&quot;</span>).into_response()
         }
     }

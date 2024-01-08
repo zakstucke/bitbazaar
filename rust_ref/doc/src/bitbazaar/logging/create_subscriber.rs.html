@@ -406,8 +406,34 @@
 <a href="#406" id="406">406</a>
 <a href="#407" id="407">407</a>
 <a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
+<a href="#423" id="423">423</a>
+<a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{path::PathBuf, str::FromStr};
 
+<span class="kw">use </span>once_cell::sync::Lazy;
+<span class="kw">use </span>parking_lot::Mutex;
 <span class="kw">use </span>tracing::{Dispatch, Level, Metadata, Subscriber};
 <span class="kw">use </span>tracing_appender::non_blocking::WorkerGuard;
 <span class="kw">use </span>tracing_subscriber::{
@@ -550,6 +576,25 @@
     },
 }
 
+<span class="comment">// When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
+</span><span class="kw">static </span>GLOBAL_GUARDS: Lazy&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;WorkerGuard&gt;&gt;&gt;&gt; = Lazy::new(Mutex::default);
+
+<span class="kw">pub struct </span>CreatedSubscriber {
+    <span class="kw">pub </span>dispatch: Dispatch,
+    <span class="doccomment">/// Need to store these guards, when they go out of scope the logging may stop.
+    /// When made global these are hoisted into a static lazy var.
+    </span>guards: Vec&lt;WorkerGuard&gt;,
+}
+
+<span class="kw">impl </span>CreatedSubscriber {
+    <span class="doccomment">/// Register the subscriber as the global subscriber, can only be done once during the lifetime of the program.
+    </span><span class="kw">pub fn </span>into_global(<span class="self">self</span>) {
+        <span class="comment">// Keep hold of the guards:
+        </span>GLOBAL_GUARDS.lock().replace(<span class="self">self</span>.guards);
+        <span class="self">self</span>.dispatch.init();
+    }
+}
+
 <span class="doccomment">/// Simple interface to setup a sub and output to a given target.
 /// Returns the sub, must run `sub.apply()?` To actually enable it as the global sub, this can only be done once.
 ///
@@ -559,11 +604,11 @@
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///     filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///     ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
 ///
 /// Example sub with a file logger:
@@ -573,7 +618,7 @@
 /// use tracing::Level;
 /// use std::path::PathBuf;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///     filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///     variant: SubLayerVariant::File {
 ///         file_prefix: &quot;my_program_&quot;.into(),
@@ -581,7 +626,7 @@
 ///     },
 ///     ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
 ///
 /// Example sub with a custom writer:
@@ -590,7 +635,7 @@
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///    filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///    variant: SubLayerVariant::Custom {
 ///        writer: SubCustomWriter {
@@ -602,7 +647,7 @@
 ///    },
 ///    ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
 ///
 /// Example sub with open telemetry:
@@ -612,7 +657,7 @@
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///    filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///    variant: SubLayerVariant::OpenTelemetry {
 ///        endpoint: &quot;http://localhost:4317&quot;.into(),
@@ -620,9 +665,9 @@
 ///    },
 ///    ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
-</span><span class="kw">pub fn </span>create_subscriber(layers: Vec&lt;SubLayer&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(Dispatch, Vec&lt;WorkerGuard&gt;), TracedErr&gt; {
+</span><span class="kw">pub fn </span>create_subscriber(layers: Vec&lt;SubLayer&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;CreatedSubscriber, TracedErr&gt; {
     <span class="kw">let </span>all_loc_matchers = layers
         .iter()
         .filter_map(|target| target.loc_matcher.clone())
@@ -722,7 +767,10 @@
 
     <span class="comment">// Combine the layers into the final subscriber:
     </span><span class="kw">let </span>subscriber = tracing_subscriber::registry().with(out_layers);
-    <span class="prelude-val">Ok</span>((subscriber.into(), guards))
+    <span class="prelude-val">Ok</span>(CreatedSubscriber {
+        dispatch: subscriber.into(),
+        guards,
+    })
 }
 
 <span class="kw">fn </span>filter_layer(

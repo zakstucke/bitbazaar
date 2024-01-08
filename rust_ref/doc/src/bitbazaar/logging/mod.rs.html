@@ -409,7 +409,7 @@
             </span>LOGS.lock().clear();
         }
 
-        <span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: <span class="bool-val">false</span>,
                 writer: SubCustomWriter {
@@ -426,7 +426,7 @@
             ..Default::default()
         }])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             log_all();
         });
 
@@ -465,7 +465,7 @@
     </span><span class="kw">fn </span>test_log_pretty() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
 
-        <span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: <span class="bool-val">false</span>,
                 writer: SubCustomWriter {
@@ -483,7 +483,7 @@
             ..Default::default()
         }])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             <span class="macro">debug!</span>(<span class="string">&quot;DLOG&quot;</span>);
         });
 
@@ -499,7 +499,7 @@
     </span><span class="kw">fn </span>test_log_color() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
 
-        <span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: <span class="bool-val">true</span>,
                 writer: SubCustomWriter {
@@ -513,7 +513,7 @@
             ..Default::default()
         }])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             <span class="macro">info!</span>(<span class="string">&quot;ILOG&quot;</span>);
         });
 
@@ -546,7 +546,7 @@
             </span>LOGS.lock().clear();
         }
 
-        <span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[
+        <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[
             SubLayer {
                 variant: SubLayerVariant::Custom {
                     include_color: <span class="bool-val">false</span>,
@@ -580,7 +580,7 @@
             },
         ])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             <span class="macro">debug!</span>(<span class="string">&quot;LOG1&quot;</span>);
             diff_file_log::diff_file_log(<span class="string">&quot;LOG2&quot;</span>);
         });
@@ -608,7 +608,7 @@
             </span>LOGS.lock().clear();
         }
 
-        <span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: <span class="bool-val">false</span>,
                 writer: SubCustomWriter {
@@ -622,7 +622,7 @@
             ..Default::default()
         }])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             log_all();
         });
 
@@ -652,7 +652,7 @@
     <span class="attr">#[rstest]
     </span><span class="kw">fn </span>test_log_to_file() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
         <span class="kw">let </span>temp_dir = tempdir()<span class="question-mark">?</span>;
-        <span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::File {
                 dir: temp_dir.path().to_path_buf(),
@@ -661,7 +661,7 @@
             ..Default::default()
         }])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             log_all();
         });
 
@@ -706,7 +706,7 @@
     </span><span class="kw">async fn </span>test_opentelemetry() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
         <span class="comment">// Not actually going to implement a fake collector on the other side, just check nothing errors:
 
-        </span><span class="kw">let </span>(sub, _guards) = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        </span><span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::OpenTelemetry {
                 endpoint: <span class="string">&quot;http://localhost:4317&quot;</span>.to_string(),
@@ -715,7 +715,7 @@
             ..Default::default()
         }])<span class="question-mark">?</span>;
 
-        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub, || {
+        tracing::dispatcher::with_default(<span class="kw-2">&amp;</span>sub.dispatch, || {
             log_all();
         });
 
