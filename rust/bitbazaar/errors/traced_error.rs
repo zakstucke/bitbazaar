@@ -1,5 +1,10 @@
 use std::{error::Error, panic::Location};
 
+#[cfg(feature = "axum")]
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use colored::Colorize;
 
 use super::generic_err::GenericErr;
@@ -13,6 +18,11 @@ use super::generic_err::GenericErr;
 pub struct TracedErrWrapper<T> {
     pub inner: T,
     pub location: &'static Location<'static>,
+    // To prevent more complex later code, still including the into_response field, just unused, when axum isn't enabled.
+    #[cfg(not(feature = "axum"))]
+    pub into_response: Option<bool>,
+    #[cfg(feature = "axum")]
+    pub into_response: Option<fn(TracedErrWrapper<T>) -> Response>,
 }
 
 /// An error type that can be created automatically from any other error, and stores the location the error was created.
@@ -52,16 +62,34 @@ impl<E: Error + Send + 'static> From<E> for TracedErr {
         TracedErrWrapper {
             inner: Box::new(err), // Store the error
             location: std::panic::Location::caller(),
+            into_response: None,
         }
     }
 }
 
 impl TracedErr {
+    /// Create a new TracedErr from a string.
     #[track_caller]
     pub fn from_str<S: Into<String>>(message: S) -> Self {
         TracedErrWrapper {
             inner: Box::new(GenericErr::new(message.into())),
             location: std::panic::Location::caller(),
+            into_response: None,
+        }
+    }
+
+    /// Axum only, create a new TracedErr from a string, and specify a function to convert it to a response if it propagates out a handler.
+    /// If this isn't used, all traced errors return 500 errors.
+    #[cfg(feature = "axum")]
+    #[track_caller]
+    pub fn from_str_with_response<S: Into<String>>(
+        message: S,
+        into_response: fn(TracedErr) -> Response,
+    ) -> Self {
+        TracedErrWrapper {
+            inner: Box::new(GenericErr::new(message.into())),
+            location: std::panic::Location::caller(),
+            into_response: Some(into_response),
         }
     }
 
@@ -129,4 +157,23 @@ impl std::convert::From<TracedErr> for PyErr {
             None => PyException::new_err(format!("{}", err)),
         })
     }
+}
+
+/// When axum enabled, implement IntoResponse to return a 500 error:
+#[cfg(feature = "axum")]
+impl IntoResponse for TracedErr {
+    fn into_response(self) -> Response {
+        // Use the custom response if available, otherwise just return 500 with generic message to prevent sensitive leaks:
+        if let Some(into_response) = self.into_response {
+            into_response(self)
+        } else {
+            (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error.").into_response()
+        }
+    }
+}
+
+/// When axum enabled, implement OperationOutput so that IntoApiResponse (aide) can be used:
+#[cfg(feature = "axum")]
+impl aide::OperationOutput for TracedErr {
+    type Inner = Self;
 }

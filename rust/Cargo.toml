@@ -8,51 +8,21 @@ shlex = '1.2'
 spez = '0.1'
 tracing = '0.1'
 tracing-appender = '0.2'
-
-[dependencies.clap]
-features = ['derive', 'string']
-version = '4.4'
-
-[dependencies.opentelemetry]
-default-features = false
-features = ['trace']
-optional = true
-version = '0.21'
-
-[dependencies.opentelemetry-otlp]
-features = ['reqwest-client', 'reqwest-rustls', 'http-proto', 'tls']
-optional = true
-version = '0.14'
-
-[dependencies.opentelemetry_sdk]
-features = ['rt-tokio']
-optional = true
-version = '0.21'
-
-[dependencies.parking_lot]
-features = ['nightly', 'deadlock_detection', 'serde']
-version = '0.12.1'
-
-[dependencies.pyo3]
-features = ['auto-initialize']
-optional = true
-version = '0.20'
-
-[dependencies.time]
-features = ['local-offset']
-version = '0.3'
-
-[dependencies.tonic]
-optional = true
-version = '0.9'
-
-[dependencies.tracing-opentelemetry]
-optional = true
-version = '0.22'
-
-[dependencies.tracing-subscriber]
-features = ['fmt', 'std', 'time']
-version = '0.3'
+parking_lot = {version = '0.12', features = ['nightly', 'deadlock_detection', 'serde']}
+time = {version = '0.3', features = ['local-offset']}
+tracing-subscriber = {version = '0.3', features = ['fmt', 'std', 'time']}
+clap = {version = '4.4', features = ['derive', 'string']}
+# #[cfg(feature = 'opentelemetry')]
+tracing-opentelemetry = {version = '0.22', optional = true}
+opentelemetry = {version = '0.21', default-features = false, features = ['trace'], optional = true}
+opentelemetry-otlp = {version = '0.14', features = ['reqwest-client', 'reqwest-rustls', 'http-proto', 'tls'], optional = true}
+opentelemetry_sdk = {version = '0.21', features = ['rt-tokio'], optional = true}
+tonic = {version = '0.9', optional = true}
+# #[cfg(feature = 'pyo3')]
+pyo3 = {version = '0.20', features = ['auto-initialize'], optional = true}
+# #[cfg(feature = 'axum')]
+axum = {version = '0.7', optional = true}
+aide = {version = '0.13', features = ['axum'], optional = true}
 
 [dev-dependencies]
 rstest = '0.18.2'
@@ -63,6 +33,7 @@ tokio = '1.35'
 [features]
 opentelemetry = ['dep:tracing-opentelemetry', 'dep:opentelemetry', 'dep:opentelemetry-otlp', 'dep:opentelemetry_sdk', 'dep:tonic']
 pyo3 = ['dep:pyo3']
+axum = ['dep:axum', 'dep:aide']
 
 [lib]
 crate-type = ['lib']
