@@ -196,6 +196,24 @@ pub enum SubLayerVariant {
 /// }]).unwrap();
 /// sub.init(); // Register it as the global sub, this can only be done once
 /// ```
+///
+/// Example sub with open telemetry:
+/// E.g. jaeger running locally on localhost:4317 (`docker pull jaegertracing/all-in-one:latest && docker run -d --name jaeger -e COLLECTOR_OTLP_ENABLED=true -p 16686:16686 -p 4317:4317 -p 4318:4318 jaegertracing/all-in-one:latest`)
+/// ```no_run
+/// use bitbazaar::logging::{SubCustomWriter, create_subscriber, SubLayer, SubLayerVariant, SubLayerFilter};
+/// use tracing_subscriber::prelude::*;
+/// use tracing::Level;
+///
+/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+///    filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
+///    variant: SubLayerVariant::OpenTelemetry {
+///        endpoint: "http://localhost:4317".into(),
+///        headers: vec![], // Additional headers to send to the provider
+///    },
+///    ..Default::default()
+/// }]).unwrap();
+/// sub.init(); // Register it as the global sub, this can only be done once
+/// ```
 pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<(Dispatch, Vec<WorkerGuard>), TracedErr> {
     let all_loc_matchers = layers
         .iter()

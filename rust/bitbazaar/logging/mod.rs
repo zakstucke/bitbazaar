@@ -233,6 +233,8 @@ mod tests {
     #[case(SubLayerFilter::Above(Level::INFO), vec!["ILOG", "WLOG", "ELOG"])]
     #[case(SubLayerFilter::Above(Level::WARN), vec!["WLOG", "ELOG"])]
     #[case(SubLayerFilter::Above(Level::ERROR), vec!["ELOG"])]
+    #[case(SubLayerFilter::Only(vec![Level::ERROR, Level::DEBUG]), vec!["DLOG", "ELOG"])]
+    #[case(SubLayerFilter::Only(vec![Level::INFO, Level::WARN]), vec!["ILOG", "WLOG"])]
     #[serial_test::serial] // Uses static, so parameterized versions can't run in parallel.
     fn test_log_filtering(
         #[case] filter: SubLayerFilter,
