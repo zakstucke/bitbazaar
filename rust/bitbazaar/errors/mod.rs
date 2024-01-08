@@ -3,6 +3,8 @@ mod macros;
 mod test_errs;
 mod traced_error;
 
+#[cfg(feature = "axum")]
+pub use traced_error::enable_axum_traced_err_details;
 pub use traced_error::TracedErr;
 
 #[cfg(test)]

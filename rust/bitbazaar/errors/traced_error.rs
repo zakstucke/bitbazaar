@@ -22,7 +22,7 @@ pub struct TracedErrWrapper<T> {
     #[cfg(not(feature = "axum"))]
     pub into_response: Option<bool>,
     #[cfg(feature = "axum")]
-    pub into_response: Option<fn(TracedErrWrapper<T>) -> Response>,
+    pub into_response: Option<fn() -> Response>,
 }
 
 /// An error type that can be created automatically from any other error, and stores the location the error was created.
@@ -84,7 +84,7 @@ impl TracedErr {
     #[track_caller]
     pub fn from_str_with_response<S: Into<String>>(
         message: S,
-        into_response: fn(TracedErr) -> Response,
+        into_response: fn() -> Response,
     ) -> Self {
         TracedErrWrapper {
             inner: Box::new(GenericErr::new(message.into())),
@@ -159,14 +159,30 @@ impl std::convert::From<TracedErr> for PyErr {
     }
 }
 
+#[cfg(feature = "axum")]
+static UNEXPECTED_ERR_DEBUG: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(feature = "axum")]
+/// When this is called. Unexpected errors that don't implement custom responses, will show the full traced err output.
+/// By default, only a generic "Internal server error." string is shown for security.
+/// Useful when e.g. debug=true in development, but not in production to prevent sensitive leaks.
+pub fn enable_axum_traced_err_details() {
+    UNEXPECTED_ERR_DEBUG.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// When axum enabled, implement IntoResponse to return a 500 error:
 #[cfg(feature = "axum")]
 impl IntoResponse for TracedErr {
     fn into_response(self) -> Response {
-        // Use the custom response if available, otherwise just return 500 with generic message to prevent sensitive leaks:
+        // Use the custom response if available:
         if let Some(into_response) = self.into_response {
-            into_response(self)
+            into_response()
+        } else if UNEXPECTED_ERR_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
+            // When enabled, show the full traced error in the response.
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self)).into_response()
         } else {
+            // When UNEXPECTED_ERR_DEBUG disabled, just show a generic error to prevent sensitive leaks.
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error.").into_response()
         }
     }
