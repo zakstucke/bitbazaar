@@ -28,15 +28,26 @@ pub struct TracedErrWrapper<T> {
 /// An error type that can be created automatically from any other error, and stores the location the error was created.
 pub type TracedErr = TracedErrWrapper<Box<dyn Error + Send + 'static>>;
 
+impl<T: std::fmt::Display> TracedErrWrapper<T> {
+    /// Convert the error to a string, including the location it was created.
+    pub fn fmt_as_str(&self, colored: bool) -> String {
+        let loc = format!("{}", self.location);
+        format!(
+            "{}\n{}\n",
+            if colored {
+                loc.yellow().to_string()
+            } else {
+                loc
+            },
+            self.inner
+        )
+    }
+}
+
 // Implement a display formatter for TracedErrWrapper:
 impl<T: std::fmt::Display> std::fmt::Display for TracedErrWrapper<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}\n{}\n",
-            format!("{}", self.location).yellow(),
-            self.inner
-        )?;
+        write!(f, "{}", self.fmt_as_str(true),)?;
         Ok(())
     }
 }
@@ -44,13 +55,7 @@ impl<T: std::fmt::Display> std::fmt::Display for TracedErrWrapper<T> {
 // Implement a debug formatter for TracedErrWrapper:
 impl<T: std::fmt::Display> std::fmt::Debug for TracedErrWrapper<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            // This will usually be shown with unwrap():
-            "\n{}\n{}",
-            format!("{}", self.location).yellow(),
-            self.inner
-        )?;
+        write!(f, "{}", self.fmt_as_str(true),)?;
         Ok(())
     }
 }
@@ -160,15 +165,14 @@ impl std::convert::From<TracedErr> for PyErr {
 }
 
 #[cfg(feature = "axum")]
-static UNEXPECTED_ERR_DEBUG: std::sync::atomic::AtomicBool =
-    std::sync::atomic::AtomicBool::new(false);
+static AXUM_DEBUG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[cfg(feature = "axum")]
-/// When this is called. Unexpected errors that don't implement custom responses, will show the full traced err output.
+/// Defaults to `false`. When `true`, unexpected errors that don't implement custom responses, will show the full traced err output.
 /// By default, only a generic "Internal server error." string is shown for security.
 /// Useful when e.g. debug=true in development, but not in production to prevent sensitive leaks.
-pub fn enable_axum_traced_err_details() {
-    UNEXPECTED_ERR_DEBUG.store(true, std::sync::atomic::Ordering::Relaxed);
+pub fn set_axum_debug(debug: bool) {
+    AXUM_DEBUG.store(debug, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// When axum enabled, implement IntoResponse to return a 500 error:
@@ -178,11 +182,11 @@ impl IntoResponse for TracedErr {
         // Use the custom response if available:
         if let Some(into_response) = self.into_response {
             into_response()
-        } else if UNEXPECTED_ERR_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
-            // When enabled, show the full traced error in the response.
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self)).into_response()
+        } else if AXUM_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
+            // When enabled (debug), show the full traced error in the response.
+            (StatusCode::INTERNAL_SERVER_ERROR, self.fmt_as_str(false)).into_response()
         } else {
-            // When UNEXPECTED_ERR_DEBUG disabled, just show a generic error to prevent sensitive leaks.
+            // When AXUM_DEBUG disabled, just show a generic error to prevent sensitive leaks.
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error.").into_response()
         }
     }

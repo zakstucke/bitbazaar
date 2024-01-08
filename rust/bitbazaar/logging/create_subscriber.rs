@@ -1,5 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
+use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use tracing::{Dispatch, Level, Metadata, Subscriber};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -142,6 +144,25 @@ pub enum SubLayerVariant {
     },
 }
 
+// When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
+static GLOBAL_GUARDS: Lazy<Mutex<Option<Vec<WorkerGuard>>>> = Lazy::new(Mutex::default);
+
+pub struct CreatedSubscriber {
+    pub dispatch: Dispatch,
+    /// Need to store these guards, when they go out of scope the logging may stop.
+    /// When made global these are hoisted into a static lazy var.
+    guards: Vec<WorkerGuard>,
+}
+
+impl CreatedSubscriber {
+    /// Register the subscriber as the global subscriber, can only be done once during the lifetime of the program.
+    pub fn into_global(self) {
+        // Keep hold of the guards:
+        GLOBAL_GUARDS.lock().replace(self.guards);
+        self.dispatch.init();
+    }
+}
+
 /// Simple interface to setup a sub and output to a given target.
 /// Returns the sub, must run `sub.apply()?` To actually enable it as the global sub, this can only be done once.
 ///
@@ -151,11 +172,11 @@ pub enum SubLayerVariant {
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///     filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///     ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
 ///
 /// Example sub with a file logger:
@@ -165,7 +186,7 @@ pub enum SubLayerVariant {
 /// use tracing::Level;
 /// use std::path::PathBuf;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///     filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///     variant: SubLayerVariant::File {
 ///         file_prefix: "my_program_".into(),
@@ -173,7 +194,7 @@ pub enum SubLayerVariant {
 ///     },
 ///     ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
 ///
 /// Example sub with a custom writer:
@@ -182,7 +203,7 @@ pub enum SubLayerVariant {
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///    filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///    variant: SubLayerVariant::Custom {
 ///        writer: SubCustomWriter {
@@ -194,7 +215,7 @@ pub enum SubLayerVariant {
 ///    },
 ///    ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
 ///
 /// Example sub with open telemetry:
@@ -204,7 +225,7 @@ pub enum SubLayerVariant {
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
 ///
-/// let (sub, _guards) = create_subscriber(vec![SubLayer {
+/// let sub = create_subscriber(vec![SubLayer {
 ///    filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///    variant: SubLayerVariant::OpenTelemetry {
 ///        endpoint: "http://localhost:4317".into(),
@@ -212,9 +233,9 @@ pub enum SubLayerVariant {
 ///    },
 ///    ..Default::default()
 /// }]).unwrap();
-/// sub.init(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global sub, this can only be done once
 /// ```
-pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<(Dispatch, Vec<WorkerGuard>), TracedErr> {
+pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, TracedErr> {
     let all_loc_matchers = layers
         .iter()
         .filter_map(|target| target.loc_matcher.clone())
@@ -314,7 +335,10 @@ pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<(Dispatch, Vec<WorkerG
 
     // Combine the layers into the final subscriber:
     let subscriber = tracing_subscriber::registry().with(out_layers);
-    Ok((subscriber.into(), guards))
+    Ok(CreatedSubscriber {
+        dispatch: subscriber.into(),
+        guards,
+    })
 }
 
 fn filter_layer(

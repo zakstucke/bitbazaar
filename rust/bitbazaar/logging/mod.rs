@@ -47,7 +47,7 @@ mod tests {
             LOGS.lock().clear();
         }
 
-        let (sub, _guards) = create_subscriber(vec![SubLayer {
+        let sub = create_subscriber(vec![SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: false,
                 writer: SubCustomWriter {
@@ -64,7 +64,7 @@ mod tests {
             ..Default::default()
         }])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             log_all();
         });
 
@@ -103,7 +103,7 @@ mod tests {
     fn test_log_pretty() -> Result<(), TracedErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
 
-        let (sub, _guards) = create_subscriber(vec![SubLayer {
+        let sub = create_subscriber(vec![SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: false,
                 writer: SubCustomWriter {
@@ -121,7 +121,7 @@ mod tests {
             ..Default::default()
         }])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             debug!("DLOG");
         });
 
@@ -137,7 +137,7 @@ mod tests {
     fn test_log_color() -> Result<(), TracedErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
 
-        let (sub, _guards) = create_subscriber(vec![SubLayer {
+        let sub = create_subscriber(vec![SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: true,
                 writer: SubCustomWriter {
@@ -151,7 +151,7 @@ mod tests {
             ..Default::default()
         }])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             info!("ILOG");
         });
 
@@ -184,7 +184,7 @@ mod tests {
             LOGS.lock().clear();
         }
 
-        let (sub, _guards) = create_subscriber(vec![
+        let sub = create_subscriber(vec![
             SubLayer {
                 variant: SubLayerVariant::Custom {
                     include_color: false,
@@ -218,7 +218,7 @@ mod tests {
             },
         ])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             debug!("LOG1");
             diff_file_log::diff_file_log("LOG2");
         });
@@ -246,7 +246,7 @@ mod tests {
             LOGS.lock().clear();
         }
 
-        let (sub, _guards) = create_subscriber(vec![SubLayer {
+        let sub = create_subscriber(vec![SubLayer {
             variant: SubLayerVariant::Custom {
                 include_color: false,
                 writer: SubCustomWriter {
@@ -260,7 +260,7 @@ mod tests {
             ..Default::default()
         }])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             log_all();
         });
 
@@ -290,7 +290,7 @@ mod tests {
     #[rstest]
     fn test_log_to_file() -> Result<(), TracedErr> {
         let temp_dir = tempdir()?;
-        let (sub, _guards) = create_subscriber(vec![SubLayer {
+        let sub = create_subscriber(vec![SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::File {
                 dir: temp_dir.path().to_path_buf(),
@@ -299,7 +299,7 @@ mod tests {
             ..Default::default()
         }])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             log_all();
         });
 
@@ -344,7 +344,7 @@ mod tests {
     async fn test_opentelemetry() -> Result<(), TracedErr> {
         // Not actually going to implement a fake collector on the other side, just check nothing errors:
 
-        let (sub, _guards) = create_subscriber(vec![SubLayer {
+        let sub = create_subscriber(vec![SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::OpenTelemetry {
                 endpoint: "http://localhost:4317".to_string(),
@@ -353,7 +353,7 @@ mod tests {
             ..Default::default()
         }])?;
 
-        tracing::dispatcher::with_default(&sub, || {
+        tracing::dispatcher::with_default(&sub.dispatch, || {
             log_all();
         });
 
