@@ -88,11 +88,15 @@
 <a href="#88" id="88">88</a>
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>generic_err;
 <span class="kw">mod </span>macros;
 <span class="kw">mod </span>test_errs;
 <span class="kw">mod </span>traced_error;
 
+<span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
+</span><span class="kw">pub use </span>traced_error::enable_axum_traced_err_details;
 <span class="kw">pub use </span>traced_error::TracedErr;
 
 <span class="attr">#[cfg(test)]

@@ -177,6 +177,22 @@
 <a href="#177" id="177">177</a>
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{error::Error, panic::Location};
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
@@ -201,7 +217,7 @@
     </span><span class="attr">#[cfg(not(feature = <span class="string">&quot;axum&quot;</span>))]
     </span><span class="kw">pub </span>into_response: <span class="prelude-ty">Option</span>&lt;bool&gt;,
     <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
-    </span><span class="kw">pub </span>into_response: <span class="prelude-ty">Option</span>&lt;<span class="kw">fn</span>(TracedErrWrapper&lt;T&gt;) -&gt; Response&gt;,
+    </span><span class="kw">pub </span>into_response: <span class="prelude-ty">Option</span>&lt;<span class="kw">fn</span>() -&gt; Response&gt;,
 }
 
 <span class="doccomment">/// An error type that can be created automatically from any other error, and stores the location the error was created.
@@ -263,7 +279,7 @@
     #[track_caller]
     </span><span class="kw">pub fn </span>from_str_with_response&lt;S: Into&lt;String&gt;&gt;(
         message: S,
-        into_response: <span class="kw">fn</span>(TracedErr) -&gt; Response,
+        into_response: <span class="kw">fn</span>() -&gt; Response,
     ) -&gt; <span class="self">Self </span>{
         TracedErrWrapper {
             inner: Box::new(GenericErr::new(message.into())),
@@ -338,15 +354,31 @@
     }
 }
 
+<span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
+</span><span class="kw">static </span>UNEXPECTED_ERR_DEBUG: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(<span class="bool-val">false</span>);
+
+<span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
+</span><span class="doccomment">/// When this is called. Unexpected errors that don&#39;t implement custom responses, will show the full traced err output.
+/// By default, only a generic &quot;Internal server error.&quot; string is shown for security.
+/// Useful when e.g. debug=true in development, but not in production to prevent sensitive leaks.
+</span><span class="kw">pub fn </span>enable_axum_traced_err_details() {
+    UNEXPECTED_ERR_DEBUG.store(<span class="bool-val">true</span>, std::sync::atomic::Ordering::Relaxed);
+}
+
 <span class="doccomment">/// When axum enabled, implement IntoResponse to return a 500 error:
 </span><span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
 </span><span class="kw">impl </span>IntoResponse <span class="kw">for </span>TracedErr {
     <span class="kw">fn </span>into_response(<span class="self">self</span>) -&gt; Response {
-        <span class="comment">// Use the custom response if available, otherwise just return 500 with generic message to prevent sensitive leaks:
+        <span class="comment">// Use the custom response if available:
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(into_response) = <span class="self">self</span>.into_response {
-            into_response(<span class="self">self</span>)
+            into_response()
+        } <span class="kw">else if </span>UNEXPECTED_ERR_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
+            <span class="comment">// When enabled, show the full traced error in the response.
+            </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>)).into_response()
         } <span class="kw">else </span>{
-            (StatusCode::INTERNAL_SERVER_ERROR, <span class="string">&quot;Internal server error.&quot;</span>).into_response()
+            <span class="comment">// When UNEXPECTED_ERR_DEBUG disabled, just show a generic error to prevent sensitive leaks.
+            </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="string">&quot;Internal server error.&quot;</span>).into_response()
         }
     }
 }
