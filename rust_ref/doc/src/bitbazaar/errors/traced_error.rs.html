@@ -197,6 +197,14 @@
 <a href="#197" id="197">197</a>
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{error::Error, panic::Location};
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
@@ -378,12 +386,20 @@
 </span><span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
 </span><span class="kw">impl </span>IntoResponse <span class="kw">for </span>TracedErr {
     <span class="kw">fn </span>into_response(<span class="self">self</span>) -&gt; Response {
+        <span class="comment">// Don&#39;t want color as no idea where this will get logged downstream, also may be used in an http response.
+        </span><span class="kw">let </span>fmtted = <span class="self">self</span>.fmt_as_str(<span class="bool-val">false</span>);
+
+        <span class="comment">// Log the error with level error,
+        // given its being converted into a response which may discard the actual error for security,
+        // need to log the error internally to keep it.
+        </span><span class="macro">tracing::error!</span>(<span class="string">&quot;{}&quot;</span>, <span class="kw-2">&amp;</span>fmtted);
+
         <span class="comment">// Use the custom response if available:
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(into_response) = <span class="self">self</span>.into_response {
             into_response()
         } <span class="kw">else if </span>AXUM_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
             <span class="comment">// When enabled (debug), show the full traced error in the response.
-            </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="self">self</span>.fmt_as_str(<span class="bool-val">false</span>)).into_response()
+            </span>(StatusCode::INTERNAL_SERVER_ERROR, fmtted).into_response()
         } <span class="kw">else </span>{
             <span class="comment">// When AXUM_DEBUG disabled, just show a generic error to prevent sensitive leaks.
             </span>(StatusCode::INTERNAL_SERVER_ERROR, <span class="string">&quot;Internal server error.&quot;</span>).into_response()
