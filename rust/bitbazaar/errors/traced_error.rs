@@ -179,12 +179,20 @@ pub fn set_axum_debug(debug: bool) {
 #[cfg(feature = "axum")]
 impl IntoResponse for TracedErr {
     fn into_response(self) -> Response {
+        // Don't want color as no idea where this will get logged downstream, also may be used in an http response.
+        let fmtted = self.fmt_as_str(false);
+
+        // Log the error with level error,
+        // given its being converted into a response which may discard the actual error for security,
+        // need to log the error internally to keep it.
+        tracing::error!("{}", &fmtted);
+
         // Use the custom response if available:
         if let Some(into_response) = self.into_response {
             into_response()
         } else if AXUM_DEBUG.load(std::sync::atomic::Ordering::Relaxed) {
             // When enabled (debug), show the full traced error in the response.
-            (StatusCode::INTERNAL_SERVER_ERROR, self.fmt_as_str(false)).into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, fmtted).into_response()
         } else {
             // When AXUM_DEBUG disabled, just show a generic error to prevent sensitive leaks.
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error.").into_response()
