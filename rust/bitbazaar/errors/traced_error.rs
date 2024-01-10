@@ -28,18 +28,25 @@ pub struct TracedErrWrapper<T> {
 /// An error type that can be created automatically from any other error, and stores the location the error was created.
 pub type TracedErr = TracedErrWrapper<Box<dyn Error + Send + 'static>>;
 
+/// A `Result<T, E>` wrapper shorthand for `Result<T, TracedErr>`.
+pub type TracedResult<T> = Result<T, TracedErr>;
+
 impl<T: std::fmt::Display> TracedErrWrapper<T> {
     /// Convert the error to a string, including the location it was created.
     pub fn fmt_as_str(&self, colored: bool) -> String {
         let loc = format!("{}", self.location);
         format!(
-            "{}\n{}\n",
+            "{}\n{}",
             if colored {
                 loc.yellow().to_string()
             } else {
                 loc
             },
-            self.inner
+            if colored {
+                self.inner.to_string().red().to_string()
+            } else {
+                self.inner.to_string()
+            }
         )
     }
 }

@@ -8,6 +8,9 @@ shlex = '1.2'
 spez = '0.1'
 tracing = '0.1'
 tracing-appender = '0.2'
+deadpool-redis = {version = "0.14", features = ["rt_tokio_1"], optional = true}
+redis = {version = "0.24", features = ["aio", "script"], default-features = false, optional = true}
+run_script = {version = "0.10", optional = true}
 
 [dependencies.aide]
 features = ['axum']
@@ -68,8 +71,13 @@ rstest = '0.18.2'
 serial_test = '2.0'
 tempfile = '3.8'
 tokio = '1.35'
+portpicker = "0.1.1"
+homedir = "0.2.1"
+uuid = {version = "1.6.1", features = ["v4"]}
 
 [features]
+cli = ['dep:run_script']
+redis = ['dep:deadpool-redis', 'dep:redis']
 axum = ['dep:axum', 'dep:aide']
 opentelemetry = ['dep:tracing-opentelemetry', 'dep:opentelemetry', 'dep:opentelemetry-otlp', 'dep:opentelemetry_sdk', 'dep:tonic']
 pyo3 = ['dep:pyo3']

@@ -5,7 +5,7 @@ mod traced_error;
 
 #[cfg(feature = "axum")]
 pub use traced_error::set_axum_debug;
-pub use traced_error::TracedErr;
+pub use traced_error::{TracedErr, TracedResult};
 
 #[cfg(test)]
 mod tests {
@@ -22,8 +22,9 @@ mod tests {
         assert_eq!(
             format!("{}", test_errs::create_err_from_err()),
             format!(
-                "{}\nGenericErr: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:8:5".yellow()
+                "{}\n{}",
+                "bitbazaar/errors/test_errs.rs:8:5".yellow(),
+                "GenericErr: Hello world".red()
             ),
         );
 
@@ -34,8 +35,9 @@ mod tests {
                 test_errs::create_err_from_str("Goodbye, world!".to_string())
             ),
             format!(
-                "{}\nGenericErr: Goodbye, world!\n",
-                "bitbazaar/errors/test_errs.rs:13:5".yellow()
+                "{}\n{}",
+                "bitbazaar/errors/test_errs.rs:13:5".yellow(),
+                "GenericErr: Goodbye, world!".red()
             ),
         );
 
@@ -46,8 +48,9 @@ mod tests {
                 test_errs::create_err_macro_from_str("Goodbye, world!".to_string())
             ),
             format!(
-                "{}\nGenericErr: Goodbye, world!\n",
-                "bitbazaar/errors/test_errs.rs:18:5".yellow()
+                "{}\n{}",
+                "bitbazaar/errors/test_errs.rs:18:5".yellow(),
+                "GenericErr: Goodbye, world!".red()
             ),
         );
 
@@ -55,8 +58,9 @@ mod tests {
         assert_eq!(
             format!("{}", test_errs::create_err_macro_from_err()),
             format!(
-                "{}\nGenericErr: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:23:5".yellow()
+                "{}\n{}",
+                "bitbazaar/errors/test_errs.rs:23:5".yellow(),
+                "GenericErr: Hello world".red()
             ),
         );
     }
@@ -69,8 +73,9 @@ mod tests {
         assert_eq!(
             format!("{}", err),
             format!(
-                "{}\nGenericErr: NEW. OLD: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:8:5".yellow()
+                "{}\n{}",
+                "bitbazaar/errors/test_errs.rs:8:5".yellow(),
+                "GenericErr: NEW. OLD: Hello world".red()
             ),
         );
     }
@@ -84,8 +89,9 @@ mod tests {
         assert_eq!(
             format!("{}", py_err),
             format!(
-                "Exception: {}\nGenericErr: Hello world\n",
-                "bitbazaar/errors/test_errs.rs:8:5".yellow()
+                "Exception: {}\n{}",
+                "bitbazaar/errors/test_errs.rs:8:5".yellow(),
+                "GenericErr: Hello world".red()
             )
         )
     }

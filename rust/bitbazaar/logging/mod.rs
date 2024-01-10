@@ -340,6 +340,7 @@ mod tests {
     }
 
     #[cfg(feature = "opentelemetry")]
+    #[rstest]
     #[tokio::test]
     async fn test_opentelemetry() -> Result<(), TracedErr> {
         // Not actually going to implement a fake collector on the other side, just check nothing errors:

@@ -233,7 +233,7 @@ impl CreatedSubscriber {
 ///    },
 ///    ..Default::default()
 /// }]).unwrap();
-/// sub.into_global(); // Register it as the global sub, this can only be done once
+/// sub.into_global(); // Register it as the global logger, this can only be done once
 /// ```
 pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, TracedErr> {
     let all_loc_matchers = layers
