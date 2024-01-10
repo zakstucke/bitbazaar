@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"type":["TracedErr"]};
+window.SIDEBAR_ITEMS = {"type":["TracedErr","TracedResult"]};
