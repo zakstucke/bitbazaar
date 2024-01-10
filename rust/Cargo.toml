@@ -8,9 +8,6 @@ shlex = '1.2'
 spez = '0.1'
 tracing = '0.1'
 tracing-appender = '0.2'
-deadpool-redis = {version = "0.14", features = ["rt_tokio_1"], optional = true}
-redis = {version = "0.24", features = ["aio", "script"], default-features = false, optional = true}
-run_script = {version = "0.10", optional = true}
 
 [dependencies.aide]
 features = ['axum']
@@ -24,6 +21,11 @@ version = '0.7'
 [dependencies.clap]
 features = ['derive', 'string']
 version = '4.4'
+
+[dependencies.deadpool-redis]
+features = ['rt_tokio_1']
+optional = true
+version = '0.14'
 
 [dependencies.opentelemetry]
 default-features = false
@@ -50,6 +52,16 @@ features = ['auto-initialize']
 optional = true
 version = '0.20'
 
+[dependencies.redis]
+default-features = false
+features = ['aio', 'script']
+optional = true
+version = '0.24'
+
+[dependencies.run_script]
+optional = true
+version = '0.10'
+
 [dependencies.time]
 features = ['local-offset']
 version = '0.3'
@@ -67,20 +79,23 @@ features = ['fmt', 'std', 'time']
 version = '0.3'
 
 [dev-dependencies]
+homedir = '0.2.1'
+portpicker = '0.1.1'
 rstest = '0.18.2'
 serial_test = '2.0'
 tempfile = '3.8'
 tokio = '1.35'
-portpicker = "0.1.1"
-homedir = "0.2.1"
-uuid = {version = "1.6.1", features = ["v4"]}
+
+[dev-dependencies.uuid]
+features = ['v4']
+version = '1.6.1'
 
 [features]
-cli = ['dep:run_script']
-redis = ['dep:deadpool-redis', 'dep:redis']
 axum = ['dep:axum', 'dep:aide']
+cli = ['dep:run_script']
 opentelemetry = ['dep:tracing-opentelemetry', 'dep:opentelemetry', 'dep:opentelemetry-otlp', 'dep:opentelemetry_sdk', 'dep:tonic']
 pyo3 = ['dep:pyo3']
+redis = ['dep:deadpool-redis', 'dep:redis']
 
 [lib]
 crate-type = ['lib']
@@ -93,7 +108,7 @@ edition = '2021'
 license = 'MIT'
 name = 'bitbazaar'
 readme = 'README.md'
-version = '0.0.13'
+version = '0.0.14'
 
 [profile]
 
