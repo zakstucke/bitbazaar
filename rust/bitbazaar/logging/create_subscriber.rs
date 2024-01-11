@@ -184,13 +184,13 @@ impl CreatedSubscriber {
 /// use bitbazaar::logging::{SubLayer, SubLayerVariant, create_subscriber, SubLayerFilter};
 /// use tracing_subscriber::prelude::*;
 /// use tracing::Level;
-/// use std::path::PathBuf;
 ///
+/// let temp_dir = tempfile::tempdir().unwrap();
 /// let sub = create_subscriber(vec![SubLayer {
 ///     filter: SubLayerFilter::Above(Level::INFO), // Only log info and above
 ///     variant: SubLayerVariant::File {
 ///         file_prefix: "my_program_".into(),
-///         dir: PathBuf::from("./logs/"),
+///         dir: temp_dir.path().to_path_buf(),
 ///     },
 ///     ..Default::default()
 /// }]).unwrap();

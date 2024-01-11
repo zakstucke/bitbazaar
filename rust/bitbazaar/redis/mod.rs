@@ -1,16 +1,21 @@
 mod batch;
 mod conn;
+mod json;
 mod script;
 mod wrapper;
 
 pub use batch::RedisBatch;
 pub use conn::RedisConn;
-pub use script::RedisScript;
+pub use json::{RedisJson, RedisJsonConsume};
+pub use script::{RedisScript, RedisScriptInvoker};
 pub use wrapper::Redis;
 
 #[cfg(test)]
 mod tests {
-    use std::process::{Child, Command};
+    use std::{
+        process::{Child, Command},
+        sync::{atomic::AtomicU8, Arc},
+    };
 
     use portpicker::is_free;
     use rstest::*;
@@ -29,13 +34,48 @@ mod tests {
         }
     }
 
-    /// Make sure redis is running and return the redis wrapper.
-    /// If in CI, this will return None meaning skip the test, don't want to install redis in CI.
-    #[fixture]
-    async fn rwrapper() -> (Option<Redis>, Option<ChildGuard>) {
+    #[derive(PartialEq, Debug, serde::Serialize, serde::Deserialize)]
+    struct ExampleJson {
+        ree: String,
+    }
+
+    struct AddScript {
+        script: RedisScript,
+    }
+
+    impl Default for AddScript {
+        fn default() -> Self {
+            Self {
+                script: RedisScript::new(
+                    r#"
+                        return tonumber(ARGV[1]) + tonumber(ARGV[2]);
+                    "#,
+                ),
+            }
+        }
+    }
+
+    impl AddScript {
+        pub fn invoke(&self, a: isize, b: isize) -> RedisScriptInvoker<'_> {
+            self.script.invoker().arg(a).arg(b)
+        }
+    }
+
+    /// Test functionality working as it should when redis up and running fine.
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_working() -> Result<(), TracedErr> {
+        // Can enable to check logging when debugging:
+        // let sub = crate::logging::create_subscriber(vec![crate::logging::SubLayer {
+        //     filter: crate::logging::SubLayerFilter::Above(tracing::Level::TRACE),
+        //     pretty: true,
+        //     ..Default::default()
+        // }])?;
+        // sub.into_global();
+
         // Don't want to install redis in ci, just run this test locally:
         if in_ci() {
-            return (None, None);
+            return Ok(());
         }
 
         // Make sure redis is running on port 6379, starting it otherwise. (this means you must have redis installed)
@@ -52,66 +92,216 @@ mod tests {
             tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         }
 
-        (
-            Some(Redis::new("redis://localhost:6379", uuid::Uuid::new_v4().to_string()).unwrap()),
-            _redis_guard,
-        )
-    }
+        let work_r = Redis::new("redis://localhost:6379", uuid::Uuid::new_v4().to_string())?;
+        let mut work_conn = work_r.conn();
 
-    #[rstest]
-    #[tokio::test]
-    async fn test_redis(
-        #[future] rwrapper: (Option<Redis>, Option<ChildGuard>),
-    ) -> Result<(), TracedErr> {
-        if let Some(r) = rwrapper.await.0 {
-            let mut conn = r.conn();
+        // Also create a fake version on a random port, this will be used to check failure cases.
+        let fail_r = Redis::new(
+            "redis://localhost:6372",
+            format!("test_{}", uuid::Uuid::new_v4()),
+        )?;
+        let mut fail_conn = fail_r.conn();
 
-            // Shouldn't exist yet:
-            assert_eq!(conn.batch().get::<String, _>("foo").fire().await?, None);
+        // <--- get/set:
 
-            // Set so should now exist:
-            conn.batch().set("foo", "bar").fire().await?;
+        // Shouldn't exist yet:
+        for (conn, exp) in [(&mut work_conn, Some(None)), (&mut fail_conn, None)] {
+            assert_eq!(conn.batch().get::<String, _>("", "foo").fire().await, exp);
+        }
 
-            // Should be passed back successfully:
-            assert_eq!(
-                conn.batch().get("foo").fire().await?,
-                Some("bar".to_string())
-            );
+        // Set so should now exist:
+        work_conn.batch().set("", "foo", "bar").fire().await;
 
-            // Multiple should come back as tuple:
-            assert_eq!(
-                conn.batch()
-                    .get::<String, _>("I don't exist")
-                    .get("foo")
-                    .fire()
-                    .await?,
-                (None, Some("bar".to_string()))
-            );
+        // Should be passed back successfully:
+        for (conn, exp) in [
+            (&mut work_conn, Some(Some("bar".to_string()))),
+            (&mut fail_conn, None),
+        ] {
+            assert_eq!(conn.batch().get::<String, _>("", "foo").fire().await, exp);
+        }
 
-            // Mget, first should fail as not set, second should succeed:
+        // Multiple should come back as tuple:
+        for (conn, exp) in [
+            (&mut work_conn, Some((None, Some("bar".to_string())))),
+            (&mut fail_conn, None),
+        ] {
             assert_eq!(
                 conn.batch()
-                    .mget(vec!["I don't exist", "foo"])
+                    .get::<String, _>("", "I don't exist")
+                    .get("", "foo")
                     .fire()
-                    .await?,
-                vec![None, Some("bar".to_string())]
+                    .await,
+                exp
             );
+        }
 
-            // <--- Scripts:
-            let script = RedisScript::new(
-                r#"
-                return tonumber(ARGV[1]) + tonumber(ARGV[2]);
-            "#,
-            );
+        // <--- mget/mset:
 
+        // First should fail as not set, second should succeed:
+        for (conn, exp) in [
+            (&mut work_conn, Some(vec![None, Some("bar".to_string())])),
+            (&mut fail_conn, None),
+        ] {
             assert_eq!(
-                script
-                    .run::<usize>(&mut conn, |scr| {
-                        scr.arg(1).arg(2);
-                    })
+                conn.batch()
+                    .mget("", vec!["I don't exist", "foo"])
+                    .fire()
+                    .await,
+                exp
+            );
+        }
+
+        // Set first and update foo together:
+        for (conn, exp) in [
+            (
+                &mut work_conn,
+                Some(vec![Some("a".to_string()), Some("b".to_string())]),
+            ),
+            (&mut fail_conn, None),
+        ] {
+            assert_eq!(
+                conn.batch()
+                    .mset("", vec![("bar", "a"), ("foo", "b")])
+                    .mget("", vec!["bar", "foo"])
+                    .fire()
+                    .await,
+                exp
+            );
+        }
+
+        // <--- exists/mexists:
+        for (conn, exp) in [
+            (&mut work_conn, Some((true, false, vec![true, true, false]))),
+            (&mut fail_conn, None),
+        ] {
+            assert_eq!(
+                conn.batch()
+                    .exists("", "bar")
+                    .exists("", "madup")
+                    .mexists("", vec!["bar", "foo", "madup"])
+                    .fire()
+                    .await,
+                exp
+            );
+        }
+
+        // <--- clear/clear_namespace:
+        for (conn, exp) in [(&mut work_conn, Some(())), (&mut fail_conn, None)] {
+            assert_eq!(
+                conn.batch()
+                    .clear("", ["bar"])
+                    .clear("", ["madup"])
+                    .clear_namespace("")
+                    .fire()
+                    .await,
+                exp
+            );
+        }
+        assert_eq!(
+            work_conn
+                .batch()
+                .mset("n1", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")])
+                .mset("n2", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")])
+                .mset("n3", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")])
+                .clear_namespace("n1")
+                .clear("n2", ["foo", "baz"])
+                .mget::<String, _, _>("n1", ["foo", "bar", "baz"])
+                .mget("n2", ["foo", "bar", "baz"])
+                .mget("n3", ["foo", "bar", "baz"])
+                .fire()
+                .await,
+            Some((
+                // n1 should have been completely cleared
+                vec![None, None, None],
+                // n2 should have had foo and baz cleared
+                vec![None, Some("bar".to_string()), None],
+                // n3 should've been untouched by it all
+                vec![
+                    Some("foo".to_string()),
+                    Some("bar".to_string()),
+                    Some("baz".to_string())
+                ]
+            ))
+        );
+
+        // <--- Scripts:
+        let script = AddScript::default();
+
+        for (conn, exp) in [(&mut work_conn, Some(3)), (&mut fail_conn, None)] {
+            assert_eq!(
+                conn.batch()
+                    .script(script.invoke(1, 2))
+                    .fire()
                     .await
-                    .unwrap(),
-                3
+                    .flatten(),
+                exp
+            );
+        }
+        assert_eq!(
+            work_conn
+                .batch()
+                .script(script.invoke(1, 2))
+                .script(script.invoke(2, 5))
+                .script(script.invoke(9, 1))
+                .fire()
+                .await,
+            Some((Some(3), Some(7), Some(10)))
+        );
+
+        // <--- Json:
+        for (conn, exp) in [
+            (
+                &mut work_conn,
+                Some(ExampleJson {
+                    ree: "roo".to_string(),
+                }),
+            ),
+            (&mut fail_conn, None),
+        ] {
+            assert_eq!(
+                conn.batch()
+                    .set(
+                        "",
+                        "foo",
+                        RedisJson(ExampleJson {
+                            ree: "roo".to_string()
+                        }),
+                    )
+                    .get::<RedisJson<ExampleJson>, _>("", "foo")
+                    .fire()
+                    .await
+                    .flatten()
+                    .consume(),
+                exp
+            );
+        }
+
+        // <--- Cached function:
+        for (conn, expected_call_times) in [
+            (&mut work_conn, 1),
+            // When redis fails, should have to keep computing the function, so should be called 5 times:
+            (&mut fail_conn, 5),
+        ] {
+            let called = Arc::new(AtomicU8::new(0));
+            for _ in 0..5 {
+                assert_eq!(
+                    conn.cached_fn("my_fn_group", "foo", || async {
+                        // Add one to the call count, should only be called once:
+                        called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        Ok(RedisJson(ExampleJson {
+                            ree: "roo".to_string(),
+                        }))
+                    })
+                    .await?
+                    .consume(),
+                    ExampleJson {
+                        ree: "roo".to_string(),
+                    },
+                );
+            }
+            assert_eq!(
+                called.load(std::sync::atomic::Ordering::SeqCst),
+                expected_call_times
             );
         }
         Ok(())
