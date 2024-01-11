@@ -8,12 +8,6 @@ shlex = '1.2'
 spez = '0.1'
 tracing = '0.1'
 tracing-appender = '0.2'
-deadpool-redis = {version = "0.14", features = ["rt_tokio_1"], optional = true}
-redis = {version = "0.24", features = ["aio", "json"], default-features = false, optional = true}
-sha1_smol = {version = '1.0', optional = true}
-serde = {version = "1.0", features = ["derive"], optional = true}
-serde_json = {version = "1.0", optional = true}
-run_script = {version = "0.10", optional = true}
 
 [dependencies.aide]
 features = ['axum']
@@ -27,6 +21,11 @@ version = '0.7'
 [dependencies.clap]
 features = ['derive', 'string']
 version = '4.4'
+
+[dependencies.deadpool-redis]
+features = ['rt_tokio_1']
+optional = true
+version = '0.14'
 
 [dependencies.opentelemetry]
 default-features = false
@@ -52,6 +51,29 @@ version = '0.12'
 features = ['auto-initialize']
 optional = true
 version = '0.20'
+
+[dependencies.redis]
+default-features = false
+features = ['aio', 'json']
+optional = true
+version = '0.24'
+
+[dependencies.run_script]
+optional = true
+version = '0.10'
+
+[dependencies.serde]
+features = ['derive']
+optional = true
+version = '1.0'
+
+[dependencies.serde_json]
+optional = true
+version = '1.0'
+
+[dependencies.sha1_smol]
+optional = true
+version = '1.0'
 
 [dependencies.time]
 features = ['local-offset']
@@ -82,11 +104,11 @@ features = ['v4']
 version = '1.6.1'
 
 [features]
-cli = ['dep:run_script']
-redis = ['dep:deadpool-redis', 'dep:redis', 'dep:serde', 'dep:serde_json', 'dep:sha1_smol']
 axum = ['dep:axum', 'dep:aide']
+cli = ['dep:run_script']
 opentelemetry = ['dep:tracing-opentelemetry', 'dep:opentelemetry', 'dep:opentelemetry-otlp', 'dep:opentelemetry_sdk', 'dep:tonic']
 pyo3 = ['dep:pyo3']
+redis = ['dep:deadpool-redis', 'dep:redis', 'dep:serde', 'dep:serde_json', 'dep:sha1_smol']
 
 [lib]
 crate-type = ['lib']
@@ -99,7 +121,7 @@ edition = '2021'
 license = 'MIT'
 name = 'bitbazaar'
 readme = 'README.md'
-version = '0.0.14'
+version = '0.0.15'
 
 [profile]
 
