@@ -35,17 +35,16 @@
         "chroma-js": "^2.4.2",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "vite": "^4.5.0",
+        "vite": "^5.0.11",
         "wouter": "^3.0.0-rc.1"
     },
     "dependencies": {
-        "@preact/preset-vite": "2.6.0",
-        "@prefresh/vite": "2.4.3",
+        "@preact/preset-vite": "2.8.1",
+        "@prefresh/vite": "2.4.5",
         "html-minifier-terser": "7.2.0",
         "install": "^0.13.0",
         "vite-plugin-checker": "0.6.2",
-        "vite-plugin-inspect": "0.7.41",
-        "vite-plugin-pwa": "0.16.7",
-        "vite-plugin-rewrite-all": "1.0.1"
+        "vite-plugin-inspect": "0.8.1",
+        "vite-plugin-pwa": "0.17.4"
     }
 }
