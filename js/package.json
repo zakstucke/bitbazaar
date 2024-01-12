@@ -1,6 +1,6 @@
 {
     "name": "bitbazaar",
-    "version": "0.0.19",
+    "version": "0.0.20",
     "description": "An assortment of publicly available cross-language utilities useful to my projects.",
     "scripts": {
         "build": "tsup"
