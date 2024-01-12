@@ -41,16 +41,19 @@ impl<'a> RedisConn<'a> {
     //         .await
     // }
 
-    /// Cache an async function in redis.
+    /// Cache an async function in redis with an optional expiry.
     /// If already stored, the cached value will be returned, otherwise the function will be stored in redis for next time.
     ///
     /// If redis is unavailable, or the existing contents at the key is wrong, the function output will be used.
     /// The only error coming out of here should be something wrong with the external callback.
+    ///
+    /// Expiry accurate to a millisecond.
     #[inline]
     pub async fn cached_fn<'b, T, Fut, K: Into<Cow<'b, str>>>(
         &mut self,
         namespace: &'static str,
         key: K,
+        expiry: Option<std::time::Duration>,
         cb: impl FnOnce() -> Fut,
     ) -> TracedResult<T>
     where
@@ -69,7 +72,7 @@ impl<'a> RedisConn<'a> {
             Ok(cached)
         } else {
             let val = cb().await?;
-            self.batch().set(namespace, key, &val).fire().await;
+            self.batch().set(namespace, key, &val, expiry).fire().await;
             Ok(val)
         }
     }

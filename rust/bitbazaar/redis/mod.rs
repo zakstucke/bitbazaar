@@ -15,6 +15,7 @@ mod tests {
     use std::{
         process::{Child, Command},
         sync::{atomic::AtomicU8, Arc},
+        time::Duration,
     };
 
     use portpicker::is_free;
@@ -110,7 +111,7 @@ mod tests {
         }
 
         // Set so should now exist:
-        work_conn.batch().set("", "foo", "bar").fire().await;
+        work_conn.batch().set("", "foo", "bar", None).fire().await;
 
         // Should be passed back successfully:
         for (conn, exp) in [
@@ -161,7 +162,7 @@ mod tests {
         ] {
             assert_eq!(
                 conn.batch()
-                    .mset("", vec![("bar", "a"), ("foo", "b")])
+                    .mset("", vec![("bar", "a"), ("foo", "b")], None)
                     .mget("", vec!["bar", "foo"])
                     .fire()
                     .await,
@@ -200,9 +201,9 @@ mod tests {
         assert_eq!(
             work_conn
                 .batch()
-                .mset("n1", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")])
-                .mset("n2", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")])
-                .mset("n3", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")])
+                .mset("n1", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")], None)
+                .mset("n2", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")], None)
+                .mset("n3", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")], None)
                 .clear_namespace("n1")
                 .clear("n2", ["foo", "baz"])
                 .mget::<String, _, _>("n1", ["foo", "bar", "baz"])
@@ -266,6 +267,7 @@ mod tests {
                         RedisJson(ExampleJson {
                             ree: "roo".to_string()
                         }),
+                        None
                     )
                     .get::<RedisJson<ExampleJson>, _>("", "foo")
                     .fire()
@@ -285,7 +287,7 @@ mod tests {
             let called = Arc::new(AtomicU8::new(0));
             for _ in 0..5 {
                 assert_eq!(
-                    conn.cached_fn("my_fn_group", "foo", || async {
+                    conn.cached_fn("my_fn_group", "foo", None, || async {
                         // Add one to the call count, should only be called once:
                         called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                         Ok(RedisJson(ExampleJson {
@@ -304,6 +306,89 @@ mod tests {
                 expected_call_times
             );
         }
+
+        // <--- Cached function with expiry:
+        let called = Arc::new(AtomicU8::new(0));
+        for _ in 0..5 {
+            assert_eq!(
+                work_conn
+                    .cached_fn(
+                        "my_fn_ex_group",
+                        "foo",
+                        Some(Duration::from_millis(15)),
+                        || async {
+                            // Add one to the call count, should only be called once:
+                            called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                            Ok(RedisJson(ExampleJson {
+                                ree: "roo".to_string(),
+                            }))
+                        }
+                    )
+                    .await?
+                    .consume(),
+                ExampleJson {
+                    ree: "roo".to_string(),
+                },
+            );
+            // Sleep for 5 milliseconds:
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+        // The 3rd/4th call will have needed a reload due to the expiry, so should've been called twice:
+        assert_eq!(called.load(std::sync::atomic::Ordering::SeqCst), 2);
+
+        // <--- set/mset with expiry:
+        work_conn
+            .batch()
+            .set("e1", "foo", "foo", Some(Duration::from_millis(15)))
+            .set("e1", "bar", "bar", Some(Duration::from_millis(30)))
+            .mset(
+                "e2",
+                [("foo", "foo"), ("bar", "bar")],
+                Some(Duration::from_millis(15)),
+            )
+            .mset(
+                "e2",
+                [("baz", "baz"), ("qux", "qux")],
+                Some(Duration::from_millis(30)),
+            )
+            .fire()
+            .await;
+
+        // Sleep for 15 milliseconds to let the expiry happen:
+        tokio::time::sleep(std::time::Duration::from_millis(15)).await;
+
+        assert_eq!(
+            work_conn
+                .batch()
+                .get::<String, _>("e1", "foo")
+                .get("e1", "bar")
+                .mget("e2", ["foo", "bar", "baz", "qux"])
+                .fire()
+                .await,
+            Some((
+                // e1: Foo should've expired after 15ms:
+                None,
+                // e1: Bar should still be there, as it was set to expire after 30ms:
+                Some("bar".to_string()),
+                // e2: baz and qui should still be there (30), foo and bar should be gone (15):
+                vec![None, None, Some("baz".to_string()), Some("qux".to_string())]
+            ))
+        );
+
+        // Sleep for another 15 milliseconds, the remaining should expire:
+        tokio::time::sleep(std::time::Duration::from_millis(15)).await;
+
+        assert_eq!(
+            work_conn
+                .batch()
+                .get::<String, _>("e1", "foo")
+                .get::<String, _>("e1", "bar")
+                .mget::<Vec<String>, _, _>("e2", ["foo", "bar", "baz", "qux"])
+                .fire()
+                .await,
+            Some((None, None, vec![None, None, None, None]))
+        );
+
         Ok(())
     }
 }

@@ -11,6 +11,9 @@ static CLEAR_NAMESPACE_SCRIPT: Lazy<RedisScript> =
 static MEXISTS_SCRIPT: Lazy<RedisScript> =
     Lazy::new(|| RedisScript::new(include_str!("mexists.lua")));
 
+static MSET_WITH_EXPIRY_SCRIPT: Lazy<RedisScript> =
+    Lazy::new(|| RedisScript::new(include_str!("mset_with_expiry.lua")));
+
 /// A command builder struct. Committed with [`RedisBatch::fire`].
 ///
 /// Batched commands are run in order, but other commands from different sources may be interleaved.
@@ -25,13 +28,10 @@ pub struct RedisBatch<'a, 'b, 'c, ReturnType = ()> {
 
 impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     pub(crate) fn new(redis_conn: &'a mut RedisConn<'b>) -> Self {
-        let mut pipe = deadpool_redis::redis::pipe();
-        // Make sure if anything goes wrong the whole thing rolls back:
-        pipe.atomic();
         Self {
             _returns: PhantomData,
             redis_conn,
-            pipe,
+            pipe: deadpool_redis::redis::pipe(),
             used_scripts: HashSet::new(),
         }
     }
@@ -171,14 +171,27 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Set a key to a value.
-            pub fn set<'key, Key, Value>(mut self, namespace: &'static str, key: Key, value: Value) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
+            /// Set a key to a value with an optional expiry.
+            ///
+            /// (expiry accurate to the millisecond)
+            pub fn set<'key, Key, Value>(mut self, namespace: &'static str, key: Key, value: Value, expiry: Option<std::time::Duration>) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
             where
                 Key: Into<Cow<'key, str>>,
                 Value: ToRedisArgs,
             {
-                // Ignoring so it doesn't take up a space in the tuple response.
-                self.pipe.set(self.redis_conn.final_key(namespace, key.into()), value).ignore();
+                let final_key = self.redis_conn.final_key(namespace, key.into());
+
+                if let Some(expiry) = expiry {
+                    // If expiry is weirdly 0 don't send to prevent redis error:
+                    if (expiry) > std::time::Duration::from_millis(0) {
+                        // Ignoring so it doesn't take up a space in the tuple response.
+                        self.pipe.pset_ex(final_key, value, expiry.as_millis() as u64).ignore();
+                    }
+                } else {
+                    // Ignoring so it doesn't take up a space in the tuple response.
+                    self.pipe.set(final_key, value).ignore();
+                }
+
                 RedisBatch {
                     _returns: PhantomData,
                     redis_conn: self.redis_conn,
@@ -187,8 +200,10 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Set multiple values (MSET) of the same type at once.
-            pub fn mset<'key, Key, Value, Pairs>(mut self, namespace: &'static str, pairs: Pairs) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
+            /// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
+            ///
+            /// (expiry accurate to the millisecond)
+            pub fn mset<'key, Key, Value, Pairs>(mut self, namespace: &'static str, pairs: Pairs, expiry: Option<std::time::Duration>) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
             where
                 Value: ToRedisArgs,
                 Key: Into<Cow<'key, str>>,
@@ -196,13 +211,31 @@ macro_rules! impl_batch_methods {
             {
                 let final_pairs = pairs.into_iter().map(|(key, value)| (self.redis_conn.final_key(namespace, key.into()), value)).collect::<Vec<_>>();
 
-                // Ignoring so it doesn't take up a space in the tuple response.
-                self.pipe.mset(&final_pairs).ignore();
-                RedisBatch {
-                    _returns: PhantomData,
-                    redis_conn: self.redis_conn,
-                    pipe: self.pipe,
-                    used_scripts: self.used_scripts
+                if let Some(expiry) = expiry {
+                    // If expiry is weirdly 0 don't send to prevent redis error:
+                    if (expiry) > std::time::Duration::from_millis(0) {
+                        let mut invoker = MSET_WITH_EXPIRY_SCRIPT.invoker().arg(expiry.as_millis() as u64);
+                        for (key, value) in final_pairs {
+                            invoker = invoker.key(key).arg(value);
+                        }
+                        self.script_no_return(invoker)
+                    } else {
+                        RedisBatch {
+                            _returns: PhantomData,
+                            redis_conn: self.redis_conn,
+                            pipe: self.pipe,
+                            used_scripts: self.used_scripts
+                        }
+                    }
+                } else {
+                    // Ignoring so it doesn't take up a space in the tuple response.
+                    self.pipe.mset(&final_pairs).ignore();
+                    RedisBatch {
+                        _returns: PhantomData,
+                        redis_conn: self.redis_conn,
+                        pipe: self.pipe,
+                        used_scripts: self.used_scripts
+                    }
                 }
             }
 
