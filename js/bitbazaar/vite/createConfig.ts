@@ -66,7 +66,7 @@ export interface TopViteConfig {
     favicon512PngPath: string;
 
     /** Proxy rules to apply to the dev server (i.e. when it should forward requests to a backend) */
-    proxy: ProxyConf;
+    proxy?: ProxyConf;
 
     /** Extra globs to exclude from traversal, can help with performance: */
     extraNonFrontendGlobs?: string[];
@@ -286,7 +286,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                 ignored: nonFrontendGlobs,
             },
             // Proxy all backend requests to django/fastapi:
-            proxy: genBackendProxies(conf.proxy),
+            proxy: conf.proxy ? genBackendProxies(conf.proxy) : undefined,
             fs: conf.serverFs,
         },
         // When being served from django in production, js internal assets urls need to use url to the js assets inside the static url,
