@@ -121,7 +121,7 @@ edition = '2021'
 license = 'MIT'
 name = 'bitbazaar'
 readme = 'README.md'
-version = '0.0.16'
+version = '0.0.17'
 
 [profile]
 
