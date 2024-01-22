@@ -4,6 +4,7 @@ mod macros;
 mod test_errs;
 mod traced_error;
 
+pub use any::AnyErr;
 #[cfg(feature = "axum")]
 pub use traced_error::set_axum_debug;
 pub use traced_error::{TracedErr, TracedResult};
