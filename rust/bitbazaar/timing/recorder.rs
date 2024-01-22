@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::warn;
 
-use crate::{aer, errors::prelude::*, timing::format_duration};
+use crate::{errors::prelude::*, timing::format_duration};
 
 /// A global time recorder, used by the timeit! macro.
 pub static GLOBAL_TIME_RECORDER: Lazy<TimeRecorder> = Lazy::new(TimeRecorder::new);
@@ -100,7 +100,7 @@ impl TimeRecorder {
         let logs = self
             .logs
             .try_lock()
-            .ok_or_else(|| aer!("Failed to acquire logs."))?;
+            .ok_or_else(|| anyerr!("Failed to acquire logs."))?;
 
         let mut table = Table::new();
         table
@@ -120,7 +120,7 @@ impl TimeRecorder {
         // Centralize the time column:
         let time_column = table
             .column_mut(1)
-            .ok_or_else(|| aer!("Failed to get second column of time recorder table"))?;
+            .ok_or_else(|| anyerr!("Failed to get second column of time recorder table"))?;
         time_column.set_cell_alignment(CellAlignment::Center);
 
         Ok(table.to_string())

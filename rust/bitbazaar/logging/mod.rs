@@ -81,7 +81,9 @@ mod tests {
             }
             if include_timestamp {
                 // Confirm matches regex HH:MM:SS.mmm:
-                assert!(aer!(regex::Regex::new(r"\d{2}:\d{2}:\d{2}.\d{3}"))?.is_match(out_log));
+                assert!(regex::Regex::new(r"\d{2}:\d{2}:\d{2}.\d{3}")
+                    .change_context(AnyErr)?
+                    .is_match(out_log));
             }
             // Should end with the actual log:
             assert!(out_log.ends_with(in_log), "{}", out_log);
@@ -127,7 +129,7 @@ mod tests {
 
         assert_eq!(
             into_vec(&LOGS),
-            vec!["DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:125"]
+            vec!["DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:127"]
         );
 
         Ok(())
@@ -289,7 +291,7 @@ mod tests {
 
     #[rstest]
     fn test_log_to_file() -> Result<(), AnyErr> {
-        let temp_dir = aer!(tempdir())?;
+        let temp_dir = tempdir().change_context(AnyErr)?;
         let sub = create_subscriber(vec![SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::File {
@@ -306,7 +308,10 @@ mod tests {
         // Sleep for 50ms to make sure everything's been flushed to the file: (happens in separate thread)
         std::thread::sleep(std::time::Duration::from_millis(50));
 
-        let files: HashMap<String, String> = aer!(temp_dir.path().read_dir())?
+        let files: HashMap<String, String> = temp_dir
+            .path()
+            .read_dir()
+            .change_context(AnyErr)?
             .map(|entry| {
                 let entry = entry.unwrap();
                 let path = entry.path();
@@ -324,7 +329,7 @@ mod tests {
         let contents = files.get(name).unwrap();
 
         // Check name matches "foo.log%Y-%m-%d" with regex:
-        let re = aer!(regex::Regex::new(r"^foo.log.\d{4}-\d{2}-\d{2}$"))?;
+        let re = regex::Regex::new(r"^foo.log.\d{4}-\d{2}-\d{2}$").change_context(AnyErr)?;
         assert!(re.is_match(name), "{}", name);
 
         let out = contents.lines().collect::<Vec<_>>();

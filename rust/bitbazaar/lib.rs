@@ -20,6 +20,3 @@ pub mod misc;
 pub mod redis;
 /// Timing utilities
 pub mod timing;
-
-/// Spez is a macro used inside our err! macro, need to export from the bb crate itself to prevent downstream needing to import it:
-pub use spez::spez;
