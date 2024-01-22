@@ -359,6 +359,11 @@
 <a href="#359" id="359">359</a>
 <a href="#360" id="360">360</a>
 <a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>clap_log_level_args;
 <span class="kw">mod </span>create_subscriber;
 <span class="attr">#[cfg(test)]
@@ -442,7 +447,9 @@
             }
             <span class="kw">if </span>include_timestamp {
                 <span class="comment">// Confirm matches regex HH:MM:SS.mmm:
-                </span><span class="macro">assert!</span>(<span class="macro">aer!</span>(regex::Regex::new(<span class="string">r&quot;\d{2}:\d{2}:\d{2}.\d{3}&quot;</span>))<span class="question-mark">?</span>.is_match(out_log));
+                </span><span class="macro">assert!</span>(regex::Regex::new(<span class="string">r&quot;\d{2}:\d{2}:\d{2}.\d{3}&quot;</span>)
+                    .change_context(AnyErr)<span class="question-mark">?
+                    </span>.is_match(out_log));
             }
             <span class="comment">// Should end with the actual log:
             </span><span class="macro">assert!</span>(out_log.ends_with(in_log), <span class="string">&quot;{}&quot;</span>, out_log);
@@ -488,7 +495,7 @@
 
         <span class="macro">assert_eq!</span>(
             into_vec(<span class="kw-2">&amp;</span>LOGS),
-            <span class="macro">vec!</span>[<span class="string">&quot;DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:125&quot;</span>]
+            <span class="macro">vec!</span>[<span class="string">&quot;DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:127&quot;</span>]
         );
 
         <span class="prelude-val">Ok</span>(())
@@ -650,7 +657,7 @@
 
     <span class="attr">#[rstest]
     </span><span class="kw">fn </span>test_log_to_file() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
-        <span class="kw">let </span>temp_dir = <span class="macro">aer!</span>(tempdir())<span class="question-mark">?</span>;
+        <span class="kw">let </span>temp_dir = tempdir().change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::File {
@@ -667,7 +674,10 @@
         <span class="comment">// Sleep for 50ms to make sure everything&#39;s been flushed to the file: (happens in separate thread)
         </span>std::thread::sleep(std::time::Duration::from_millis(<span class="number">50</span>));
 
-        <span class="kw">let </span>files: HashMap&lt;String, String&gt; = <span class="macro">aer!</span>(temp_dir.path().read_dir())<span class="question-mark">?
+        <span class="kw">let </span>files: HashMap&lt;String, String&gt; = temp_dir
+            .path()
+            .read_dir()
+            .change_context(AnyErr)<span class="question-mark">?
             </span>.map(|entry| {
                 <span class="kw">let </span>entry = entry.unwrap();
                 <span class="kw">let </span>path = entry.path();
@@ -685,7 +695,7 @@
         <span class="kw">let </span>contents = files.get(name).unwrap();
 
         <span class="comment">// Check name matches &quot;foo.log%Y-%m-%d&quot; with regex:
-        </span><span class="kw">let </span>re = <span class="macro">aer!</span>(regex::Regex::new(<span class="string">r&quot;^foo.log.\d{4}-\d{2}-\d{2}$&quot;</span>))<span class="question-mark">?</span>;
+        </span><span class="kw">let </span>re = regex::Regex::new(<span class="string">r&quot;^foo.log.\d{4}-\d{2}-\d{2}$&quot;</span>).change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="macro">assert!</span>(re.is_match(name), <span class="string">&quot;{}&quot;</span>, name);
 
         <span class="kw">let </span>out = contents.lines().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();

@@ -132,7 +132,7 @@
 <span class="kw">use </span>parking_lot::Mutex;
 <span class="kw">use </span>tracing::warn;
 
-<span class="kw">use crate</span>::{aer, errors::prelude::<span class="kw-2">*</span>, timing::format_duration};
+<span class="kw">use crate</span>::{errors::prelude::<span class="kw-2">*</span>, timing::format_duration};
 
 <span class="doccomment">/// A global time recorder, used by the timeit! macro.
 </span><span class="kw">pub static </span>GLOBAL_TIME_RECORDER: Lazy&lt;TimeRecorder&gt; = Lazy::new(TimeRecorder::new);
@@ -228,7 +228,7 @@
         </span><span class="kw">let </span>logs = <span class="self">self
             </span>.logs
             .try_lock()
-            .ok_or_else(|| <span class="macro">aer!</span>(<span class="string">&quot;Failed to acquire logs.&quot;</span>))<span class="question-mark">?</span>;
+            .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">&quot;Failed to acquire logs.&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>table = Table::new();
         table
@@ -248,7 +248,7 @@
         <span class="comment">// Centralize the time column:
         </span><span class="kw">let </span>time_column = table
             .column_mut(<span class="number">1</span>)
-            .ok_or_else(|| <span class="macro">aer!</span>(<span class="string">&quot;Failed to get second column of time recorder table&quot;</span>))<span class="question-mark">?</span>;
+            .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">&quot;Failed to get second column of time recorder table&quot;</span>))<span class="question-mark">?</span>;
         time_column.set_cell_alignment(CellAlignment::Center);
 
         <span class="prelude-val">Ok</span>(table.to_string())
