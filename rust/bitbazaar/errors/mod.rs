@@ -1,3 +1,4 @@
+mod any;
 mod generic_err;
 mod macros;
 mod test_errs;
@@ -6,6 +7,14 @@ mod traced_error;
 #[cfg(feature = "axum")]
 pub use traced_error::set_axum_debug;
 pub use traced_error::{TracedErr, TracedResult};
+
+pub(crate) mod prelude {
+    pub use error_stack::{bail, report, Result, ResultExt};
+
+    pub use super::any::AnyErr;
+    #[allow(unused_imports)]
+    pub use crate::aer;
+}
 
 #[cfg(test)]
 mod tests {

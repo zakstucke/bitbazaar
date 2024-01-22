@@ -1,4 +1,4 @@
-use crate::errors::TracedResult;
+use crate::errors::prelude::*;
 
 /// The result of running a command
 pub struct CmdOut {
@@ -28,6 +28,22 @@ impl CmdOut {
     }
 }
 
+#[derive(Debug)]
+pub enum CmdErr {
+    /// An arbitrary downstream error:
+    Unknown(String),
+}
+
+impl std::fmt::Display for CmdErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CmdErr::Unknown(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl error_stack::Context for CmdErr {}
+
 /// Run a dynamic shell command and return the output.
 ///
 /// WARNING: this opens up the possibility of dependency injection attacks, so should only be used when the command is trusted.
@@ -38,12 +54,13 @@ impl CmdOut {
 /// - `||` or
 /// - `|` pipe
 /// - `~` home dir
-pub fn run_cmd<S: Into<String>>(cmd_str: S) -> TracedResult<CmdOut> {
+pub fn run_cmd<S: Into<String>>(cmd_str: S) -> Result<CmdOut, CmdErr> {
     let (code, output, error) = run_script::run(
         cmd_str.into().as_str(),
         &vec![],
         &run_script::ScriptOptions::new(),
-    )?;
+    )
+    .map_err(|e| CmdErr::Unknown(e.to_string()))?;
 
     Ok(CmdOut {
         stdout: output,

@@ -8,6 +8,7 @@ shlex = '1.2'
 spez = '0.1'
 tracing = '0.1'
 tracing-appender = '0.2'
+error-stack = '0.4'
 
 [dependencies.aide]
 features = ['axum']

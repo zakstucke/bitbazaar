@@ -7,7 +7,7 @@ mod tests {
     use rstest::*;
 
     use super::*;
-    use crate::errors::TracedErr;
+    use crate::{aer, errors::prelude::*};
 
     #[rstest]
     // <-- basics:
@@ -38,8 +38,8 @@ mod tests {
         #[case] cmd_str: &str,
         #[case] exp_std_all: S,
         #[case] code: i32,
-    ) -> Result<(), TracedErr> {
-        let res = run_cmd(cmd_str)?;
+    ) -> Result<(), AnyErr> {
+        let res = aer!(run_cmd(cmd_str))?;
         assert_eq!(res.code, code, "{}", res.std_all());
         assert_eq!(res.std_all().trim(), exp_std_all.into());
         Ok(())

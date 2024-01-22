@@ -3,7 +3,7 @@ use std::{borrow::Cow, future::Future};
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 
 use super::batch::RedisBatch;
-use crate::errors::TracedResult;
+use crate::errors::prelude::*;
 
 /// Wrapper around a lazy redis connection.
 pub struct RedisConn<'a> {
@@ -55,10 +55,10 @@ impl<'a> RedisConn<'a> {
         key: K,
         expiry: Option<std::time::Duration>,
         cb: impl FnOnce() -> Fut,
-    ) -> TracedResult<T>
+    ) -> Result<T, AnyErr>
     where
         T: FromRedisValue + ToRedisArgs,
-        Fut: Future<Output = TracedResult<T>>,
+        Fut: Future<Output = Result<T, AnyErr>>,
     {
         let key: Cow<'b, str> = key.into();
 

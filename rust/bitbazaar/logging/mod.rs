@@ -20,7 +20,7 @@ mod tests {
     use tracing::{debug, error, info, warn, Level};
 
     use super::*;
-    use crate::errors::TracedErr;
+    use crate::errors::prelude::*;
 
     fn log_all() {
         debug!("DLOG");
@@ -40,7 +40,7 @@ mod tests {
         #[values(true, false)] include_lvl: bool,
         #[values(true, false)] include_timestamp: bool,
         #[values(true, false)] include_loc: bool,
-    ) -> Result<(), TracedErr> {
+    ) -> Result<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -68,7 +68,7 @@ mod tests {
             log_all();
         });
 
-        let chk_log = |lvl: Level, in_log: &str, out_log: &str| -> Result<(), TracedErr> {
+        let chk_log = |lvl: Level, in_log: &str, out_log: &str| -> Result<(), AnyErr> {
             if include_lvl {
                 assert!(
                     out_log.contains(&lvl.to_string().to_uppercase()),
@@ -81,7 +81,7 @@ mod tests {
             }
             if include_timestamp {
                 // Confirm matches regex HH:MM:SS.mmm:
-                assert!(regex::Regex::new(r"\d{2}:\d{2}:\d{2}.\d{3}")?.is_match(out_log));
+                assert!(aer!(regex::Regex::new(r"\d{2}:\d{2}:\d{2}.\d{3}"))?.is_match(out_log));
             }
             // Should end with the actual log:
             assert!(out_log.ends_with(in_log), "{}", out_log);
@@ -100,7 +100,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_log_pretty() -> Result<(), TracedErr> {
+    fn test_log_pretty() -> Result<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
 
         let sub = create_subscriber(vec![SubLayer {
@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_log_color() -> Result<(), TracedErr> {
+    fn test_log_color() -> Result<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
 
         let sub = create_subscriber(vec![SubLayer {
@@ -177,7 +177,7 @@ mod tests {
     fn test_log_matchers(
         #[case] loc_matcher: Option<regex::Regex>,
         #[case] expected_logs: Vec<&str>,
-    ) -> Result<(), TracedErr> {
+    ) -> Result<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -239,7 +239,7 @@ mod tests {
     fn test_log_filtering(
         #[case] filter: SubLayerFilter,
         #[case] expected_found: Vec<&str>,
-    ) -> Result<(), TracedErr> {
+    ) -> Result<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -288,8 +288,8 @@ mod tests {
     }
 
     #[rstest]
-    fn test_log_to_file() -> Result<(), TracedErr> {
-        let temp_dir = tempdir()?;
+    fn test_log_to_file() -> Result<(), AnyErr> {
+        let temp_dir = aer!(tempdir())?;
         let sub = create_subscriber(vec![SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::File {
@@ -306,9 +306,7 @@ mod tests {
         // Sleep for 50ms to make sure everything's been flushed to the file: (happens in separate thread)
         std::thread::sleep(std::time::Duration::from_millis(50));
 
-        let files: HashMap<String, String> = temp_dir
-            .path()
-            .read_dir()?
+        let files: HashMap<String, String> = aer!(temp_dir.path().read_dir())?
             .map(|entry| {
                 let entry = entry.unwrap();
                 let path = entry.path();
@@ -326,7 +324,7 @@ mod tests {
         let contents = files.get(name).unwrap();
 
         // Check name matches "foo.log%Y-%m-%d" with regex:
-        let re = regex::Regex::new(r"^foo.log.\d{4}-\d{2}-\d{2}$")?;
+        let re = aer!(regex::Regex::new(r"^foo.log.\d{4}-\d{2}-\d{2}$"))?;
         assert!(re.is_match(name), "{}", name);
 
         let out = contents.lines().collect::<Vec<_>>();
@@ -342,7 +340,7 @@ mod tests {
     #[cfg(feature = "opentelemetry")]
     #[rstest]
     #[tokio::test]
-    async fn test_opentelemetry() -> Result<(), TracedErr> {
+    async fn test_opentelemetry() -> Result<(), AnyErr> {
         // Not actually going to implement a fake collector on the other side, just check nothing errors:
 
         let sub = create_subscriber(vec![SubLayer {

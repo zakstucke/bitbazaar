@@ -2,13 +2,14 @@ use std::{path::PathBuf, str::FromStr};
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use tonic::metadata::{Ascii, MetadataValue};
 use tracing::{Dispatch, Level, Metadata, Subscriber};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     filter::FilterFn, fmt::MakeWriter, prelude::*, registry::LookupSpan, Layer,
 };
 
-use crate::{err, errors::TracedErr};
+use crate::errors::prelude::*;
 
 /// Specify which logs should be matched by this layer.
 ///
@@ -235,7 +236,7 @@ impl CreatedSubscriber {
 /// }]).unwrap();
 /// sub.into_global(); // Register it as the global logger, this can only be done once
 /// ```
-pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, TracedErr> {
+pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, AnyErr> {
     let all_loc_matchers = layers
         .iter()
         .filter_map(|target| target.loc_matcher.clone())
@@ -263,15 +264,15 @@ pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, Tra
             SubLayerVariant::File { file_prefix, dir } => {
                 // Throw if dir is an existing file:
                 if dir.is_file() {
-                    return Err(err!(
+                    bail!(report!(AnyErr).attach_printable(format!(
                         "Log directory is an existing file: {}",
                         dir.to_string_lossy()
-                    ));
+                    )));
                 }
 
                 // Create the dir if missing:
                 if !dir.exists() {
-                    std::fs::create_dir_all(&dir)?;
+                    std::fs::create_dir_all(&dir).change_context(AnyErr)?;
                 }
 
                 // Rotate the file daily:
@@ -306,8 +307,10 @@ pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, Tra
                 let mut header_map = tonic::metadata::MetadataMap::new();
                 for (key, value) in headers {
                     header_map.insert(
-                        tonic::metadata::MetadataKey::from_str(&key)?,
-                        value.parse()?,
+                        tonic::metadata::MetadataKey::from_str(&key).change_context(AnyErr)?,
+                        value
+                            .parse::<MetadataValue<Ascii>>()
+                            .change_context(AnyErr)?,
                     );
                 }
 
@@ -320,7 +323,8 @@ pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, Tra
                             .with_endpoint(endpoint)
                             .with_metadata(header_map),
                     )
-                    .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+                    .install_batch(opentelemetry_sdk::runtime::Tokio)
+                    .change_context(AnyErr)?;
                 let layer = tracing_opentelemetry::layer().with_tracer(tracer);
                 layer.boxed()
             }
@@ -345,7 +349,7 @@ fn filter_layer(
     filter: SubLayerFilter,
     loc_matcher: Option<regex::Regex>,
     all_loc_matchers: &[regex::Regex],
-) -> Result<FilterFn<impl Fn(&Metadata<'_>) -> bool>, TracedErr> {
+) -> Result<FilterFn<impl Fn(&Metadata<'_>) -> bool>, AnyErr> {
     // Needs to be a vec to pass through to the filter fn:
     let all_loc_matchers = all_loc_matchers.to_vec();
 
@@ -395,7 +399,7 @@ fn create_fmt_layer<S, W>(
     include_loc: bool,
     include_color: bool,
     writer: W,
-) -> Result<Box<dyn Layer<S> + Send + Sync + 'static>, TracedErr>
+) -> Result<Box<dyn Layer<S> + Send + Sync + 'static>, AnyErr>
 where
     S: Subscriber,
     for<'a> S: LookupSpan<'a>, // Each layer has a different type, so have to box for return
@@ -415,7 +419,8 @@ where
         // also no need for any more than ms precision,
         // also make it a UTC time:
         let timer =
-            time::format_description::parse("[hour]:[minute]:[second].[subsecond digits:3]")?;
+            time::format_description::parse("[hour]:[minute]:[second].[subsecond digits:3]")
+                .change_context(AnyErr)?;
         let time_offset = time::UtcOffset::current_local_offset().unwrap_or(time::UtcOffset::UTC);
         let timer = tracing_subscriber::fmt::time::OffsetTime::new(time_offset, timer);
 

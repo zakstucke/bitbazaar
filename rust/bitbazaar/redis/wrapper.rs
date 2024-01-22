@@ -1,7 +1,7 @@
 use deadpool_redis::{Config, Runtime};
 
 use super::RedisConn;
-use crate::errors::TracedResult;
+use crate::errors::prelude::*;
 
 /// A wrapper around redis to make it more concise to use and not need redis in the downstream Cargo.toml.
 ///
@@ -19,9 +19,11 @@ impl Redis {
     pub fn new<A: Into<String>, B: Into<String>>(
         redis_conn_str: A,
         prefix: B,
-    ) -> TracedResult<Self> {
+    ) -> Result<Self, AnyErr> {
         let cfg = Config::from_url(redis_conn_str);
-        let pool = cfg.create_pool(Some(Runtime::Tokio1))?;
+        let pool = cfg
+            .create_pool(Some(Runtime::Tokio1))
+            .change_context(AnyErr)?;
 
         Ok(Self {
             pool,

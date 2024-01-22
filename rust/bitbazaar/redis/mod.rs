@@ -22,7 +22,7 @@ mod tests {
     use rstest::*;
 
     use super::*;
-    use crate::{errors::TracedErr, misc::in_ci};
+    use crate::{errors::prelude::*, misc::in_ci};
 
     struct ChildGuard(Child);
 
@@ -65,7 +65,7 @@ mod tests {
     /// Test functionality working as it should when redis up and running fine.
     #[rstest]
     #[tokio::test]
-    async fn test_redis_working() -> Result<(), TracedErr> {
+    async fn test_redis_working() -> Result<(), AnyErr> {
         // Can enable to check logging when debugging:
         // let sub = crate::logging::create_subscriber(vec![crate::logging::SubLayer {
         //     filter: crate::logging::SubLayerFilter::Above(tracing::Level::TRACE),

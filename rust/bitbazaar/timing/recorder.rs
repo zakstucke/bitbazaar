@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::warn;
 
-use crate::{err, errors::TracedErr, timing::format_duration};
+use crate::{aer, errors::prelude::*, timing::format_duration};
 
 /// A global time recorder, used by the timeit! macro.
 pub static GLOBAL_TIME_RECORDER: Lazy<TimeRecorder> = Lazy::new(TimeRecorder::new);
@@ -86,19 +86,21 @@ impl TimeRecorder {
     }
 
     /// Using from creation time rather than the specific durations recorded, to be sure to cover everything.
-    pub fn total_elapsed(&self) -> Result<std::time::Duration, TracedErr> {
-        Ok((chrono::Utc::now() - self.start).to_std()?)
+    pub fn total_elapsed(&self) -> Result<std::time::Duration, AnyErr> {
+        (chrono::Utc::now() - self.start)
+            .to_std()
+            .change_context(AnyErr)
     }
 
     /// Format the logs in a verbose, table format.
-    pub fn format_verbose(&self) -> Result<String, TracedErr> {
+    pub fn format_verbose(&self) -> Result<String, AnyErr> {
         use comfy_table::*;
 
         // Printing should only happen at the end synchronously, shouldn't fail to acquire:
         let logs = self
             .logs
             .try_lock()
-            .ok_or_else(|| err!("Failed to acquire logs."))?;
+            .ok_or_else(|| aer!("Failed to acquire logs."))?;
 
         let mut table = Table::new();
         table
@@ -118,7 +120,7 @@ impl TimeRecorder {
         // Centralize the time column:
         let time_column = table
             .column_mut(1)
-            .ok_or_else(|| err!("Failed to get second column of time recorder table"))?;
+            .ok_or_else(|| aer!("Failed to get second column of time recorder table"))?;
         time_column.set_cell_alignment(CellAlignment::Center);
 
         Ok(table.to_string())
