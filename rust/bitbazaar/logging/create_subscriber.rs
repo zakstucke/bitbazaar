@@ -2,7 +2,6 @@ use std::{path::PathBuf, str::FromStr};
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use tonic::metadata::{Ascii, MetadataValue};
 use tracing::{Dispatch, Level, Metadata, Subscriber};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -303,6 +302,7 @@ pub fn create_subscriber(layers: Vec<SubLayer>) -> Result<CreatedSubscriber, Any
             #[cfg(feature = "opentelemetry")]
             SubLayerVariant::OpenTelemetry { endpoint, headers } => {
                 use opentelemetry_otlp::WithExportConfig;
+                use tonic::metadata::{Ascii, MetadataValue};
 
                 let mut header_map = tonic::metadata::MetadataMap::new();
                 for (key, value) in headers {
