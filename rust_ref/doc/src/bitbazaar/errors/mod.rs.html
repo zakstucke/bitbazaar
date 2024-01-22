@@ -105,12 +105,14 @@
 <a href="#105" id="105">105</a>
 <a href="#106" id="106">106</a>
 <a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>any;
 <span class="kw">mod </span>generic_err;
 <span class="kw">mod </span>macros;
 <span class="kw">mod </span>test_errs;
 <span class="kw">mod </span>traced_error;
 
+<span class="kw">pub use </span>any::AnyErr;
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
 </span><span class="kw">pub use </span>traced_error::set_axum_debug;
 <span class="kw">pub use </span>traced_error::{TracedErr, TracedResult};

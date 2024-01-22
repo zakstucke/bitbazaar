@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"type":["TracedErr","TracedResult"]};
+window.SIDEBAR_ITEMS = {"struct":["AnyErr"],"type":["TracedErr","TracedResult"]};
