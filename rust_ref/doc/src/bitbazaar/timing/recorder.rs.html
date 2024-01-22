@@ -124,13 +124,15 @@
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, sync::Arc};
 
 <span class="kw">use </span>once_cell::sync::Lazy;
 <span class="kw">use </span>parking_lot::Mutex;
 <span class="kw">use </span>tracing::warn;
 
-<span class="kw">use crate</span>::{err, errors::TracedErr, timing::format_duration};
+<span class="kw">use crate</span>::{aer, errors::prelude::<span class="kw-2">*</span>, timing::format_duration};
 
 <span class="doccomment">/// A global time recorder, used by the timeit! macro.
 </span><span class="kw">pub static </span>GLOBAL_TIME_RECORDER: Lazy&lt;TimeRecorder&gt; = Lazy::new(TimeRecorder::new);
@@ -212,19 +214,21 @@
     }
 
     <span class="doccomment">/// Using from creation time rather than the specific durations recorded, to be sure to cover everything.
-    </span><span class="kw">pub fn </span>total_elapsed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;std::time::Duration, TracedErr&gt; {
-        <span class="prelude-val">Ok</span>((chrono::Utc::now() - <span class="self">self</span>.start).to_std()<span class="question-mark">?</span>)
+    </span><span class="kw">pub fn </span>total_elapsed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;std::time::Duration, AnyErr&gt; {
+        (chrono::Utc::now() - <span class="self">self</span>.start)
+            .to_std()
+            .change_context(AnyErr)
     }
 
     <span class="doccomment">/// Format the logs in a verbose, table format.
-    </span><span class="kw">pub fn </span>format_verbose(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, TracedErr&gt; {
+    </span><span class="kw">pub fn </span>format_verbose(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, AnyErr&gt; {
         <span class="kw">use </span>comfy_table::<span class="kw-2">*</span>;
 
         <span class="comment">// Printing should only happen at the end synchronously, shouldn&#39;t fail to acquire:
         </span><span class="kw">let </span>logs = <span class="self">self
             </span>.logs
             .try_lock()
-            .ok_or_else(|| <span class="macro">err!</span>(<span class="string">&quot;Failed to acquire logs.&quot;</span>))<span class="question-mark">?</span>;
+            .ok_or_else(|| <span class="macro">aer!</span>(<span class="string">&quot;Failed to acquire logs.&quot;</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>table = Table::new();
         table
@@ -244,7 +248,7 @@
         <span class="comment">// Centralize the time column:
         </span><span class="kw">let </span>time_column = table
             .column_mut(<span class="number">1</span>)
-            .ok_or_else(|| <span class="macro">err!</span>(<span class="string">&quot;Failed to get second column of time recorder table&quot;</span>))<span class="question-mark">?</span>;
+            .ok_or_else(|| <span class="macro">aer!</span>(<span class="string">&quot;Failed to get second column of time recorder table&quot;</span>))<span class="question-mark">?</span>;
         time_column.set_cell_alignment(CellAlignment::Center);
 
         <span class="prelude-val">Ok</span>(table.to_string())

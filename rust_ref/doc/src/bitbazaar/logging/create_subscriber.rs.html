@@ -430,6 +430,11 @@
 <a href="#430" id="430">430</a>
 <a href="#431" id="431">431</a>
 <a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{path::PathBuf, str::FromStr};
 
 <span class="kw">use </span>once_cell::sync::Lazy;
@@ -440,7 +445,7 @@
     filter::FilterFn, fmt::MakeWriter, prelude::<span class="kw-2">*</span>, registry::LookupSpan, Layer,
 };
 
-<span class="kw">use crate</span>::{err, errors::TracedErr};
+<span class="kw">use </span><span class="kw">crate</span>::errors::prelude::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// Specify which logs should be matched by this layer.
 ///
@@ -667,7 +672,7 @@
 /// }]).unwrap();
 /// sub.into_global(); // Register it as the global logger, this can only be done once
 /// ```
-</span><span class="kw">pub fn </span>create_subscriber(layers: Vec&lt;SubLayer&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;CreatedSubscriber, TracedErr&gt; {
+</span><span class="kw">pub fn </span>create_subscriber(layers: Vec&lt;SubLayer&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;CreatedSubscriber, AnyErr&gt; {
     <span class="kw">let </span>all_loc_matchers = layers
         .iter()
         .filter_map(|target| target.loc_matcher.clone())
@@ -695,15 +700,15 @@
             SubLayerVariant::File { file_prefix, dir } =&gt; {
                 <span class="comment">// Throw if dir is an existing file:
                 </span><span class="kw">if </span>dir.is_file() {
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+                    <span class="macro">bail!</span>(<span class="macro">report!</span>(AnyErr).attach_printable(<span class="macro">format!</span>(
                         <span class="string">&quot;Log directory is an existing file: {}&quot;</span>,
                         dir.to_string_lossy()
-                    ));
+                    )));
                 }
 
                 <span class="comment">// Create the dir if missing:
                 </span><span class="kw">if </span>!dir.exists() {
-                    std::fs::create_dir_all(<span class="kw-2">&amp;</span>dir)<span class="question-mark">?</span>;
+                    std::fs::create_dir_all(<span class="kw-2">&amp;</span>dir).change_context(AnyErr)<span class="question-mark">?</span>;
                 }
 
                 <span class="comment">// Rotate the file daily:
@@ -734,12 +739,15 @@
             <span class="attr">#[cfg(feature = <span class="string">&quot;opentelemetry&quot;</span>)]
             </span>SubLayerVariant::OpenTelemetry { endpoint, headers } =&gt; {
                 <span class="kw">use </span>opentelemetry_otlp::WithExportConfig;
+                <span class="kw">use </span>tonic::metadata::{Ascii, MetadataValue};
 
                 <span class="kw">let </span><span class="kw-2">mut </span>header_map = tonic::metadata::MetadataMap::new();
                 <span class="kw">for </span>(key, value) <span class="kw">in </span>headers {
                     header_map.insert(
-                        tonic::metadata::MetadataKey::from_str(<span class="kw-2">&amp;</span>key)<span class="question-mark">?</span>,
-                        value.parse()<span class="question-mark">?</span>,
+                        tonic::metadata::MetadataKey::from_str(<span class="kw-2">&amp;</span>key).change_context(AnyErr)<span class="question-mark">?</span>,
+                        value
+                            .parse::&lt;MetadataValue&lt;Ascii&gt;&gt;()
+                            .change_context(AnyErr)<span class="question-mark">?</span>,
                     );
                 }
 
@@ -752,7 +760,8 @@
                             .with_endpoint(endpoint)
                             .with_metadata(header_map),
                     )
-                    .install_batch(opentelemetry_sdk::runtime::Tokio)<span class="question-mark">?</span>;
+                    .install_batch(opentelemetry_sdk::runtime::Tokio)
+                    .change_context(AnyErr)<span class="question-mark">?</span>;
                 <span class="kw">let </span>layer = tracing_opentelemetry::layer().with_tracer(tracer);
                 layer.boxed()
             }
@@ -777,7 +786,7 @@
     filter: SubLayerFilter,
     loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
     all_loc_matchers: <span class="kw-2">&amp;</span>[regex::Regex],
-) -&gt; <span class="prelude-ty">Result</span>&lt;FilterFn&lt;<span class="kw">impl </span>Fn(<span class="kw-2">&amp;</span>Metadata&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; bool&gt;, TracedErr&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;FilterFn&lt;<span class="kw">impl </span>Fn(<span class="kw-2">&amp;</span>Metadata&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; bool&gt;, AnyErr&gt; {
     <span class="comment">// Needs to be a vec to pass through to the filter fn:
     </span><span class="kw">let </span>all_loc_matchers = all_loc_matchers.to_vec();
 
@@ -827,7 +836,7 @@
     include_loc: bool,
     include_color: bool,
     writer: W,
-) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>Layer&lt;S&gt; + Send + Sync + <span class="lifetime">&#39;static</span>&gt;, TracedErr&gt;
+) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>Layer&lt;S&gt; + Send + Sync + <span class="lifetime">&#39;static</span>&gt;, AnyErr&gt;
 <span class="kw">where
     </span>S: Subscriber,
     <span class="kw">for</span>&lt;<span class="lifetime">&#39;a</span>&gt; S: LookupSpan&lt;<span class="lifetime">&#39;a</span>&gt;, <span class="comment">// Each layer has a different type, so have to box for return
@@ -847,7 +856,8 @@
         // also no need for any more than ms precision,
         // also make it a UTC time:
         </span><span class="kw">let </span>timer =
-            time::format_description::parse(<span class="string">&quot;[hour]:[minute]:[second].[subsecond digits:3]&quot;</span>)<span class="question-mark">?</span>;
+            time::format_description::parse(<span class="string">&quot;[hour]:[minute]:[second].[subsecond digits:3]&quot;</span>)
+                .change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="kw">let </span>time_offset = time::UtcOffset::current_local_offset().unwrap_or(time::UtcOffset::UTC);
         <span class="kw">let </span>timer = tracing_subscriber::fmt::time::OffsetTime::new(time_offset, timer);
 

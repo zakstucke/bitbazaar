@@ -40,7 +40,177 @@
 <a href="#40" id="40">40</a>
 <a href="#41" id="41">41</a>
 <a href="#42" id="42">42</a>
-</pre></div><pre class="rust"><code><span class="doccomment">/// A macro for creating a TracedErr from a string or another existing error.
+<a href="#43" id="43">43</a>
+<a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
+<a href="#46" id="46">46</a>
+<a href="#47" id="47">47</a>
+<a href="#48" id="48">48</a>
+<a href="#49" id="49">49</a>
+<a href="#50" id="50">50</a>
+<a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+</pre></div><pre class="rust"><code><span class="attr">#[macro_export]
+</span><span class="doccomment">/// A helper for the aer! macro.
+</span><span class="macro">macro_rules! </span>_aer_inner {
+    (<span class="macro-nonterminal">$any_err</span>:expr) =&gt; {{
+        <span class="kw">use </span>error_stack::{Context, Report, <span class="prelude-ty">Result</span>, ResultExt};
+
+        <span class="macro-nonterminal">$</span><span class="macro">crate::spez! </span>{
+            <span class="kw">for </span><span class="macro-nonterminal">x </span>= <span class="macro-nonterminal">$any_err</span>;
+
+            <span class="comment">// error_stack err -&gt; Report&lt;AnyErr&gt;
+            </span><span class="kw">match</span>&lt;T: error_stack::Context&gt; T  -&gt; Report&lt;AnyErr&gt; {
+                Report::new(x).change_context(AnyErr)
+            }
+            <span class="comment">// Error + Sync + Send + &#39;static -&gt; Report&lt;AnyErr&gt;
+            </span><span class="kw">match</span>&lt;T: std::error::Error + Sync + Send + <span class="lifetime">&#39;static</span>&gt; T  -&gt; Report&lt;AnyErr&gt; {
+                Report::new(x).change_context(AnyErr)
+            }
+            <span class="comment">// Report&lt;T&gt; -&gt; Report&lt;AnyErr&gt;
+            </span><span class="kw">match</span>&lt;T&gt; Report&lt;T&gt;  -&gt; Report&lt;AnyErr&gt; {
+                x.change_context(AnyErr)
+            }
+            <span class="comment">// error_stack::Result&lt;T, E&gt; -&gt; Result&lt;T, AnyErr&gt;
+            </span><span class="kw">match</span>&lt;T, E: Context&gt; <span class="prelude-ty">Result</span>&lt;T, E&gt;  -&gt; <span class="prelude-ty">Result</span>&lt;T, AnyErr&gt; {
+                x.change_context(AnyErr)
+            }
+            <span class="comment">// core::result::Result&lt;T, E&gt; -&gt; Result&lt;T, AnyErr&gt;
+            </span><span class="kw">match</span>&lt;T, E: Context&gt; core::result::Result&lt;T, E&gt;  -&gt; <span class="prelude-ty">Result</span>&lt;T, AnyErr&gt; {
+                x.change_context(AnyErr)
+            }
+            <span class="comment">// Into&lt;String&gt; -&gt; Report&lt;AnyErr&gt;
+            </span><span class="kw">match</span>&lt;T: Into&lt;String&gt;&gt; T -&gt; Report&lt;AnyErr&gt; {
+                Report::new(AnyErr).attach_printable(x.into())
+            }
+        }
+    }};
+}
+
+<span class="attr">#[macro_export]
+</span><span class="doccomment">/// A helper for the aer! macro.
+</span><span class="macro">macro_rules! </span>_aer_inner_with_txt {
+    (<span class="macro-nonterminal">$err_or_result_or_str</span>:expr, <span class="macro-nonterminal">$str</span>:expr) =&gt; {{
+        <span class="kw">use </span>error_stack::{Context, Report, <span class="prelude-ty">Result</span>, ResultExt};
+        <span class="kw">use </span><span class="macro-nonterminal">$crate::_aer_inner</span>;
+
+        <span class="kw">let </span>foo = <span class="macro">_aer_inner!</span>(<span class="macro-nonterminal">$err_or_result_or_str</span>);
+        <span class="macro-nonterminal">$</span><span class="macro">crate::spez! </span>{
+            <span class="kw">for </span><span class="macro-nonterminal">x </span>= foo;
+
+            <span class="comment">// Not lazy if already a report:
+            </span><span class="kw">match</span>&lt;T&gt; Report&lt;T&gt;  -&gt; Report&lt;T&gt; {
+                x.attach_printable(<span class="macro-nonterminal">$str</span>)
+            }
+
+            <span class="comment">// Otherwise, lazy:
+            </span><span class="kw">match</span>&lt;T, E: Context&gt; <span class="prelude-ty">Result</span>&lt;T, E&gt;  -&gt; <span class="prelude-ty">Result</span>&lt;T, E&gt; {
+                x.attach_printable(<span class="macro-nonterminal">$str</span>)
+            }
+        }
+    }};
+}
+
+<span class="doccomment">/// A macro for building `AnyErr` reports easily from other error_stack errors, other reports and base errors outside of error_stack.
+</span><span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>aer {
+    () =&gt; {{
+        <span class="kw">use </span>error_stack::Report;
+        Report::new(AnyErr)
+    }};
+
+    (<span class="macro-nonterminal">$err_or_result_or_str</span>:expr) =&gt; {{
+        <span class="kw">use </span><span class="macro-nonterminal">$crate::_aer_inner</span>;
+        <span class="macro">_aer_inner!</span>(<span class="macro-nonterminal">$err_or_result_or_str</span>)
+    }};
+
+    (<span class="macro-nonterminal">$err_or_result_or_str</span>:expr, <span class="macro-nonterminal">$str</span>:expr) =&gt; {{
+        <span class="kw">use </span><span class="macro-nonterminal">$crate::_aer_inner_with_txt</span>;
+        <span class="macro">_aer_inner_with_txt!</span>(<span class="macro-nonterminal">$err_or_result_or_str</span>, <span class="macro-nonterminal">$str</span>)
+    }};
+
+    (<span class="macro-nonterminal">$err_or_result_or_str</span>:expr, <span class="macro-nonterminal">$str</span>:expr, $(<span class="macro-nonterminal">$arg</span>:expr),<span class="kw-2">*</span>) =&gt; {{
+        <span class="kw">use </span><span class="macro-nonterminal">$crate::_aer_inner_with_txt</span>;
+        <span class="macro">_aer_inner_with_txt!</span>(<span class="macro-nonterminal">$err_or_result_or_str</span>, <span class="macro">format!</span>(<span class="macro-nonterminal">$str</span>, $(<span class="macro-nonterminal">$arg</span>),<span class="kw-2">*</span>))
+    }};
+}
+
+<span class="doccomment">/// A macro for creating a TracedErr from a string or another existing error.
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>err {
 

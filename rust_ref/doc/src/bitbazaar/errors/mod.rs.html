@@ -96,7 +96,17 @@
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
-</pre></div><pre class="rust"><code><span class="kw">mod </span>generic_err;
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+</pre></div><pre class="rust"><code><span class="kw">mod </span>any;
+<span class="kw">mod </span>generic_err;
 <span class="kw">mod </span>macros;
 <span class="kw">mod </span>test_errs;
 <span class="kw">mod </span>traced_error;
@@ -104,6 +114,14 @@
 <span class="attr">#[cfg(feature = <span class="string">&quot;axum&quot;</span>)]
 </span><span class="kw">pub use </span>traced_error::set_axum_debug;
 <span class="kw">pub use </span>traced_error::{TracedErr, TracedResult};
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>prelude {
+    <span class="kw">pub use </span>error_stack::{bail, report, <span class="prelude-ty">Result</span>, ResultExt};
+
+    <span class="kw">pub use </span><span class="kw">super</span>::any::AnyErr;
+    <span class="attr">#[allow(unused_imports)]
+    </span><span class="kw">pub use </span><span class="kw">crate</span>::aer;
+}
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {

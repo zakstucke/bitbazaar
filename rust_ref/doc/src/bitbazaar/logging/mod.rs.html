@@ -359,8 +359,6 @@
 <a href="#359" id="359">359</a>
 <a href="#360" id="360">360</a>
 <a href="#361" id="361">361</a>
-<a href="#362" id="362">362</a>
-<a href="#363" id="363">363</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>clap_log_level_args;
 <span class="kw">mod </span>create_subscriber;
 <span class="attr">#[cfg(test)]
@@ -383,7 +381,7 @@
     <span class="kw">use </span>tracing::{debug, error, info, warn, Level};
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
-    <span class="kw">use </span><span class="kw">crate</span>::errors::TracedErr;
+    <span class="kw">use </span><span class="kw">crate</span>::errors::prelude::<span class="kw-2">*</span>;
 
     <span class="kw">fn </span>log_all() {
         <span class="macro">debug!</span>(<span class="string">&quot;DLOG&quot;</span>);
@@ -403,7 +401,7 @@
         </span><span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_lvl: bool,
         <span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_timestamp: bool,
         <span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_loc: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -431,7 +429,7 @@
             log_all();
         });
 
-        <span class="kw">let </span>chk_log = |lvl: Level, in_log: <span class="kw-2">&amp;</span>str, out_log: <span class="kw-2">&amp;</span>str| -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+        <span class="kw">let </span>chk_log = |lvl: Level, in_log: <span class="kw-2">&amp;</span>str, out_log: <span class="kw-2">&amp;</span>str| -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
             <span class="kw">if </span>include_lvl {
                 <span class="macro">assert!</span>(
                     out_log.contains(<span class="kw-2">&amp;</span>lvl.to_string().to_uppercase()),
@@ -444,7 +442,7 @@
             }
             <span class="kw">if </span>include_timestamp {
                 <span class="comment">// Confirm matches regex HH:MM:SS.mmm:
-                </span><span class="macro">assert!</span>(regex::Regex::new(<span class="string">r&quot;\d{2}:\d{2}:\d{2}.\d{3}&quot;</span>)<span class="question-mark">?</span>.is_match(out_log));
+                </span><span class="macro">assert!</span>(<span class="macro">aer!</span>(regex::Regex::new(<span class="string">r&quot;\d{2}:\d{2}:\d{2}.\d{3}&quot;</span>))<span class="question-mark">?</span>.is_match(out_log));
             }
             <span class="comment">// Should end with the actual log:
             </span><span class="macro">assert!</span>(out_log.ends_with(in_log), <span class="string">&quot;{}&quot;</span>, out_log);
@@ -463,7 +461,7 @@
     }
 
     <span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_log_pretty() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+    </span><span class="kw">fn </span>test_log_pretty() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
 
         <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
@@ -497,7 +495,7 @@
     }
 
     <span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_log_color() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+    </span><span class="kw">fn </span>test_log_color() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
 
         <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
@@ -540,7 +538,7 @@
     </span><span class="kw">fn </span>test_log_matchers(
         <span class="attr">#[case] </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
         <span class="attr">#[case] </span>expected_logs: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -602,7 +600,7 @@
     </span><span class="kw">fn </span>test_log_filtering(
         <span class="attr">#[case] </span>filter: SubLayerFilter,
         <span class="attr">#[case] </span>expected_found: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -651,8 +649,8 @@
     }
 
     <span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_log_to_file() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
-        <span class="kw">let </span>temp_dir = tempdir()<span class="question-mark">?</span>;
+    </span><span class="kw">fn </span>test_log_to_file() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        <span class="kw">let </span>temp_dir = <span class="macro">aer!</span>(tempdir())<span class="question-mark">?</span>;
         <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
             filter: SubLayerFilter::Above(Level::DEBUG),
             variant: SubLayerVariant::File {
@@ -669,9 +667,7 @@
         <span class="comment">// Sleep for 50ms to make sure everything&#39;s been flushed to the file: (happens in separate thread)
         </span>std::thread::sleep(std::time::Duration::from_millis(<span class="number">50</span>));
 
-        <span class="kw">let </span>files: HashMap&lt;String, String&gt; = temp_dir
-            .path()
-            .read_dir()<span class="question-mark">?
+        <span class="kw">let </span>files: HashMap&lt;String, String&gt; = <span class="macro">aer!</span>(temp_dir.path().read_dir())<span class="question-mark">?
             </span>.map(|entry| {
                 <span class="kw">let </span>entry = entry.unwrap();
                 <span class="kw">let </span>path = entry.path();
@@ -689,7 +685,7 @@
         <span class="kw">let </span>contents = files.get(name).unwrap();
 
         <span class="comment">// Check name matches &quot;foo.log%Y-%m-%d&quot; with regex:
-        </span><span class="kw">let </span>re = regex::Regex::new(<span class="string">r&quot;^foo.log.\d{4}-\d{2}-\d{2}$&quot;</span>)<span class="question-mark">?</span>;
+        </span><span class="kw">let </span>re = <span class="macro">aer!</span>(regex::Regex::new(<span class="string">r&quot;^foo.log.\d{4}-\d{2}-\d{2}$&quot;</span>))<span class="question-mark">?</span>;
         <span class="macro">assert!</span>(re.is_match(name), <span class="string">&quot;{}&quot;</span>, name);
 
         <span class="kw">let </span>out = contents.lines().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
@@ -705,7 +701,7 @@
     <span class="attr">#[cfg(feature = <span class="string">&quot;opentelemetry&quot;</span>)]
     #[rstest]
     #[tokio::test]
-    </span><span class="kw">async fn </span>test_opentelemetry() -&gt; <span class="prelude-ty">Result</span>&lt;(), TracedErr&gt; {
+    </span><span class="kw">async fn </span>test_opentelemetry() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="comment">// Not actually going to implement a fake collector on the other side, just check nothing errors:
 
         </span><span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
