@@ -55,12 +55,13 @@ impl error_stack::Context for CmdErr {}
 /// - `|` pipe
 /// - `~` home dir
 pub fn run_cmd<S: Into<String>>(cmd_str: S) -> Result<CmdOut, CmdErr> {
-    let (code, output, error) = run_script::run(
-        cmd_str.into().as_str(),
-        &vec![],
-        &run_script::ScriptOptions::new(),
-    )
-    .map_err(|e| CmdErr::Unknown(e.to_string()))?;
+    let mut options = run_script::ScriptOptions::new();
+    if cfg!(windows) {
+        // Defaults to cmd.exe, this doesn't print the commands to the stdout, polluting it like default does:
+        options.runner = Some("start.exe".to_string())
+    }
+    let (code, output, error) = run_script::run(cmd_str.into().as_str(), &vec![], &options)
+        .map_err(|e| CmdErr::Unknown(e.to_string()))?;
 
     Ok(CmdOut {
         stdout: output,
