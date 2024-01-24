@@ -100,6 +100,7 @@ jobs:
         run: |
           git add . &&
           ./dev_scripts/test.sh pre_till_success &&
+          cp release.yml .github/workflows/release.yml &&
           git add .
 
       - name: Commit the new version to the repo

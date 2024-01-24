@@ -84,7 +84,7 @@ jobs:
                   docker-options: -e CI
                   sccache: true
 
-            - run: ${{ matrix.ls || 'ls -lh' }} py_rust/dist/
+            - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} py_rust/dist/
 
             - uses: actions/upload-artifact@v3
               with:
