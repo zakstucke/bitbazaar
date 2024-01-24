@@ -28,8 +28,8 @@ on:
                 required: false
                 default: false
             py_rust_version:
-                description: "Rust-backed Python Version (now 0.0.0)"
-                default: "0.0.0"
+                description: "Rust-backed Python Version (now 0.0.1)"
+                default: "0.0.1"
             rust_release:
                 description: "Rust Release"
                 type: boolean
