@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "bitbazaar_rs"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "bitbazaar",
  "colored",
