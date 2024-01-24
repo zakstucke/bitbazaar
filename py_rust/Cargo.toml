@@ -22,7 +22,7 @@ license = 'MIT'
 name = 'bitbazaar_rs'
 publish = false
 readme = 'README.md'
-version = '0.0.2'
+version = '0.0.3'
 
 [profile]
 

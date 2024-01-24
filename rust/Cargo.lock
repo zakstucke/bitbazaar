@@ -203,8 +203,29 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 [[package]]
 name = "bitbazaar"
 version = "0.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd4771c10da11f3f8c23d1fce9f50cadeb3cfb6c35d099f3a05afaca48b2c2dd"
 dependencies = [
- "bitbazaar 0.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chrono",
+ "clap",
+ "colored",
+ "comfy-table",
+ "error-stack",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "shlex",
+ "time",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "bitbazaar"
+version = "0.0.21"
+dependencies = [
+ "bitbazaar 0.0.20",
  "chrono",
  "clap",
  "colored",
@@ -236,27 +257,6 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",
-]
-
-[[package]]
-name = "bitbazaar"
-version = "0.0.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd4771c10da11f3f8c23d1fce9f50cadeb3cfb6c35d099f3a05afaca48b2c2dd"
-dependencies = [
- "chrono",
- "clap",
- "colored",
- "comfy-table",
- "error-stack",
- "once_cell",
- "parking_lot",
- "regex",
- "shlex",
- "time",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
 ]
 
 [[package]]

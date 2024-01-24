@@ -12,32 +12,32 @@ on:
                 required: false
                 default: false
             py_version:
-                description: "Python Version (now 0.0.1)"
-                default: "0.0.1"
+                description: "Python Version (now 0.0.2)"
+                default: "0.0.2"
             js_release:
                 description: "JS Release"
                 type: boolean
                 required: false
                 default: false
             js_version:
-                description: "JS Version (now 0.0.20)"
-                default: "0.0.20"
+                description: "JS Version (now 0.0.21)"
+                default: "0.0.21"
             py_rust_release:
                 description: "Rust-backed Python Release"
                 type: boolean
                 required: false
                 default: false
             py_rust_version:
-                description: "Rust-backed Python Version (now 0.0.2)"
-                default: "0.0.2"
+                description: "Rust-backed Python Version (now 0.0.3)"
+                default: "0.0.3"
             rust_release:
                 description: "Rust Release"
                 type: boolean
                 required: false
                 default: false
             rust_version:
-                description: "Rust Version (now 0.0.20)"
-                default: "0.0.20"
+                description: "Rust Version (now 0.0.21)"
+                default: "0.0.21"
 
 jobs:
     commit_versions:

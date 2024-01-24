@@ -9,7 +9,7 @@ description = 'An assortment of publicly available cross-language utilities usef
 name = 'bitbazaar'
 readme = 'README.md'
 requires-python = '>=3.11'
-version = '0.0.1'
+version = '0.0.2'
 
 [[project.authors]]
 email = 'zakstucke@gmail.com'
