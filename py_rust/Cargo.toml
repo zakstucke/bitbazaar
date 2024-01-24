@@ -8,7 +8,7 @@ features = []
 version = '0.0.20'
 
 [dependencies.pyo3]
-features = ['extension-module', 'chrono']
+features = ['extension-module', 'chrono', 'generate-import-lib']
 version = '0.20.0'
 
 [lib]
