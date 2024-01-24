@@ -91,6 +91,7 @@ describe("Vite", () => {
             const outside = ["", "/", "/api2", "/api2/", "/api2/foo/bar/index.html"];
 
             let out = genBackendProxies({ matches: ["/api/"], target: "test", negate: false });
+            // @ts-expect-error - quick fix, probs should sort
             let matcher = new RegExp(Object.keys(out)[0]);
             for (const path of outside) {
                 expect(path.match(matcher)).toBeFalsy();
@@ -101,6 +102,7 @@ describe("Vite", () => {
 
             // Negate should be the opposite:
             out = genBackendProxies({ matches: ["/api/"], target: "test", negate: true });
+            // @ts-expect-error - quick fix, probs should sort
             matcher = new RegExp(Object.keys(out)[0]);
             for (const path of inside) {
                 expect(path.match(matcher)).toBeFalsy();

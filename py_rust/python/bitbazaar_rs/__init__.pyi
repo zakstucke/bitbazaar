@@ -8,7 +8,10 @@ def hello() -> str:
     """
     ...
 
+__version__: str
+
 __all__ = [
+    "__version__",
     "utils",
     "hello",
 ]

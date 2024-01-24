@@ -22,17 +22,16 @@ jobs:
                 target: [x86_64, aarch64]
                 manylinux: [auto]
                 include:
-                    # Windows temporarily disabled - for some reason win aarch64 always fails with ld-link: error: could not open 'python311.lib': no such file or directory
-                    # Re-enable and fix (might be fixed by updates automatically) when windows needed
-                    # - os: windows
-                    #   ls: dir
-                    # - os: windows
-                    #   ls: dir
-                    #   target: i686
-                    #   python-architecture: x86
-                    # - os: windows
-                    #   ls: dir
-                    #   target: aarch64
+                    - os: windows
+                      ls: dir
+                    - os: windows
+                      ls: dir
+                      target: i686
+                      python-architecture: x86
+                    - os: windows
+                      ls: dir
+                      target: aarch64
+                      interpreter: 3.11 3.12 # Doesn't seem to be supported pre 3.11 for windows aarch64, get build errors with earlier versions
                     - os: ubuntu
                       platform: linux
                       target: i686
@@ -82,7 +81,7 @@ jobs:
               with:
                   target: ${{ matrix.target }}
                   manylinux: ${{ matrix.manylinux || 'auto' }}
-                  args: --manifest-path py_rust/Cargo.toml --release --out py_rust/dist --interpreter '3.11 3.12'
+                  args: --manifest-path py_rust/Cargo.toml --release --out py_rust/dist --interpreter ${{ matrix.interpreter || '3.11 3.12' }}
                   rust-toolchain: stable
                   docker-options: -e CI
 

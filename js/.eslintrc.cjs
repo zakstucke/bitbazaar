@@ -32,7 +32,8 @@ module.exports = {
         "node_modules/**/*",
         "dist/**/*",
         "lib/**/*",
-        "**/*.etch.*",
+        "**/*.zetch.*",
+        "**/*.zetch",
     ],
     rules: {
         // The js version has false positives in typescript:

@@ -19,6 +19,7 @@
       "./rust/Cargo.toml",
       "./py_rust/Cargo.toml",
     ],
+    "rust-analyzer.rustfmt.extraArgs": ["+nightly"], // We use nightly rustfmt for extra features.
     "rust-analyzer.cargo.allFeatures": true,
 
 

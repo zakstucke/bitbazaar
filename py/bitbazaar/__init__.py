@@ -16,4 +16,4 @@ def hello() -> str:
     return "Hello, World!"
 
 
-__all__ = ["hello", "utils"]
+__all__ = ["__version__", "hello", "utils"]

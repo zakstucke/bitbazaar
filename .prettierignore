@@ -10,4 +10,4 @@ target
 site
 docs/js_ref/
 docs/rust_ref/
-*.etch.*
+*.zetch.*

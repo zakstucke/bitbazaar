@@ -1,8 +1,8 @@
 repos:
-    - repo: https://github.com/zakstucke/etcher
-      rev: v0.0.15
+    - repo: https://github.com/zakstucke/zetch
+      rev: v0.0.2
       hooks:
-          - id: etch
+          - id: zetch
 
     - repo: https://github.com/pre-commit/mirrors-prettier
       rev: "v3.0.3"
@@ -67,25 +67,25 @@ repos:
     # Cargo/clippy: linting and formatting for rust code:
     - repo: local
       hooks:
-          - id: fmt
-            name: fmt
-            description: "Format files with cargo fmt. Have to use nightly as some format config used isn't stable"
-            entry: cargo fmt
+          - id: cargo-fmt
+            name: cargo-fmt
+            description: "Format files with cargo fmt."
+            entry: cargo +nightly fmt
             language: rust
             types: [rust]
             args: [--manifest-path=./rust/Cargo.toml, --]
           - id: cargo-check
-            name: cargo check
+            name: cargo-check
             description: Check the package for errors.
-            entry: cargo check
+            entry: cargo +nightly check
             language: rust
             types: [rust]
             args: [--manifest-path=./rust/Cargo.toml, --all-features]
             pass_filenames: false
-          - id: clippy
-            name: clippy
+          - id: cargo-clippy
+            name: cargo-clippy
             description: Lint rust sources
-            entry: cargo clippy
+            entry: cargo +nightly clippy
             language: rust
             args: ["--manifest-path", "./rust/Cargo.toml", "--all-features", "--", "-D", "warnings"]
             types: [rust]
@@ -94,25 +94,52 @@ repos:
     # Cargo/clippy: linting and formatting for rust code:
     - repo: local
       hooks:
-          - id: fmt
-            name: fmt
-            description: "Format files with cargo fmt. Have to use nightly as some format config used isn't stable"
-            entry: cargo fmt
+          - id: cargo-fmt
+            name: cargo-fmt
+            description: "Format files with cargo fmt."
+            entry: cargo +nightly fmt
+            language: rust
+            types: [rust]
+            args: [--manifest-path=./rust/Cargo.toml, --]
+          - id: cargo-check
+            name: cargo-check
+            description: Check the package for errors.
+            entry: cargo +nightly check
+            language: rust
+            types: [rust]
+            args: [--manifest-path=./rust/Cargo.toml, --all-features]
+            pass_filenames: false
+          - id: cargo-clippy
+            name: cargo-clippy
+            description: Lint rust sources
+            entry: cargo +nightly clippy
+            language: rust
+            args: ["--manifest-path", "./rust/Cargo.toml", "--all-features", "--", "-D", "warnings"]
+            types: [rust]
+            pass_filenames: false
+
+    # Cargo/clippy: linting and formatting for rust-backed python code:
+    - repo: local
+      hooks:
+          - id: cargo-fmt
+            name: cargo-fmt
+            description: "Format files with cargo fmt."
+            entry: cargo +nightly fmt
             language: rust
             types: [rust]
             args: [--manifest-path=./py_rust/Cargo.toml, --]
           - id: cargo-check
-            name: cargo check
+            name: cargo-check
             description: Check the package for errors.
-            entry: cargo check
+            entry: cargo +nightly check
             language: rust
             types: [rust]
             args: [--manifest-path=./py_rust/Cargo.toml, --all-features]
             pass_filenames: false
-          - id: clippy
-            name: clippy
+          - id: cargo-clippy
+            name: cargo-clippy
             description: Lint rust sources
-            entry: cargo clippy
+            entry: cargo +nightly clippy
             language: rust
             args:
                 [
@@ -131,7 +158,7 @@ repos:
       rev: v1.0.0
       hooks:
           - id: check-json5
-            exclude: ^.*\.etch\..*$
+            exclude: ^.*\.zetch\..*$
 
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v2.3.0
@@ -140,5 +167,4 @@ repos:
           - id: check-case-conflict
           - id: check-yaml
           - id: check-toml
-          - id: end-of-file-fixer
           - id: trailing-whitespace

@@ -23,6 +23,7 @@ export const createSteppedScale = ({
 
     // If its white or black, just return the same for all steps:
     if (baseHex === whiteHex || baseHex === blackHex) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return Array(numberOfSteps).fill(baseHex);
     }
 

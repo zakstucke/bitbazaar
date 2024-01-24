@@ -58,8 +58,8 @@ plugins:
 
     - exclude:
           glob:
-              # Etch files shouldn't be in the output:
-              - "*.etch.*"
+              # zetch files shouldn't be in the output:
+              - "*.zetch.*"
 
 markdown_extensions:
     - pymdownx.highlight:

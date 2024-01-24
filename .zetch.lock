@@ -1,0 +1,23 @@
+{
+  "version": "0.0.2",
+  "files": {
+    "js/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "py/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "py_rust/README.zetch.md": "260c6d3a4ce25fc12978b44c1ce76e164df45f6b7abcfd85b15a49c9edcc7dc8",
+    "py/README.zetch.md": "260c6d3a4ce25fc12978b44c1ce76e164df45f6b7abcfd85b15a49c9edcc7dc8",
+    "CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
+    "docs/index.zetch.md": "260c6d3a4ce25fc12978b44c1ce76e164df45f6b7abcfd85b15a49c9edcc7dc8",
+    "rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "docs/CONTRIBUTING.zetch.md": "a41b09d39649a43accb86895fd7a5cbb79b036a8087d395e3f9f147540a0a39c",
+    "CONTRIBUTING.zetch.md": "a41b09d39649a43accb86895fd7a5cbb79b036a8087d395e3f9f147540a0a39c",
+    "js/README.zetch.md": "260c6d3a4ce25fc12978b44c1ce76e164df45f6b7abcfd85b15a49c9edcc7dc8",
+    "js/tsconfig.zetch.json": "fb5d57b825bb3c2f6dd4254bf939f2444e52946622a7f93b91e3acb75876ebbc",
+    "LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "rust/README.zetch.md": "260c6d3a4ce25fc12978b44c1ce76e164df45f6b7abcfd85b15a49c9edcc7dc8",
+    "docs/CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
+    "py_rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "README.zetch.md": "102f3d1be5215969c358db1a06d904a5b0eb27c67825f57b424c15737487bedf",
+    "docs/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    ".github/workflows/release.yml.zetch": "6e7aa6c53413317773fa06694747adeb20655e695931e6777a1644b9aad9e77d"
+  }
+}

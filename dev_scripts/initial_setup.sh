@@ -4,16 +4,18 @@
 set -e
 
 initial_setup () {
-    # Make sure bun installed as used in e.g. prettier scripts, update if so:
+    # Make sure bun installed as used in e.g. prettier scripts:
     if command -v bun > /dev/null 2>&1; then
-        bun upgrade
+        echo "bun already installed"
     else
         echo "bun could not be found, installing..."
         curl -fsSL https://bun.sh/install | bash # for macOS, Linux, and WSL
     fi
 
-    # Make sure nightly is installed as needed for formatting in pre-commit:
+    # Make sure nightly is installed as use nightly for formatting and checking:
     rustup toolchain install nightly
+    # Make sure nextest is installed:
+    cargo install cargo-nextest --locked
 
     # Make sure the prettier subdir package is all installed:
     cd ./prettier
@@ -44,6 +46,9 @@ initial_setup () {
 
     echo "Setting up rust backed python project..."
     ./dev_scripts/py_rust.sh ensure_venv
+
+
+
 }
 
 # Has to come at the end of these files:

@@ -62,12 +62,10 @@ jobs:
               run: |
                   npm --prefix ./js install
 
+            # Formatting and checking uses nightly rather than stable:
             - uses: dtolnay/rust-toolchain@nightly
               with:
                   components: rustfmt, clippy
-            - uses: Swatinem/rust-cache@v2
-              with:
-                  workspaces: "./rust -> target"
 
             - name: Run QA
               run: |
@@ -194,10 +192,12 @@ jobs:
             - uses: actions/checkout@v4
 
             - name: Install rust toolchain
-              uses: dtolnay/rust-toolchain@nightly
+              uses: dtolnay/rust-toolchain@stable
+            - name: Install nextest
+              uses: taiki-e/install-action@nextest
             - uses: Swatinem/rust-cache@v2
               with:
-                  workspaces: "./rust -> target"
+                  workspaces: "./py_rust -> target"
 
             - uses: actions/setup-python@v4
               with:
@@ -227,7 +227,9 @@ jobs:
             - uses: actions/checkout@v4
 
             - name: Install rust toolchain
-              uses: dtolnay/rust-toolchain@nightly
+              uses: dtolnay/rust-toolchain@stable
+            - name: Install nextest
+              uses: taiki-e/install-action@nextest
             - uses: Swatinem/rust-cache@v2
               with:
                   workspaces: "./rust -> target"

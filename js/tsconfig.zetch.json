@@ -2,7 +2,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            {%- for alias, path in JS_ALIASES.items() %}
+            {%- for alias, path in JS_ALIASES|items %}
             "{{ alias }}": ["{{ path }}"],
             "{{ alias }}/*": ["{{ path }}/*"],
             {%- endfor %}
@@ -15,6 +15,7 @@
         "strictPropertyInitialization": false,
         "isolatedModules": true,
         "resolveJsonModule": true,
+        "noUncheckedIndexedAccess": true,
 
         // Modified from https://bun.sh/docs/typescript :
         "types": ["bun-types"],
@@ -40,7 +41,8 @@
         "node_modules/**/*",
         "dist/**/*",
         "lib/**/*",
-        "**/*.etch.*",
+        "**/*.zetch.*",
+        "**/*.zetch",
     ],
     "include": ["**/*"]
 }

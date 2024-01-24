@@ -21,6 +21,9 @@ all () {
 
     echo "Docs..."
     ./dev_scripts/test.sh docs
+
+
+    echo "Done! All ok."
 }
 
 pre_till_success () {
@@ -86,7 +89,7 @@ js () {
 
 eslint () {
     cd ./js/
-    bunx --bun lint "./**/*.{js,jsx,ts,tsx}"
+    bunx --bun eslint "./**/*.{js,jsx,ts,tsx}"
     cd ..
 }
 
@@ -107,18 +110,21 @@ py_rust () {
     ./dev_scripts/utils.sh py_install_if_missing pytest
     cd py_rust
 
+    cargo nextest run
     python -m pytest $@
     deactivate
     cd ..
 }
 
 rust () {
-    cargo test --manifest-path ./rust/Cargo.toml --all-features $@
+
+    cargo nextest run --manifest-path ./rust/Cargo.toml --all-features $@
 }
 
 docs () {
     DOCS_PASS=passwordpassword ./dev_scripts/docs.sh build
 }
+
 
 # Has to come at the end of these files:
 source ./dev_scripts/_scr_setup/setup.sh "$@"

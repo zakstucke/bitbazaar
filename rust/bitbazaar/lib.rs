@@ -1,22 +1,24 @@
 #![warn(clippy::disallowed_types)]
 #![warn(missing_docs)]
 
-//! BitBazaar - A crate containing miscellaneous public utilities.
+//! bitbazaar - An assortment of publicly available cross-language utilities useful to my projects.
 
-#[cfg(feature = "cli")]
-/// Command line interface utilities.
-pub mod cli;
+mod prelude;
 
-/// Error handling utilities.
-pub mod errors;
-/// Hashing utilities.
-pub mod hash;
-/// Logging utilities
-pub mod logging;
-/// Completely miscellaneous utilities
-pub mod misc;
-#[cfg(feature = "redis")]
-/// Redis utilities
-pub mod redis;
-/// Timing utilities
-pub mod timing;
+/// Hello world function
+pub fn hello() -> String {
+    "Hello, World!".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::*;
+
+    use super::*;
+
+    #[rstest]
+    fn test_hello() {
+        let result = hello();
+        assert_eq!(result, "Hello, World!".to_string());
+    }
+}

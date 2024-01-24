@@ -1,0 +1,20 @@
+# :schema https://github.com/zakstucke/zetch/blob/v0.0.16/py_rust/src/config/schema.json
+
+ignore_files = [".gitignore"]
+exclude = []
+
+[engine]
+keep_trailing_newline = true
+allow_undefined = false
+custom_extensions = []
+
+[context.static]
+JS_ALIASES = {value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json"}
+
+[context.env]
+
+[context.cli]
+PY_VERSION = {commands = ["./dev_scripts/pkg.sh ver_py"]}
+JS_VERSION = {commands = ["./dev_scripts/pkg.sh ver_js"]}
+RUST_VERSION = {commands = ["./dev_scripts/pkg.sh ver_rust"]}
+PY_RUST_VERSION = {commands = ["./dev_scripts/pkg.sh ver_py_rust"]}

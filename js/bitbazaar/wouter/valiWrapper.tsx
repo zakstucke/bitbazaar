@@ -15,6 +15,7 @@ export const ValiWrapper = ({
         try {
             const cleaned = {};
             Object.entries(params).forEach(([key, value]) => {
+                // @ts-expect-error - quick fix, probs should sort
                 cleaned[key] = validators[key](value as string);
             });
             return cleaned;

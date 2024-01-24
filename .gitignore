@@ -1,5 +1,12 @@
+# Ignore private folder and any file with private in the name:
 private/
-*.private.*
+*private*
+# Except for zetch files:
+!*private*.zetch.*
+!*private*.*.zetch
+
+# Tempate files
+.cop.*.yml
 
 scratch_space.ipynb
 
