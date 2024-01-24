@@ -21,13 +21,16 @@ ensure_venv () {
         source ./py_rust/.venv/bin/activate
     fi
 
+    ./dev_scripts/utils.sh py_install_if_missing typing-extensions
     ./dev_scripts/utils.sh py_install_if_missing maturin
+    ./dev_scripts/utils.sh py_install_if_missing pyright
+    ./dev_scripts/utils.sh py_install_if_missing pytest
 
 }
 
 # Build and install, takes the virtualenv dir with no end slash to install to as an argument, defaults to the py_rust venv
 install () {
-    VENV_PATH=${1-./py_rust/.venv}
+    VENV_PATH=${1-./py/.venv}
 
     ensure_venv
 

@@ -54,31 +54,3 @@ allow-direct-references = true
 [tool.pdm.dev-dependencies]
 dev = ['ipykernel>=6.25.2']
 test = ['pyright>=1.1.329', 'pytest>=7.4.2', 'coverage[toml]>=7.3.2']
-
-[tool.pyright]
-deprecateTypingAliases = true
-exclude = ['**/__pycache__', '**/.pytest_cache', '**/.pytype', '**/py_stubs', '**/venv', '**/.venv', '**/node_modules', '**/target', '**/migrations']
-pythonVersion = '3.11'
-reportImportCycles = true
-reportMissingImports = true
-reportMissingTypeStubs = false
-reportOptionalCall = true
-reportOptionalContextManager = true
-reportOptionalIterable = true
-reportOptionalMemberAccess = true
-reportOptionalOperand = true
-reportOptionalSubscript = true
-reportPrivateImportUsage = false
-reportTypedDictNotRequiredAccess = false
-reportUnknownParameterType = true
-reportUnnecessaryCast = true
-reportUnnecessaryTypeIgnoreComment = true
-reportUnusedExpression = false
-strictDictionaryInference = true
-strictListInference = true
-strictSetInference = true
-stubPath = './py_stubs'
-typeCheckingMode = 'basic'
-useLibraryCodeForTypes = true
-venv = '.venv'
-venvPath = '.'

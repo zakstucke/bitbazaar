@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+    "venvPath": ".",
+    "venv": "./py/.venv",
+    "exclude": [
+        "**/__pycache__",
+        "**/__pypackages__",
+        "**/.pytest_cache",
+        "**/.pytype",
+        "**/py_stubs",
+        // Only ever expecting these 2 variations:
+        "**/venv",
+        "**/.venv",
+        "**/node_modules",
+        // Huge rust folders
+        "**/target",
+        // Django specific:
+        "**/migrations"
+    ],
+    "pythonVersion": "3.11", // Run using the minimum supported version
+    "typeCheckingMode": "basic", // Additional strict rules are enabled manually
+    "stubPath": "./py_stubs", // Copy custom stubs such as e.g. django-stubs in here so they are used in vscode
+    "useLibraryCodeForTypes": true,
+    "reportOptionalSubscript": true,
+    "reportOptionalMemberAccess": true,
+    "reportOptionalCall": true,
+    "reportOptionalIterable": true,
+    "reportOptionalContextManager": true,
+    "reportOptionalOperand": true,
+    "reportUnnecessaryCast": true,
+    "reportUnnecessaryTypeIgnoreComment": true,
+    "reportMissingImports": true,
+    "deprecateTypingAliases": true,
+    "reportMissingTypeStubs": false,
+    "reportPrivateImportUsage": false, // Always useful to access internals of libraries
+    "reportUnusedExpression": false, // Ruff can handle this
+    "reportTypedDictNotRequiredAccess": false, // Lots of libraries don't work with this, if they're generating typed dicts in the wrong way, maybe enable in the future
+    // Below rules should probably be disabled if lots of errors on an existing project, but good for new:
+    "reportImportCycles": true,
+    "reportUnknownParameterType": true,
+    "strictListInference": true,
+    "strictDictionaryInference": true,
+    "strictSetInference": true
+}
