@@ -68,17 +68,17 @@ jobs:
               run: |
                   ./dev_scripts/pkg.sh ver_py_update ${{ inputs.py_version }}
 
-            - name: Install Node.js
+            # Js project
+            - name: "Install Bun, no npm should be needed"
               if: ${{ inputs.js_release }}
-              uses: actions/setup-node@v2
+              uses: oven-sh/setup-bun@v1
               with:
-                  node-version: "20"
-                  cache: npm
-                  cache-dependency-path: "js/package-lock.json"
-            - name: Update JS version
+                  bun-version: latest
+            - name: Install js dependencies
               if: ${{ inputs.js_release }}
               run: |
-                  ./dev_scripts/pkg.sh ver_js_update ${{ inputs.js_version }}
+                  cd ./js
+                  bun install
 
             # Formatting and checking uses nightly rather than stable:
             - uses: dtolnay/rust-toolchain@nightly

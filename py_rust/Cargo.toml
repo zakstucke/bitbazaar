@@ -1,7 +1,22 @@
+[package]
+name = "bitbazaar_rs"
+version = "0.0.3"
+edition = "2021"
+readme = "README.md"
+license = "MIT"
+# This crate should only be released as a python package, so disable any rust side crates publishing:
+publish = false
+
+[lib]
+name = "bitbazaar_rs"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+# Add your dependencies here
 [dependencies]
 colored = '2'
-error-stack = '0.4'
-tracing = '0.1'
+tracing = "0.1"
+error-stack = "0.4"
 
 [dependencies.bitbazaar]
 features = []
@@ -11,26 +26,12 @@ version = '0.0.20'
 features = ['extension-module', 'chrono', 'generate-import-lib']
 version = '0.20.0'
 
-[lib]
-crate-type = ['cdylib']
-name = 'bitbazaar_rs'
-path = 'src/lib.rs'
-
-[package]
-edition = '2021'
-license = 'MIT'
-name = 'bitbazaar_rs'
-publish = false
-readme = 'README.md'
-version = '0.0.3'
-
-[profile]
-
 [profile.profiler]
-debug = true
+inherits = "release"  # Adds on top of the default release profile
 incremental = true
-inherits = 'release'
+debug = true
 strip = false
 
+# Modifying the test runtime (from release is just so much faster)
 [profile.test]
-inherits = 'release'
+inherits = "release"  # Adds on top of the default release profile
