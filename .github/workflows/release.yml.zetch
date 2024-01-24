@@ -52,6 +52,8 @@ jobs:
       new-sha: ${{ steps.sha.outputs.SHA }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.VERSION_BOT_PAT }}
       - uses: actions/setup-python@v4
       - uses: ./.github/actions/install-pre-commit
 
@@ -100,7 +102,6 @@ jobs:
         run: |
           git add . &&
           ./dev_scripts/test.sh pre_till_success &&
-          cp release.yml .github/workflows/release.yml &&
           git add .
 
       - name: Commit the new version to the repo
@@ -110,6 +111,7 @@ jobs:
           message: "chore: bump package versions for release"
           author_name: github-actions
           author_email: action@github.com
+
 
       - name: get sha
         id: sha

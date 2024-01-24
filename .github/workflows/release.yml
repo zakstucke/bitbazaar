@@ -28,8 +28,8 @@ on:
                 required: false
                 default: false
             py_rust_version:
-                description: "Rust-backed Python Version (now 0.0.0)"
-                default: "0.0.0"
+                description: "Rust-backed Python Version (now 0.0.1)"
+                default: "0.0.1"
             rust_release:
                 description: "Rust Release"
                 type: boolean
@@ -50,6 +50,8 @@ jobs:
             new-sha: ${{ steps.sha.outputs.SHA }}
         steps:
             - uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.VERSION_BOT_PAT }}
             - uses: actions/setup-python@v4
             - uses: ./.github/actions/install-pre-commit
 
@@ -98,7 +100,6 @@ jobs:
               run: |
                   git add . &&
                   ./dev_scripts/test.sh pre_till_success &&
-                  cp release.yml .github/workflows/release.yml &&
                   git add .
 
             - name: Commit the new version to the repo
