@@ -20,8 +20,8 @@ on:
                 required: false
                 default: false
             js_version:
-                description: "JS Version (now 0.0.21)"
-                default: "0.0.21"
+                description: "JS Version (now 0.0.22)"
+                default: "0.0.22"
             py_rust_release:
                 description: "Rust-backed Python Release"
                 type: boolean
