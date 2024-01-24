@@ -100,8 +100,7 @@ jobs:
         run: |
           git add . &&
           ./dev_scripts/test.sh pre_till_success &&
-          git add . &&
-          git reset .github/workflows/
+          git add .
 
       - name: Commit the new version to the repo
         uses: EndBug/add-and-commit@v9
