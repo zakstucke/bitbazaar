@@ -221,7 +221,13 @@ jobs:
         needs: whos_changed
         # Only run if applicable things have changed:
         if: needs.whos_changed.outputs.rust-changed == 'true'
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                # Run on both linux and windows (dev testing on mac and much more expensive in terms of build minutes),
+                # windows most likely to fail unexpectedly.
+                os: [ubuntu-latest, windows-latest]
         steps:
             - uses: actions/checkout@v4
 
