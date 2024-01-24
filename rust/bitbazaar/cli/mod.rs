@@ -13,11 +13,11 @@ mod tests {
     // <-- basics:
     #[case("echo 'hello world'", "hello world", 0)]
     #[case("echo hello world", "hello world", 0)]
-    // <-- and"
+    // <-- and:
     #[case("echo hello && echo world", "hello\nworld", 0)]
     #[case("echo hello && false && echo world", "hello", 1)]
     #[case("true && echo world", "world", 0)]
-    // <-- or"
+    // <-- or:
     #[case("echo hello || echo world", "hello", 0)]
     #[case("false || echo world", "world", 0)]
     #[case("false || false || echo world", "world", 0)]
