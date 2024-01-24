@@ -46,6 +46,7 @@ jobs:
         permissions:
             contents: write
             pull-requests: write
+            actions: write
         outputs:
             new-sha: ${{ steps.sha.outputs.SHA }}
         steps:
