@@ -43,11 +43,7 @@ jobs:
     commit_versions:
         name: Bump Pkg Versions
         runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-            actions: write
-            workflows: write
+        permissions: write-all
         outputs:
             new-sha: ${{ steps.sha.outputs.SHA }}
         steps:
