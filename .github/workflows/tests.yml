@@ -247,4 +247,4 @@ jobs:
             - name: Run tests (windows)
               if: matrix.os == 'windows-latest'
               run: |
-                  bash ./dev_scripts/test.sh rust
+                  bash ./dev_scripts/test.sh rust --no-fail-fast

@@ -44,8 +44,22 @@ mod tests {
     // <-- negations:
     #[case("! echo hello || echo world", "hello\nworld", 0, None, None)]
     // <-- pipe:
-    #[case("echo 'foo\nbar\nree' | grep -E 'foo|ree'", "foo\nree", 0, None, None)]
-    #[case("echo 'foo\nbar\nree' | grep -E 'foo|ree' | wc -l", "2", 0, None, None)]
+    #[case(
+        // Looks weird because avoiding newlines to work with windows:
+        "(echo foo && echo bar && echo ree) | grep -E 'foo|ree'",
+        "foo\nree",
+        0,
+        None,
+        None
+    )]
+    #[case(
+        // Looks weird because avoiding newlines to work with windows in CI:
+        "(echo foo && echo bar && echo ree) | grep -E 'foo|ree' | wc -l",
+        "2",
+        0,
+        None,
+        None
+    )]
     // <-- command substitution:
     #[case("echo $(echo foo)", "foo", 0, None, None)]
     #[case("echo $(echo foo) $(echo bar)", "foo bar", 0, None, None)]
