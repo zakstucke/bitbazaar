@@ -385,8 +385,11 @@ impl Shell {
                     } else {
                         return Err(err!(CmdErr::NoHomeDirectory));
                     }
-                } else {
+                } else if concat_state.is_some() {
                     "~".to_string()
+                } else {
+                    // Fixing a weird bug in windows ci tests where alone tilde seems to be getting expanding by the host after passing as an argument to command. Making the actual arg passed literal when it's on its own:
+                    "'~'".to_string()
                 }
             }
             ast::SimpleWord::Param(param) => self.process_param(param)?,

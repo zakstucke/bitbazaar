@@ -242,7 +242,7 @@ jobs:
             - name: Run tests (linux)
               if: matrix.os == 'ubuntu-latest'
               run: |
-                  ./dev_scripts/test.sh rust
+                  ./dev_scripts/test.sh rust --no-fail-fast
 
             - name: Run tests (windows)
               if: matrix.os == 'windows-latest'

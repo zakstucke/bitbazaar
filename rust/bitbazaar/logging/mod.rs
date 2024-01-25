@@ -127,10 +127,21 @@ mod tests {
         tracing::dispatcher::with_default(&sub.dispatch, || {
             debug!("DLOG");
         });
+        let log_line_no = line!() - 2;
 
         assert_eq!(
             into_vec(&LOGS),
-            vec!["DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:128"]
+            vec![if cfg!(windows) {
+                format!(
+                    "DEBUG  DLOG\n    at bitbazaar\\logging\\mod.rs:{}",
+                    log_line_no
+                )
+            } else {
+                format!(
+                    "DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:{}",
+                    log_line_no
+                )
+            }]
         );
 
         Ok(())
@@ -169,13 +180,13 @@ mod tests {
 
     #[rstest]
     // No matchers on either targets, so picked up by both targets:
-    #[case(None, vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG1", "with_matcher DEBUG LOG2", "no_matcher DEBUG LOG2"])]
+    #[case::both(None, vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG1", "with_matcher DEBUG LOG2", "no_matcher DEBUG LOG2"])]
     // Matcher matches on first target, so no matcher target should ignore that log, i.e. one each:
-    #[case(Some(regex::Regex::new(
-        r"logging/mod.rs"
+    #[case::one_each(Some(regex::Regex::new(
+        if cfg!(windows) {r"logging\\mod.rs"} else {r"logging/mod.rs"}
     ).unwrap()), vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
     // Matcher failed, so both should be picked up by the one with no matcher:
-    #[case(Some(regex::Regex::new(r"kdkfjdf").unwrap()), vec!["no_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
+    #[case::no_match(Some(regex::Regex::new(r"kdkfjdf").unwrap()), vec!["no_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
     #[serial_test::serial] // Uses static, so parameterized versions can't run in parallel.
     fn test_log_matchers(
         #[case] loc_matcher: Option<regex::Regex>,

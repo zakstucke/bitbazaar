@@ -1,9 +1,11 @@
 mod bash;
 mod cmd_err;
 mod cmd_out;
+
 pub use bash::execute_bash;
 pub use cmd_err::CmdErr;
 pub use cmd_out::CmdOut;
+
 #[cfg(test)]
 mod tests {
     use once_cell::sync::Lazy;
@@ -29,78 +31,90 @@ mod tests {
         HOME_DIR.clone()
     }
 
+    static GREP_CMD: &str = if cfg!(windows) {
+        "findstr /R \"foo bar\""
+    } else {
+        "grep -E 'foo|bar'"
+    };
+
+    static WC_CMD: &str = if cfg!(windows) {
+        "find /c /v \"\""
+    } else {
+        "wc -l"
+    };
+
     #[rstest]
     // <-- basics:
-    #[case("echo 'hello world'", "hello world", 0, None, None)]
-    #[case("echo hello world", "hello world", 0, None, None)]
+    #[case::basic_1("echo 'hello world'", "hello world", 0, None, None)]
+    #[case::basic_2("echo hello world", "hello world", 0, None, None)]
     // <-- and:
-    #[case("echo hello && echo world", "hello\nworld", 0, None, None)]
-    #[case("echo hello && false && echo world", "hello", 1, None, None)]
-    #[case("true && echo world", "world", 0, None, None)]
+    #[case::and_1("echo hello && echo world", "hello\nworld", 0, None, None)]
+    #[case::and_2("echo hello && false && echo world", "hello", 1, None, None)]
+    #[case::and_3("true && echo world", "world", 0, None, None)]
     // <-- or:
-    #[case("echo hello || echo world", "hello", 0, None, None)]
-    #[case("false || echo world", "world", 0, None, None)]
-    #[case("false || false || echo world", "world", 0, None, None)]
+    #[case::or_1("echo hello || echo world", "hello", 0, None, None)]
+    #[case::or_2("false || echo world", "world", 0, None, None)]
+    #[case::or_3("false || false || echo world", "world", 0, None, None)]
     // <-- negations:
-    #[case("! echo hello || echo world", "hello\nworld", 0, None, None)]
+    #[case::neg_1("! echo hello || echo world", "hello\nworld", 0, None, None)]
     // <-- pipe:
-    #[case("echo foo | grep -E 'foo|ree'", "foo", 0, None, None)]
-    #[case(
+    #[case::pipe_1(format!("echo foo | {WC_CMD}"), "1", 0, None, None)]
+    #[case::pipe_2(
         // Looks weird because avoiding newlines to work with windows: (but also tests compound)
-        "(echo foo && echo bar && echo ree) | grep -E 'foo|ree'",
-        "foo\nree",
+        format!("(echo foo && echo ree && echo bar) | {GREP_CMD}"),
+        "foo\nbar",
         0,
         None,
         None
     )]
-    #[case(
+    #[case::pipe_3(
         // Looks weird because avoiding newlines to work with windows in CI: (but also tests compound)
-        "(echo foo && echo bar && echo ree) | grep -E 'foo|ree' | wc -l",
+        format!("(echo foo && echo ree && echo bar) | {GREP_CMD} | {WC_CMD}"),
         "2",
         0,
         None,
         None
     )]
     // <-- command substitution:
-    #[case("echo $(echo foo)", "foo", 0, None, None)]
-    #[case("echo $(echo foo) $(echo bar)", "foo bar", 0, None, None)]
-    #[case("echo foo $(echo bar) ree", "foo bar ree", 0, None, None)]
-    #[case("echo foo $(echo bar && false) ree", "foo bar ree", 0, None, None)] // Exit code should be ignored from subs
-    #[case("echo foo $(echo bar && exit 1) ree", "foo bar ree", 0, None, None)] // Exit code should be ignored from subs
+    #[case::subst_1("echo $(echo foo)", "foo", 0, None, None)]
+    #[case::subst_2("echo $(echo foo) $(echo bar)", "foo bar", 0, None, None)]
+    #[case::subst_3("echo foo $(echo bar) ree", "foo bar ree", 0, None, None)]
+    #[case::subst_4("echo foo $(echo bar && false) ree", "foo bar ree", 0, None, None)] // Exit code should be ignored from subs
+    #[case::subst_5("echo foo $(echo bar && exit 1) ree", "foo bar ree", 0, None, None)] // Exit code should be ignored from subs
     // <-- home dir (tilde):
-    #[case("echo ~", format!("{}", home()), 0, None, None)]
-    #[case("echo ~ ~", format!("{} {}", home(), home()), 0, None, None)]
-    #[case("echo ~/foo", format!("{}/foo", home()), 0, None, None)]
+    #[case::home_1("echo ~", format!("{}", home()), 0, None, None)]
+    #[case::home_2("echo ~ ~", format!("{} {}", home(), home()), 0, None, None)]
+    #[case::home_3("echo ~/foo", format!("{}/foo", home()), 0, None, None)]
     // <-- params, should be settable, stick to their current shell etc:
-    #[case(
+    #[case::home_4(
         // First should print nothing, as not set yet, gets set to 1 in outer shell, 2 in inner shell
         "echo -n \"before.$LAH. \"; LAH=1; echo outer.$LAH. $(LAH=2; echo inner.$LAH.) outer.$LAH.",
         "before.. outer.1. inner.2. outer.1.",
         0, None, None
     )]
     // Should ignore tilde in most circumstances:
-    #[case("echo ~~", "~~", 0, None, None)]
-    #[case("echo foo~", "foo~", 0, None, None)]
-    #[case("echo ~foo", "~foo", 0, None, None)]
-    #[case("echo foo/~", "foo/~", 0, None, None)]
-    #[case("echo foo~bar", "foo~bar", 0, None, None)]
-    #[case("echo \"~\"", "~", 0, None, None)]
-    #[case("echo \"~/foo\"", "~/foo", 0, None, None)]
+    #[case::home_5("echo ~~", "~~", 0, None, None)]
+    #[case::home_6("echo foo~", "foo~", 0, None, None)]
+    #[case::home_7("echo ~foo", "~foo", 0, None, None)]
+    #[case::home_8("echo foo/~", "foo/~", 0, None, None)]
+    #[case::home_9("echo foo~bar", "foo~bar", 0, None, None)]
+    #[case::home_10("echo \"~\"", "~", 0, None, None)]
+    #[case::home_11("echo \"~/foo\"", "~/foo", 0, None, None)]
     // <-- all ignored when in quotes:
-    #[case("echo false '&& echo bar'", "false && echo bar", 0, None, None)]
-    #[case("echo false '|| echo bar'", "false || echo bar", 0, None, None)]
-    #[case("echo false '| echo bar'", "false | echo bar", 0, None, None)]
-    #[case("echo false '$(echo bar)'", "false $(echo bar)", 0, None, None)]
-    #[case("echo '~'", "~", 0, None, None)]
+    #[case::lit_1("echo false '&& echo bar'", "false && echo bar", 0, None, None)]
+    #[case::lit_2("echo false '|| echo bar'", "false || echo bar", 0, None, None)]
+    #[case::lit_3("echo false '| echo bar'", "false | echo bar", 0, None, None)]
+    #[case::lit_4("echo false '$(echo bar)'", "false $(echo bar)", 0, None, None)]
+    #[case::lit_5("echo '~'", "~", 0, None, None)]
     fn test_execute_bash<S: Into<String>>(
-        #[case] cmd_str: &str,
+        #[case] cmd_str: String,
         #[case] exp_std_all: S,
         #[case] code: i32,
         #[case] exp_stdout: Option<&str>, // Only check if Some()
         #[case] exp_sterr: Option<&str>,  // Only check if Some()
         #[allow(unused_variables)] logging: (),
     ) -> Result<(), AnyErr> {
-        let res = execute_bash(cmd_str).change_context(AnyErr)?;
+        let res = execute_bash(&cmd_str).change_context(AnyErr)?;
         assert_eq!(res.code, code, "{}", res.std_all());
 
         if let Some(exp_stdout) = exp_stdout {
