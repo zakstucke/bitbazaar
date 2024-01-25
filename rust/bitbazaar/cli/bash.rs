@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
-    io::Read,
+    io::{Read, Write},
+    path::PathBuf,
     process::{Child, Command, Stdio},
     str,
 };
@@ -58,6 +59,8 @@ struct Shell {
     vars: HashMap<String, String>,
     /// The stderr from subcommands that should be included at the start of each parent shell (and eventually the root CmdOut stderr)
     sub_stderr: String,
+    // Storing to prevent tempfiles from being dropped until the shell is dropped:
+    tempfiles: Vec<tempfile::NamedTempFile>,
 }
 
 impl Shell {
@@ -65,7 +68,18 @@ impl Shell {
         Self {
             vars: HashMap::new(),
             sub_stderr: String::new(),
+            tempfiles: Vec::new(),
         }
+    }
+
+    fn new_tempfile(&mut self, contents: &[u8]) -> Result<PathBuf, CmdErr> {
+        let mut file = tempfile::NamedTempFile::new().change_context(CmdErr::InternalError)?;
+        file.write_all(contents)
+            .change_context(CmdErr::InternalError)?;
+        let path = file.path().to_path_buf();
+        // Storing to prevent dropping early:
+        self.tempfiles.push(file);
+        Ok(path)
     }
 
     fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> Result<CmdOut, CmdErr> {
@@ -234,18 +248,31 @@ impl Shell {
                 match &compound.kind {
                     ast::CompoundCommandKind::Subshell(sub_cmds) => {
                         let nested_out = Shell::new().run_top_cmds(sub_cmds.clone())?;
-                        // A bit of a hack, but this is an easy way to still output a Command from this fn, don't want to restructure the code:
-                        let mut cmd = Command::new("echo");
 
                         let stdout = nested_out.stdout.trim_end();
                         debug!("Compound cmd stdout: '{}'", stdout);
 
-                        if cfg!(windows) {
-                            // Replacing '\n' with '\n'n'
-                            cmd.arg(stdout.replace('\n', "\r\n"));
+                        // Don't want to restructure code, hacking it to work by running a command that outputs the precomputed stdout:
+
+                        let cmd = if cfg!(windows) {
+                            // Windows has a meltdown with newlines, the else block doesn't work on windows (output missing newlines), temporary file with type (windows equiv of cat) works:
+                            let mut cmd = Command::new("type");
+                            cmd.arg(
+                                self.new_tempfile(
+                                    if stdout.ends_with('\n') {
+                                        stdout.to_string()
+                                    } else {
+                                        format!("{}\n", stdout)
+                                    }
+                                    .as_bytes(),
+                                )?,
+                            );
+                            cmd
                         } else {
+                            let mut cmd = Command::new("echo");
                             cmd.arg(stdout);
-                        }
+                            cmd
+                        };
 
                         Some(cmd)
                     }
