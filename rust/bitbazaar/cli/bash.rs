@@ -47,6 +47,8 @@ pub fn execute_bash(cmd_str: &str) -> Result<CmdOut, CmdErr> {
 
     Shell::new().run_top_cmds(top_cmds)
 }
+
+#[derive(Debug)]
 struct WordConcatState<'a> {
     active: usize,
     words: &'a Vec<ast::DefaultWord>,
@@ -293,8 +295,10 @@ impl Shell {
                 ast::RedirectOrCmdWord::CmdWord(word) => self.process_complex_word(&word.0)?,
             };
 
-            // Don't include empty whitespace:
-            if !arg_str.is_empty() {
+            // Fixing weird windows bug, windows seems to convert tilde to the home dir on the OS side, which it shouldn't do as any tildes that make it out of rust should be escaped. Powershell escaping it seems to fix:
+            if cfg!(windows) && arg_str == "~" {
+                args.push("`~".to_string());
+            } else {
                 args.push(arg_str);
             }
         }
@@ -359,8 +363,6 @@ impl Shell {
                 .map(|word| self.process_simple_word(word, concat_state, is_lookaround))
                 .collect::<Result<Vec<_>, _>>()?
                 .into_iter()
-                // Filter out empty strings to prevent creating whitespace: (e.g. unfound param substitutions)
-                .filter(|word| !word.is_empty())
                 .collect::<Vec<_>>()
                 .join(""),
         })
@@ -385,11 +387,8 @@ impl Shell {
                     } else {
                         return Err(err!(CmdErr::NoHomeDirectory));
                     }
-                } else if concat_state.is_some() {
-                    "~".to_string()
                 } else {
-                    // Fixing a weird bug in windows ci tests where alone tilde seems to be getting expanding by the host after passing as an argument to command. Making the actual arg passed literal when it's on its own:
-                    "'~'".to_string()
+                    "~".to_string()
                 }
             }
             ast::SimpleWord::Param(param) => self.process_param(param)?,
