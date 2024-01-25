@@ -109,6 +109,15 @@ impl Shell {
         // Add all the sub stderr to the start of the cmdout's stderr (as they will have happened prior to the current cmdout's stderr)
         out.stderr = format!("{}{}", self.sub_stderr, out.stderr);
 
+        // Make sure stderr and stdout each end with a newline:
+        // Note tests work without this on mac/linux, but needed for windows:
+        if !out.stdout.ends_with('\n') {
+            out.stdout.push('\n');
+        }
+        if !out.stderr.ends_with('\n') {
+            out.stderr.push('\n');
+        }
+
         Ok(out)
     }
 
