@@ -295,12 +295,7 @@ impl Shell {
                 ast::RedirectOrCmdWord::CmdWord(word) => self.process_complex_word(&word.0)?,
             };
 
-            // Fixing weird windows bug, windows seems to convert tilde to the home dir on the OS side, which it shouldn't do as any tildes that make it out of rust should be escaped. Powershell escaping it seems to fix:
-            if cfg!(windows) && arg_str == "~" {
-                args.push("`~".to_string());
-            } else {
-                args.push(arg_str);
-            }
+            args.push(arg_str);
         }
 
         debug!("Final command args: {:?}", args);
