@@ -31,6 +31,7 @@ use crate::prelude::*;
 /// - `'` quotes
 /// - `"` double quotes
 /// - `\` escaping
+/// - `(...)` simple compound commands e.g. (echo foo && echo bar)
 ///
 /// This should theoretically work with multi line full bash scripts but only tested with single line commands.
 pub fn execute_bash(cmd_str: &str) -> Result<CmdOut, CmdErr> {
@@ -226,11 +227,24 @@ impl Shell {
     ) -> Result<Option<Command>, CmdErr> {
         Ok(match cmd {
             ast::PipeableCommand::Simple(cmd) => self.build_simple_command(cmd)?,
-            ast::PipeableCommand::Compound(cmd) => Err(err!(
-                CmdErr::BashFeatureUnsupported,
-                "Pipeable compound commands not implemented."
-            )
-            .attach_printable(format!("{cmd:?}")))?,
+            ast::PipeableCommand::Compound(compound) => {
+                // E.g. (echo foo && echo bar)
+                match &compound.kind {
+                    ast::CompoundCommandKind::Subshell(sub_cmds) => {
+                        let nested_out = Shell::new().run_top_cmds(sub_cmds.clone())?;
+                        // A bit of a hack, but this is an easy way to still output a Command from this fn, don't want to restructure the code:
+                        let mut cmd = Command::new("echo");
+                        cmd.arg(nested_out.stdout.trim_end());
+                        Some(cmd)
+                    }
+                    ast::CompoundCommandKind::Brace(_) => todo!(),
+                    ast::CompoundCommandKind::While(_) => todo!(),
+                    ast::CompoundCommandKind::Until(_) => todo!(),
+                    ast::CompoundCommandKind::If { .. } => todo!(),
+                    ast::CompoundCommandKind::For { .. } => todo!(),
+                    ast::CompoundCommandKind::Case { .. } => todo!(),
+                }
+            }
             ast::PipeableCommand::FunctionDef(a, b) => Err(err!(
                 CmdErr::BashFeatureUnsupported,
                 "Functions not implemented."
@@ -446,7 +460,6 @@ impl Shell {
                 // - stdout is injected but trailing newlines removed
                 // - stderr prints to console so in our case it should be added to the root stderr
                 // - It runs in its own shell, so shell vars aren't shared
-                // TODO check the stderr part
                 debug!("Running nested command: {:?}", cmds);
                 let nested_out = Shell::new().run_top_cmds(cmds.clone())?;
                 self.sub_stderr.push_str(&nested_out.stderr);

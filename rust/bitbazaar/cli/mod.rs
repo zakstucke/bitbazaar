@@ -44,8 +44,9 @@ mod tests {
     // <-- negations:
     #[case("! echo hello || echo world", "hello\nworld", 0, None, None)]
     // <-- pipe:
+    #[case("echo foo | grep -E 'foo|ree'", "foo", 0, None, None)]
     #[case(
-        // Looks weird because avoiding newlines to work with windows:
+        // Looks weird because avoiding newlines to work with windows: (but also tests compound)
         "(echo foo && echo bar && echo ree) | grep -E 'foo|ree'",
         "foo\nree",
         0,
@@ -53,7 +54,7 @@ mod tests {
         None
     )]
     #[case(
-        // Looks weird because avoiding newlines to work with windows in CI:
+        // Looks weird because avoiding newlines to work with windows in CI: (but also tests compound)
         "(echo foo && echo bar && echo ree) | grep -E 'foo|ree' | wc -l",
         "2",
         0,
@@ -64,6 +65,7 @@ mod tests {
     #[case("echo $(echo foo)", "foo", 0, None, None)]
     #[case("echo $(echo foo) $(echo bar)", "foo bar", 0, None, None)]
     #[case("echo foo $(echo bar) ree", "foo bar ree", 0, None, None)]
+    #[case("echo foo $(echo bar && false) ree", "foo bar ree", 0, None, None)] // Exit code should be ignored from subs
     #[case("echo foo $(echo bar && exit 1) ree", "foo bar ree", 0, None, None)] // Exit code should be ignored from subs
     // <-- home dir (tilde):
     #[case("echo ~", format!("{}", home()), 0, None, None)]
