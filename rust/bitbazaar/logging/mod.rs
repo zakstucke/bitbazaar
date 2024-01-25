@@ -6,7 +6,8 @@ mod macros;
 
 pub use clap_log_level_args::ClapLogLevelArgs;
 pub use create_subscriber::{
-    create_subscriber, SubCustomWriter, SubLayer, SubLayerFilter, SubLayerVariant,
+    create_subscriber, default_stdout_global_logging, CreatedSubscriber, SubCustomWriter, SubLayer,
+    SubLayerFilter, SubLayerVariant,
 };
 
 #[cfg(test)]
@@ -129,7 +130,7 @@ mod tests {
 
         assert_eq!(
             into_vec(&LOGS),
-            vec!["DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:127"]
+            vec!["DEBUG  DLOG\n    at bitbazaar/logging/mod.rs:128"]
         );
 
         Ok(())
