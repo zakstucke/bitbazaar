@@ -109,15 +109,6 @@ impl Shell {
         // Add all the sub stderr to the start of the cmdout's stderr (as they will have happened prior to the current cmdout's stderr)
         out.stderr = format!("{}{}", self.sub_stderr, out.stderr);
 
-        // Make sure stderr and stdout each end with a newline:
-        // Note tests work without this on mac/linux, but needed for windows:
-        if !out.stdout.ends_with('\n') {
-            out.stdout.push('\n');
-        }
-        if !out.stderr.ends_with('\n') {
-            out.stderr.push('\n');
-        }
-
         Ok(out)
     }
 
@@ -245,7 +236,17 @@ impl Shell {
                         let nested_out = Shell::new().run_top_cmds(sub_cmds.clone())?;
                         // A bit of a hack, but this is an easy way to still output a Command from this fn, don't want to restructure the code:
                         let mut cmd = Command::new("echo");
-                        cmd.arg(nested_out.stdout.trim_end());
+
+                        let stdout = nested_out.stdout.trim_end();
+                        debug!("Compound cmd stdout: '{}'", stdout);
+
+                        if cfg!(windows) {
+                            // Replacing '\n' with '\n'n'
+                            cmd.arg(stdout.replace('\n', "\r\n"));
+                        } else {
+                            cmd.arg(stdout);
+                        }
+
                         Some(cmd)
                     }
                     ast::CompoundCommandKind::Brace(_) => todo!(),
