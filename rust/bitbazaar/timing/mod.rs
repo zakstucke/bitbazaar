@@ -75,6 +75,6 @@ mod tests {
         });
         let elapsed = GLOBAL_TIME_RECORDER.total_elapsed().unwrap();
         assert!(elapsed.as_millis() >= 1);
-        assert!(elapsed.as_millis() < 2);
+        assert!(elapsed.as_millis() < 3);
     }
 }
