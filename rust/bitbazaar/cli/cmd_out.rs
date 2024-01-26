@@ -17,7 +17,11 @@ impl CmdOut {
     /// Combines the stdout and stderr into a single string.
     pub fn std_all(&self) -> String {
         if !self.stdout.is_empty() && !self.stderr.is_empty() {
-            format!("{}\n{}", self.stdout, self.stderr)
+            if !self.stderr.ends_with('\n') {
+                format!("{}\n{}", self.stdout, self.stderr)
+            } else {
+                format!("{}{}", self.stdout, self.stderr)
+            }
         } else if !self.stdout.is_empty() {
             self.stdout.clone()
         } else {
