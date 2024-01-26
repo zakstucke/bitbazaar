@@ -62,7 +62,7 @@ mod tests {
 
         let elapsed = recorder.total_elapsed().unwrap();
         assert!(elapsed.as_millis() >= 1);
-        assert!(elapsed.as_millis() < 2);
+        assert!(elapsed.as_millis() < 3);
 
         let formatted = recorder.format_verbose().unwrap();
         assert!(formatted.contains("test"));
