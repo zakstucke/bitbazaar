@@ -156,6 +156,14 @@ impl PipeRunner {
                             }
                         }
                         Err(e) => {
+                            // Command might error straight away, in which case convert the err to stderr.
+                            // this gives more or less parity with bash:
+
+                            let err_out = e.to_string();
+                            if !err_out.trim().is_empty() {
+                                shell.stderr.push_str(&err_out);
+                            }
+
                             // If the spawn errored, something went wrong, so set the code:
                             shell.code = e.raw_os_error().unwrap_or(1);
                         }

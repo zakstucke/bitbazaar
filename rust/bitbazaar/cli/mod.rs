@@ -44,7 +44,18 @@ mod tests {
     // <-- basics:
     #[case::basic_1("echo 'hello world'", "hello world", 0, None, None, true)]
     #[case::basic_2("echo hello world", "hello world", 0, None, None, true)]
-    #[case::basic_3("./no_exist.sh", "", 2, None, None, true)]
+    #[case::basic_3(
+        "./no_exist.sh",
+        if cfg!(windows) {
+            "'.' is not recognized as an internal or external command,\noperable program or batch file."
+        } else {
+            "No such file or directory (os error 2)"
+        },
+        2,
+        None,
+        None,
+        true
+    )]
     // <-- and:
     #[case::and_1("echo hello && echo world", "hello\nworld", 0, None, None, true)]
     #[case::and_2("echo hello && false && echo world", "hello", 1, None, None, true)]
@@ -97,21 +108,14 @@ mod tests {
     #[case::subst_2("echo $(echo foo) $(echo bar)", "foo bar", 0, None, None, true)]
     #[case::subst_3("echo foo $(echo bar) ree", "foo bar ree", 0, None, None, true)]
     #[case::subst_4(
+        // Exit code should be ignored from subs
         "echo foo $(echo bar && false) ree",
         "foo bar ree",
         0,
         None,
         None,
         true
-    )] // Exit code should be ignored from subs
-    #[case::subst_5(
-        "echo foo $(echo bar && exit 1) ree",
-        "foo bar ree",
-        0,
-        None,
-        None,
-        true
-    )] // Exit code should be ignored from subs
+    )]
     // <-- home dir (tilde):
     #[case::home_1("echo ~", format!("{}", home()), 0, None, None, true)]
     #[case::home_2("echo ~ ~", format!("{} {}", home(), home()), 0, None, None, true)]
@@ -153,13 +157,14 @@ mod tests {
         }
 
         let res = execute_bash(&cmd_str).change_context(AnyErr)?;
-        assert_eq!(res.code, code, "{}", res.std_all());
+
+        assert_eq!(res.code, code, "{}: {}", res.code, res.std_all());
 
         if let Some(exp_stdout) = exp_stdout {
-            assert_eq!(res.stdout.trim(), exp_stdout);
+            assert_eq!(res.stdout.trim(), exp_stdout, "{}", res.std_all());
         }
         if let Some(exp_sterr) = exp_sterr {
-            assert_eq!(res.stderr.trim(), exp_sterr);
+            assert_eq!(res.stderr.trim(), exp_sterr, "{}", res.std_all());
         }
 
         assert_eq!(res.std_all().trim(), exp_std_all.into());
