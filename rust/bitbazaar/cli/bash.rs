@@ -63,10 +63,19 @@ pub struct Shell {
 
 impl From<Shell> for CmdOut {
     fn from(val: Shell) -> Self {
-        CmdOut {
-            stdout: val.stdout,
-            stderr: val.stderr,
-            code: val.code,
+        if cfg!(windows) {
+            // Remove carriage returns from newlines in windows:
+            CmdOut {
+                stdout: val.stdout.replace("\r\n", "\n"),
+                stderr: val.stderr.replace("\r\n", "\n"),
+                code: val.code,
+            }
+        } else {
+            CmdOut {
+                stdout: val.stdout,
+                stderr: val.stderr,
+                code: val.code,
+            }
         }
     }
 }
