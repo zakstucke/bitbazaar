@@ -1,4 +1,4 @@
 var srcIndex = JSON.parse('{\
-"bitbazaar":["",[],["lib.rs","prelude.rs"]]\
+"bitbazaar":["",[["errors",[],["any.rs","macros.rs","mod.rs"]],["hash",[],["fnv1a.rs","mod.rs"]],["logging",[],["clap_log_level_args.rs","create_subscriber.rs","macros.rs","mod.rs"]],["misc",[],["in_ci.rs","mod.rs"]],["timing",[],["macros.rs","mod.rs","recorder.rs"]]],["lib.rs","prelude.rs"]]\
 }');
 createSrcSidebar();

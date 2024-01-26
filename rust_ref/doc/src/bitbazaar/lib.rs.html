@@ -29,21 +29,21 @@
 
 </span><span class="kw">mod </span>prelude;
 
-<span class="doccomment">/// Hello world function
-</span><span class="kw">pub fn </span>hello() -&gt; String {
-    <span class="string">&quot;Hello, World!&quot;</span>.to_string()
-}
+<span class="attr">#[cfg(feature = <span class="string">&quot;cli&quot;</span>)]
+</span><span class="doccomment">/// Command line interface utilities.
+</span><span class="kw">pub mod </span>cli;
 
-<span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>rstest::<span class="kw-2">*</span>;
-
-    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
-    <span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_hello() {
-        <span class="kw">let </span>result = hello();
-        <span class="macro">assert_eq!</span>(result, <span class="string">&quot;Hello, World!&quot;</span>.to_string());
-    }
-}
+<span class="doccomment">/// Error handling utilities.
+</span><span class="kw">pub mod </span>errors;
+<span class="doccomment">/// Hashing utilities.
+</span><span class="kw">pub mod </span>hash;
+<span class="doccomment">/// Logging utilities
+</span><span class="kw">pub mod </span>logging;
+<span class="doccomment">/// Completely miscellaneous utilities
+</span><span class="kw">pub mod </span>misc;
+<span class="attr">#[cfg(feature = <span class="string">&quot;redis&quot;</span>)]
+</span><span class="doccomment">/// Redis utilities
+</span><span class="kw">pub mod </span>redis;
+<span class="doccomment">/// Timing utilities
+</span><span class="kw">pub mod </span>timing;
 </code></pre></div></section></main></body></html>

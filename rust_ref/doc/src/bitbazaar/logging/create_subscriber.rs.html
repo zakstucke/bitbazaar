@@ -435,6 +435,18 @@
 <a href="#435" id="435">435</a>
 <a href="#436" id="436">436</a>
 <a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{path::PathBuf, str::FromStr};
 
 <span class="kw">use </span>once_cell::sync::Lazy;
@@ -584,8 +596,10 @@
 <span class="comment">// When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
 </span><span class="kw">static </span>GLOBAL_GUARDS: Lazy&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;WorkerGuard&gt;&gt;&gt;&gt; = Lazy::new(Mutex::default);
 
-<span class="kw">pub struct </span>CreatedSubscriber {
-    <span class="kw">pub </span>dispatch: Dispatch,
+<span class="doccomment">/// The created subscriber, returned from [`create_subscriber`].
+</span><span class="kw">pub struct </span>CreatedSubscriber {
+    <span class="doccomment">/// The log dispatcher, which can be used to read logging events.
+    </span><span class="kw">pub </span>dispatch: Dispatch,
     <span class="doccomment">/// Need to store these guards, when they go out of scope the logging may stop.
     /// When made global these are hoisted into a static lazy var.
     </span>guards: Vec&lt;WorkerGuard&gt;,
@@ -598,6 +612,16 @@
         </span>GLOBAL_GUARDS.lock().replace(<span class="self">self</span>.guards);
         <span class="self">self</span>.dispatch.init();
     }
+}
+
+<span class="doccomment">/// A wrapper around [`create_subscriber`] and `sub.into_global()` for the simple stdout usecase with default params.
+</span><span class="kw">pub fn </span>default_stdout_global_logging(level: Level) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    <span class="kw">let </span>sub = create_subscriber(<span class="macro">vec!</span>[SubLayer {
+        filter: SubLayerFilter::Above(level), <span class="comment">// Only this leveland above
+        </span>..Default::default()
+    }])<span class="question-mark">?</span>;
+    sub.into_global();
+    <span class="prelude-val">Ok</span>(())
 }
 
 <span class="doccomment">/// Simple interface to setup a sub and output to a given target.
