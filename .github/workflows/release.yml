@@ -36,8 +36,8 @@ on:
                 required: false
                 default: false
             rust_version:
-                description: "Rust Version (now 0.0.21)"
-                default: "0.0.21"
+                description: "Rust Version (now 0.0.22)"
+                default: "0.0.22"
 
 jobs:
     commit_versions:

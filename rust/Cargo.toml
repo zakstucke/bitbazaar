@@ -8,26 +8,22 @@ regex = '1.10'
 tracing = '0.1'
 tracing-appender = '0.2'
 
-[dependencies.conch-parser]
-version = '0.1.1'
-optional = true
-
-[dependencies.homedir]
-version = '0.2.1'
-optional = true
-
-[dependencies.strum]
-features = ['derive']
-version = '0.25'
-
 [dependencies.clap]
 features = ['derive', 'string']
 version = '4.4'
+
+[dependencies.conch-parser]
+optional = true
+version = '0.1.1'
 
 [dependencies.deadpool-redis]
 features = ['rt_tokio_1']
 optional = true
 version = '0.14'
+
+[dependencies.homedir]
+optional = true
+version = '0.2.1'
 
 [dependencies.opentelemetry]
 default-features = false
@@ -67,6 +63,10 @@ version = '1.0'
 [dependencies.sha1_smol]
 optional = true
 version = '1.0'
+
+[dependencies.strum]
+features = ['derive']
+version = '0.25'
 
 [dependencies.time]
 features = ['local-offset']
@@ -111,7 +111,7 @@ edition = '2021'
 license = 'MIT'
 name = 'bitbazaar'
 readme = 'README.md'
-version = '0.0.21'
+version = '0.0.22'
 
 [profile]
 
