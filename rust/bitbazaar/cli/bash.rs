@@ -129,7 +129,6 @@ impl Shell {
                 self.add_pipe_command(&mut pipe_runner, &cmd)?;
             }
             ast::ListableCommand::Pipe(negate_code, cmds) => {
-                // TODO have we checked negation?
                 // Mark whether the code should be negated or not:
                 pipe_runner.negate = negate_code;
 
@@ -162,14 +161,39 @@ impl Shell {
                         self.stderr.push_str(&shell.stderr);
 
                         debug!("Compound cmd stdout: '{}'", shell.stdout);
+                        // Add the pre-computed stdout to be used as stdin to the next command in the outer runner:
                         pipe_runner.add_piped_stdout(shell.stdout);
                     }
-                    ast::CompoundCommandKind::Brace(_) => todo!(),
-                    ast::CompoundCommandKind::While(_) => todo!(),
-                    ast::CompoundCommandKind::Until(_) => todo!(),
-                    ast::CompoundCommandKind::If { .. } => todo!(),
-                    ast::CompoundCommandKind::For { .. } => todo!(),
-                    ast::CompoundCommandKind::Case { .. } => todo!(),
+                    ast::CompoundCommandKind::Brace(_) => {
+                        return Err(unsup(
+                            "Compound brace. A group of commands that should be executed in the current environment.",
+                        ));
+                    }
+                    ast::CompoundCommandKind::While(_) => {
+                        return Err(unsup(
+                            "Compound while. A command that executes its body as long as its guard exits successfully.",
+                        ));
+                    }
+                    ast::CompoundCommandKind::Until(_) => {
+                        return Err(unsup(
+                            "Compound until. A command that executes its body as until as its guard exits unsuccessfully.",
+                        ));
+                    }
+                    ast::CompoundCommandKind::If { .. } => {
+                        return Err(unsup(
+                            "Compound if. A conditional command that runs the respective command branch when a certain of the first condition that exits successfully.",
+                        ));
+                    }
+                    ast::CompoundCommandKind::For { .. } => {
+                        return Err(unsup(
+                            "Compound for. A command that binds a variable to a number of provided words and runs its body once for each binding.",
+                        ));
+                    }
+                    ast::CompoundCommandKind::Case { .. } => {
+                        return Err(unsup(
+                            "Compound case. A command that behaves much like a match statement in Rust, running a branch of commands if a specified word matches another literal or glob pattern.",
+                        ));
+                    }
                 }
             }
             ast::PipeableCommand::FunctionDef(a, b) => Err(err!(

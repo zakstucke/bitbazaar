@@ -14,6 +14,7 @@ enum VariCommand {
     PipedStdout(String),
 }
 
+/// Allows passing in stdin from precomputed commands run by different runners.
 enum VariStdin {
     Stdio(Stdio),
     String(String),
