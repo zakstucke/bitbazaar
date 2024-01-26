@@ -162,6 +162,9 @@ impl PipeRunner {
                             let err_out = e.to_string();
                             if !err_out.trim().is_empty() {
                                 shell.stderr.push_str(&err_out);
+                                if !shell.stderr.ends_with('\n') {
+                                    shell.stderr.push('\n');
+                                }
                             }
 
                             // If the spawn errored, something went wrong, so set the code:

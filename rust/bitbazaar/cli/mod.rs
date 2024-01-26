@@ -47,7 +47,7 @@ mod tests {
     #[case::basic_3(
         "./no_exist.sh",
         if cfg!(windows) {
-            "'.' is not recognized as an internal or external command,\noperable program or batch file."
+            "The system cannot find the file specified. (os error 2)"
         } else {
             "No such file or directory (os error 2)"
         },
@@ -90,14 +90,14 @@ mod tests {
     #[case::stderr_1(
         format!("{CAT_CMD} non_existent.txt || echo foo && {CAT_CMD} ree.txt"),
         if cfg!(windows) {
-            "foo\nThe system cannot find the file specified.\nThe system cannot find the file specified."
+            "foo\nprogram not found\nprogram not found"
         } else {
             "foo\ncat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory"
         },
         1,
         Some("foo"),
         Some(if cfg!(windows){
-            "The system cannot find the file specified.\nThe system cannot find the file specified."
+            "program not found\nprogram not found"
         } else {
             "cat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory"
         }),
