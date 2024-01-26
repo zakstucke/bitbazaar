@@ -1,14 +1,8 @@
-use std::{
-    collections::HashMap,
-    io::{Read, Write},
-    path::PathBuf,
-    process::{Child, Command, Stdio},
-    str,
-};
+use std::{collections::HashMap, str};
 
 use conch_parser::{ast, lexer::Lexer, parse::DefaultParser};
 
-use super::{CmdErr, CmdOut};
+use super::{runner::PipeRunner, CmdErr, CmdOut};
 use crate::prelude::*;
 
 /// Execute an arbitrary bash script.
@@ -46,7 +40,10 @@ pub fn execute_bash(cmd_str: &str) -> Result<CmdOut, CmdErr> {
         .collect::<core::result::Result<Vec<_>, _>>()
         .change_context(CmdErr::BashSyntaxError)?;
 
-    Shell::new().run_top_cmds(top_cmds)
+    let mut shell = Shell::new();
+    shell.run_top_cmds(top_cmds)?;
+
+    Ok(shell.into())
 }
 
 #[derive(Debug)]
@@ -55,36 +52,36 @@ struct WordConcatState<'a> {
     words: &'a Vec<ast::DefaultWord>,
 }
 
-struct Shell {
-    vars: HashMap<String, String>,
-    /// The stderr from subcommands that should be included at the start of each parent shell (and eventually the root CmdOut stderr)
-    sub_stderr: String,
-    // Storing to prevent tempfiles from being dropped until the shell is dropped:
-    tempfiles: Vec<tempfile::NamedTempFile>,
+pub struct Shell {
+    /// Extra params/env vars added to this shell
+    pub vars: HashMap<String, String>,
+    pub code: i32,
+    // Finalised output that won't be piped to another command and should be returned to the caller:
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl From<Shell> for CmdOut {
+    fn from(val: Shell) -> Self {
+        CmdOut {
+            stdout: val.stdout,
+            stderr: val.stderr,
+            code: val.code,
+        }
+    }
 }
 
 impl Shell {
     fn new() -> Self {
         Self {
             vars: HashMap::new(),
-            sub_stderr: String::new(),
-            tempfiles: Vec::new(),
+            code: 0,
+            stdout: String::new(),
+            stderr: String::new(),
         }
     }
 
-    fn new_tempfile(&mut self, contents: &[u8]) -> Result<PathBuf, CmdErr> {
-        let mut file = tempfile::NamedTempFile::new().change_context(CmdErr::InternalError)?;
-        file.write_all(contents)
-            .change_context(CmdErr::InternalError)?;
-        let path = file.path().to_path_buf();
-        // Storing to prevent dropping early:
-        self.tempfiles.push(file);
-        Ok(path)
-    }
-
-    fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> Result<CmdOut, CmdErr> {
-        let mut out = CmdOut::new();
-
+    fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> Result<(), CmdErr> {
         // Each res equates to a line in a multi line bash script. E.g. a single line command will only have one res.
         for cmd in cmds {
             match cmd.0 {
@@ -97,21 +94,21 @@ impl Shell {
                 }
                 ast::Command::List(list) => {
                     // Run the first command in the chain:
-                    out.merge(self.run_listable_command(list.first)?);
+                    self.run_listable_command(list.first)?;
 
                     // Run the remaining commands in the chain, breaking dependent on and/or with the last exit code:
                     for chain_cmd in list.rest.into_iter() {
                         match chain_cmd {
                             ast::AndOr::And(cmd) => {
                                 // Only run if the last succeeded:
-                                if out.code == 0 {
-                                    out.merge(self.run_listable_command(cmd)?);
+                                if self.code == 0 {
+                                    self.run_listable_command(cmd)?;
                                 }
                             }
                             ast::AndOr::Or(cmd) => {
                                 // Only run if the last didn't succeed:
-                                if out.code != 0 {
-                                    out.merge(self.run_listable_command(cmd)?);
+                                if self.code != 0 {
+                                    self.run_listable_command(cmd)?;
                                 }
                             }
                         }
@@ -120,161 +117,52 @@ impl Shell {
             }
         }
 
-        // Add all the sub stderr to the start of the cmdout's stderr (as they will have happened prior to the current cmdout's stderr)
-        out.stderr = format!("{}{}", self.sub_stderr, out.stderr);
-
-        Ok(out)
+        Ok(())
     }
 
-    fn run_listable_command(&mut self, cmd: ast::DefaultListableCommand) -> Result<CmdOut, CmdErr> {
-        let (final_child, other_stderrs, negate_code) = match cmd {
+    fn run_listable_command(&mut self, cmd: ast::DefaultListableCommand) -> Result<(), CmdErr> {
+        let mut pipe_runner = PipeRunner::default();
+
+        match cmd {
             ast::ListableCommand::Single(cmd) => {
                 debug!("Running single cmd: {:?}", cmd);
-                let child = self.spawn_pipeable_command(&cmd, None)?;
-                (child, Vec::new(), false)
+                self.add_pipe_command(&mut pipe_runner, &cmd)?;
             }
-            ast::ListableCommand::Pipe(negate_code, mut cmds) => {
-                debug!("Running pipeable cmds: {:?}", cmds);
+            ast::ListableCommand::Pipe(negate_code, cmds) => {
+                // TODO have we checked negation?
+                // Mark whether the code should be negated or not:
+                pipe_runner.negate = negate_code;
 
-                let last_cmd = if let Some(last_cmd) = cmds.pop() {
-                    last_cmd
-                } else {
-                    return Err(err!(
-                        CmdErr::InternalError,
-                        "No commands to pipe in pipeable command."
-                    ));
-                };
-
-                let mut stderrs = Vec::with_capacity(cmds.len());
-                let mut stdout_pipe = None;
                 for cmd in cmds {
-                    let child = self.spawn_pipeable_command(&cmd, stdout_pipe.take())?;
-                    if let Some(child) = child {
-                        stdout_pipe = Some(Stdio::from(child.stdout.unwrap()));
-                        if let Some(stderr) = child.stderr {
-                            stderrs.push(stderr);
-                        }
-                    }
+                    self.add_pipe_command(&mut pipe_runner, &cmd)?;
                 }
-
-                (
-                    self.spawn_pipeable_command(&last_cmd, stdout_pipe.take())?,
-                    stderrs,
-                    negate_code,
-                )
             }
         };
 
-        // Get all intermediary sterrs:
-        let mut final_stderr = String::new();
-        for mut stderr in other_stderrs {
-            stderr
-                .read_to_string(&mut final_stderr)
-                .change_context(CmdErr::InternalError)?;
-        }
+        pipe_runner.run(self)?;
 
-        let (stdout, code) = if let Some(final_child) = final_child {
-            // Wait for the output of the final command:
-            let output = final_child
-                .wait_with_output()
-                .change_context(CmdErr::InternalError)?;
-
-            // Add on the stderr from the final command:
-            final_stderr.push_str(
-                str::from_utf8(&output.stderr)
-                    .change_context(CmdErr::BashUTF8Error)?
-                    .to_string()
-                    .as_str(),
-            );
-
-            (
-                str::from_utf8(&output.stdout)
-                    .change_context(CmdErr::BashUTF8Error)?
-                    .to_string(),
-                output.status.code().unwrap_or(1),
-            )
-        } else {
-            ("".to_string(), 0)
-        };
-
-        Ok(CmdOut {
-            stdout,
-            stderr: final_stderr,
-            code: if negate_code {
-                if code == 0 {
-                    1
-                } else {
-                    0
-                }
-            } else {
-                code
-            },
-        })
+        Ok(())
     }
 
-    fn spawn_pipeable_command(
+    fn add_pipe_command(
         &mut self,
+        pipe_runner: &mut PipeRunner,
         cmd: &ast::DefaultPipeableCommand,
-        stdin: Option<Stdio>,
-    ) -> Result<Option<Child>, CmdErr> {
-        let cmd = self.build_command(cmd)?;
-
-        if let Some(mut cmd) = cmd {
-            // Pipe in stdin if needed:
-            if let Some(stdin) = stdin {
-                cmd.stdin(stdin);
-            }
-
-            // Might fail to spawn, but that's ok and just need to continue,
-            // e.g. this happens at some point in echo foo $(echo bar && exit 1) ree
-            if let Ok(child) = cmd.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
-                Ok(Some(child))
-            } else {
-                Ok(None)
-            }
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn build_command(
-        &mut self,
-        cmd: &ast::DefaultPipeableCommand,
-    ) -> Result<Option<Command>, CmdErr> {
-        Ok(match cmd {
-            ast::PipeableCommand::Simple(cmd) => self.build_simple_command(cmd)?,
+    ) -> Result<(), CmdErr> {
+        match cmd {
+            ast::PipeableCommand::Simple(cmd) => self.add_simple_command(pipe_runner, cmd)?,
             ast::PipeableCommand::Compound(compound) => {
                 // E.g. (echo foo && echo bar)
                 match &compound.kind {
                     ast::CompoundCommandKind::Subshell(sub_cmds) => {
-                        let nested_out = Shell::new().run_top_cmds(sub_cmds.clone())?;
+                        let mut shell = Shell::new();
+                        shell.run_top_cmds(sub_cmds.clone())?;
 
-                        let stdout = nested_out.stdout.trim_end();
-                        debug!("Compound cmd stdout: '{}'", stdout);
+                        // Add the stderr to the current shell:
+                        self.stderr.push_str(&shell.stderr);
 
-                        // Don't want to restructure code, hacking it to work by running a command that outputs the precomputed stdout:
-
-                        let cmd = if cfg!(windows) {
-                            // Windows has a meltdown with newlines, the else block doesn't work on windows (output missing newlines), temporary file with type (windows equiv of cat) works:
-                            let mut cmd = Command::new("type");
-                            cmd.arg(
-                                self.new_tempfile(
-                                    if stdout.ends_with('\n') {
-                                        stdout.to_string()
-                                    } else {
-                                        format!("{}\n", stdout)
-                                    }
-                                    .as_bytes(),
-                                )?,
-                            );
-                            cmd
-                        } else {
-                            let mut cmd = Command::new("echo");
-                            cmd.arg(stdout);
-                            cmd
-                        };
-
-                        Some(cmd)
+                        debug!("Compound cmd stdout: '{}'", shell.stdout);
+                        pipe_runner.add_piped_stdout(shell.stdout);
                     }
                     ast::CompoundCommandKind::Brace(_) => todo!(),
                     ast::CompoundCommandKind::While(_) => todo!(),
@@ -290,13 +178,15 @@ impl Shell {
             )
             .attach_printable(a.to_string())
             .attach_printable(format!("{b:?}")))?,
-        })
+        };
+        Ok(())
     }
 
-    fn build_simple_command(
+    fn add_simple_command(
         &mut self,
+        pipe_runner: &mut PipeRunner,
         cmd: &ast::DefaultSimpleCommand,
-    ) -> Result<Option<Command>, CmdErr> {
+    ) -> Result<(), CmdErr> {
         // Get the environment variables the command (and all inner) need:
         let env = cmd
             .redirects_or_env_vars
@@ -342,20 +232,12 @@ impl Shell {
             self.vars.insert(name.to_string(), val.to_string());
         }
 
-        // If e.g. this command was "bar=3;" then no args will exist, and a command shouldn't be run:
-        let command = if let Some(first_arg) = args.first() {
-            let mut command = Command::new(first_arg);
-            command.args(&args[1..]);
-
-            // Add all the shell args to the env of the command:
-            command.envs(self.vars.clone());
-
-            Some(command)
-        } else {
-            None
+        // Add only if has args, e.g. this command was "bar=3;" then no os command is actually needed:
+        if !args.is_empty() {
+            pipe_runner.add(&args)?;
         };
 
-        Ok(command)
+        Ok(())
     }
 
     fn process_complex_word(&mut self, word: &ast::DefaultComplexWord) -> Result<String, CmdErr> {
@@ -495,9 +377,12 @@ impl Shell {
                 // - stderr prints to console so in our case it should be added to the root stderr
                 // - It runs in its own shell, so shell vars aren't shared
                 debug!("Running nested command: {:?}", cmds);
-                let nested_out = Shell::new().run_top_cmds(cmds.clone())?;
-                self.sub_stderr.push_str(&nested_out.stderr);
-                Ok(nested_out.stdout.trim_end().to_string())
+                let mut shell = Shell::new();
+                shell.run_top_cmds(cmds.clone())?;
+
+                // Add the stderr to the outer stderr, the stdout return to the caller:
+                self.stderr.push_str(&shell.stderr);
+                Ok(shell.stdout.trim_end().to_string())
             },
             ast::ParameterSubstitution::Alternative(..) => {
                 Err(unsup("If the parameter is NOT null or unset, a provided word will be used, e.g. '${param:+[word]}'. The boolean indicates the presence of a ':', and that if the parameter has a null value, that situation should be treated as if the parameter is unset."))

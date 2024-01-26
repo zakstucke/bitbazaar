@@ -25,19 +25,3 @@ impl CmdOut {
         }
     }
 }
-
-impl CmdOut {
-    pub(crate) fn new() -> Self {
-        Self {
-            stdout: String::new(),
-            stderr: String::new(),
-            code: 0,
-        }
-    }
-
-    pub(crate) fn merge(&mut self, other: CmdOut) {
-        self.stdout.push_str(&other.stdout);
-        self.stderr.push_str(&other.stderr);
-        self.code = other.code;
-    }
-}

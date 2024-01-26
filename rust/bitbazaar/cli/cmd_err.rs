@@ -16,7 +16,7 @@ pub enum CmdErr {
     )]
     NoHomeDirectory,
     /// Most like something wrong internally.
-    #[strum(serialize = "CmdErr (Internal): most like something wro ng internally.")]
+    #[strum(serialize = "CmdErr (Internal): most like something wrong internally.")]
     InternalError,
 }
 
