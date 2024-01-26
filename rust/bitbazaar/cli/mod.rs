@@ -42,6 +42,7 @@ mod tests {
     // <-- basics:
     #[case::basic_1("echo 'hello world'", "hello world", 0, None, None, true)]
     #[case::basic_2("echo hello world", "hello world", 0, None, None, true)]
+    #[case::basic_3("./no_exist.sh", "", 2, None, None, true)]
     // <-- and:
     #[case::and_1("echo hello && echo world", "hello\nworld", 0, None, None, true)]
     #[case::and_2("echo hello && false && echo world", "hello", 1, None, None, true)]
