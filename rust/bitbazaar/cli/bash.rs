@@ -160,7 +160,6 @@ impl Shell {
                         // Add the stderr to the current shell:
                         self.stderr.push_str(&shell.stderr);
 
-                        debug!("Compound cmd stdout: '{}'", shell.stdout);
                         // Add the pre-computed stdout to be used as stdin to the next command in the outer runner:
                         pipe_runner.add_piped_stdout(shell.stdout);
                     }
@@ -248,8 +247,6 @@ impl Shell {
 
             args.push(arg_str);
         }
-
-        debug!("Final command args: {:?}", args);
 
         // Add the env vars to the current shell to in this command, later and parser expansions etc:
         for (name, val) in env.iter() {

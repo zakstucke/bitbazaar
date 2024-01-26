@@ -87,73 +87,77 @@ impl PipeRunner {
                         };
                     }
 
-                    // Spawn the new command,
-                    // might fail if e.g. exit 1 in there
-                    // so ignoring error case on this as still succeeds with non zero exit codes:
-                    if let Ok(mut child) = command
+                    // Spawn the new command:
+                    match command
                         .stdout(Stdio::piped())
                         .stderr(Stdio::piped())
                         .spawn()
                     {
-                        // If needed, manually passing stdin from a string:
-                        if let Some(s) = str_stdin {
-                            let mut stdin_handle = child.stdin.take().ok_or_else(|| {
-                                err!(CmdErr::InternalError, "Couldn't access stdin handle.")
-                            })?;
+                        Ok(mut child) => {
+                            // If needed, manually passing stdin from a string:
+                            if let Some(s) = str_stdin {
+                                let mut stdin_handle = child.stdin.take().ok_or_else(|| {
+                                    err!(CmdErr::InternalError, "Couldn't access stdin handle.")
+                                })?;
 
-                            stdin_handle
-                                .write_all(s.as_bytes())
-                                .change_context(CmdErr::InternalError)?;
-                        }
-
-                        // Not last command, need to pipe into next:
-                        if !is_last {
-                            let stdout_handle = child.stdout.ok_or_else(|| {
-                                err!(
-                                    CmdErr::InternalError,
-                                    "No stdout handle from previous command."
-                                )
-                            })?;
-
-                            let stderr_handle = child.stderr.ok_or_else(|| {
-                                err!(
-                                    CmdErr::InternalError,
-                                    "No stderr handle from previous command."
-                                )
-                            })?;
-
-                            self.stderrs.push(stderr_handle);
-                            stdin = Some(VariStdin::Stdio(stdout_handle.into()));
-                        } else {
-                            // Last command, need to finalise all:
-
-                            // Wait for the output of the final command:
-                            let output = child
-                                .wait_with_output()
-                                .change_context(CmdErr::InternalError)?;
-
-                            // Load in the stderrs from previous commands:
-                            for mut stderr in std::mem::take(&mut self.stderrs) {
-                                stderr
-                                    .read_to_string(&mut shell.stderr)
+                                stdin_handle
+                                    .write_all(s.as_bytes())
                                     .change_context(CmdErr::InternalError)?;
                             }
 
-                            // Add on the stderr from the final command:
-                            shell.stderr.push_str(
-                                str::from_utf8(&output.stderr)
-                                    .change_context(CmdErr::BashUTF8Error)?
-                                    .to_string()
-                                    .as_str(),
-                            );
+                            // Not last command, need to pipe into next:
+                            if !is_last {
+                                let stdout_handle = child.stdout.ok_or_else(|| {
+                                    err!(
+                                        CmdErr::InternalError,
+                                        "No stdout handle from previous command."
+                                    )
+                                })?;
 
-                            // Read the out from the final command:
-                            shell.stdout.push_str(
-                                str::from_utf8(&output.stdout)
-                                    .change_context(CmdErr::BashUTF8Error)?,
-                            );
+                                let stderr_handle = child.stderr.ok_or_else(|| {
+                                    err!(
+                                        CmdErr::InternalError,
+                                        "No stderr handle from previous command."
+                                    )
+                                })?;
 
-                            shell.code = output.status.code().unwrap_or(1);
+                                self.stderrs.push(stderr_handle);
+                                stdin = Some(VariStdin::Stdio(stdout_handle.into()));
+                            } else {
+                                // Last command, need to finalise all:
+
+                                // Wait for the output of the final command:
+                                let output = child
+                                    .wait_with_output()
+                                    .change_context(CmdErr::InternalError)?;
+
+                                // Load in the stderrs from previous commands:
+                                for mut stderr in std::mem::take(&mut self.stderrs) {
+                                    stderr
+                                        .read_to_string(&mut shell.stderr)
+                                        .change_context(CmdErr::InternalError)?;
+                                }
+
+                                // Add on the stderr from the final command:
+                                shell.stderr.push_str(
+                                    str::from_utf8(&output.stderr)
+                                        .change_context(CmdErr::BashUTF8Error)?
+                                        .to_string()
+                                        .as_str(),
+                                );
+
+                                // Read the out from the final command:
+                                shell.stdout.push_str(
+                                    str::from_utf8(&output.stdout)
+                                        .change_context(CmdErr::BashUTF8Error)?,
+                                );
+
+                                shell.code = output.status.code().unwrap_or(1);
+                            }
+                        }
+                        Err(e) => {
+                            // If the spawn errored, something went wrong, so set the code:
+                            shell.code = e.raw_os_error().unwrap_or(1);
                         }
                     }
                 }
