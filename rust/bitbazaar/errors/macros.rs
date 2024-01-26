@@ -29,6 +29,34 @@ macro_rules! anyerr {
     }};
 }
 
+/// A macro for building `Report<ArbitraryErrorStackErr>` objects with string context easily.
+///
+/// `err!(Err)` is equivalent to `Report::new(Err)`
+///
+/// `err!(Err, "foo")` is equivalent to `Report::new(Err).attach_printable("foo")`
+///
+/// `err!(Err, "foo: {}", "bar")` is equivalent to `Report::new(Err).attach_printable(format!("foo: {}", "bar"))`///
+#[macro_export]
+macro_rules! err {
+    ($err_variant:expr) => {{
+        use error_stack::Report;
+
+        Report::new($err_variant)
+    }};
+
+    ($err_variant:expr, $str:expr) => {{
+        use error_stack::Report;
+
+        Report::new($err_variant).attach_printable($str)
+    }};
+
+    ($err_variant:expr, $str:expr, $($arg:expr),*) => {{
+        use error_stack::Report;
+
+        Report::new($err_variant).attach_printable(format!($str, $($arg),*))
+    }};
+}
+
 /// When working in a function that cannot return a result, use this to auto panic with the formatted error if something goes wrong.
 ///
 /// Allows use of e.g. `?` in the block.

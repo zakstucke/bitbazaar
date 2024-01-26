@@ -147,7 +147,9 @@ pub enum SubLayerVariant {
 // When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
 static GLOBAL_GUARDS: Lazy<Mutex<Option<Vec<WorkerGuard>>>> = Lazy::new(Mutex::default);
 
+/// The created subscriber, returned from [`create_subscriber`].
 pub struct CreatedSubscriber {
+    /// The log dispatcher, which can be used to read logging events.
     pub dispatch: Dispatch,
     /// Need to store these guards, when they go out of scope the logging may stop.
     /// When made global these are hoisted into a static lazy var.
@@ -161,6 +163,16 @@ impl CreatedSubscriber {
         GLOBAL_GUARDS.lock().replace(self.guards);
         self.dispatch.init();
     }
+}
+
+/// A wrapper around [`create_subscriber`] and `sub.into_global()` for the simple stdout usecase with default params.
+pub fn default_stdout_global_logging(level: Level) -> Result<(), AnyErr> {
+    let sub = create_subscriber(vec![SubLayer {
+        filter: SubLayerFilter::Above(level), // Only this leveland above
+        ..Default::default()
+    }])?;
+    sub.into_global();
+    Ok(())
 }
 
 /// Simple interface to setup a sub and output to a given target.

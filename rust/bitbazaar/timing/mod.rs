@@ -61,8 +61,16 @@ mod tests {
         });
 
         let elapsed = recorder.total_elapsed().unwrap();
-        assert!(elapsed.as_millis() >= 1);
-        assert!(elapsed.as_millis() < 2);
+        assert!(
+            elapsed.as_millis() >= 1,
+            "elapsed: {:?}",
+            elapsed.as_millis()
+        );
+        assert!(
+            elapsed.as_millis() < 2,
+            "elapsed: {:?}",
+            elapsed.as_millis()
+        );
 
         let formatted = recorder.format_verbose().unwrap();
         assert!(formatted.contains("test"));
@@ -74,7 +82,15 @@ mod tests {
             std::thread::sleep(Duration::from_millis(1));
         });
         let elapsed = GLOBAL_TIME_RECORDER.total_elapsed().unwrap();
-        assert!(elapsed.as_millis() >= 1);
-        assert!(elapsed.as_millis() < 2);
+        assert!(
+            elapsed.as_millis() >= 1,
+            "elapsed: {:?}",
+            elapsed.as_millis()
+        );
+        assert!(
+            elapsed.as_millis() < 2,
+            "elapsed: {:?}",
+            elapsed.as_millis()
+        );
     }
 }

@@ -5,20 +5,20 @@
 
 mod prelude;
 
-/// Hello world function
-pub fn hello() -> String {
-    "Hello, World!".to_string()
-}
+#[cfg(feature = "cli")]
+/// Command line interface utilities.
+pub mod cli;
 
-#[cfg(test)]
-mod tests {
-    use rstest::*;
-
-    use super::*;
-
-    #[rstest]
-    fn test_hello() {
-        let result = hello();
-        assert_eq!(result, "Hello, World!".to_string());
-    }
-}
+/// Error handling utilities.
+pub mod errors;
+/// Hashing utilities.
+pub mod hash;
+/// Logging utilities
+pub mod logging;
+/// Completely miscellaneous utilities
+pub mod misc;
+#[cfg(feature = "redis")]
+/// Redis utilities
+pub mod redis;
+/// Timing utilities
+pub mod timing;

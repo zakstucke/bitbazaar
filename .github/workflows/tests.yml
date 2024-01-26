@@ -93,8 +93,9 @@ jobs:
               uses: actions/setup-node@v2
               with:
                   node-version: "20"
-                  cache: npm
-                  cache-dependency-path: "js/package-lock.json"
+
+            - name: Install rust toolchain
+              uses: dtolnay/rust-toolchain@stable
 
             - name: Install dependencies
               run: |
@@ -220,7 +221,13 @@ jobs:
         needs: whos_changed
         # Only run if applicable things have changed:
         if: needs.whos_changed.outputs.rust-changed == 'true'
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                # Run on both linux and windows (dev testing on mac and much more expensive in terms of build minutes),
+                # windows most likely to fail unexpectedly.
+                os: [ubuntu-latest, windows-latest]
         steps:
             - uses: actions/checkout@v4
 
@@ -232,6 +239,12 @@ jobs:
               with:
                   workspaces: "./rust -> target"
 
-            - name: Run tests
+            - name: Run tests (linux)
+              if: matrix.os == 'ubuntu-latest'
               run: |
-                  ./dev_scripts/test.sh rust
+                  ./dev_scripts/test.sh rust --no-fail-fast
+
+            - name: Run tests (windows)
+              if: matrix.os == 'windows-latest'
+              run: |
+                  bash ./dev_scripts/test.sh rust --no-fail-fast

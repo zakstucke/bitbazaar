@@ -76,9 +76,11 @@ py () {
 }
 
 pyright () {
-    cd ./py/
-    pdm run pyright .
-    cd ..
+    ./dev_scripts/py_rust.sh install
+
+    pdm run -p ./py pyright ./py_rust ./py
+
+    echo pyright OK.
 }
 
 js () {
@@ -95,7 +97,7 @@ eslint () {
 
 py_rust () {
     # Build the package up to date in the specific virtualenv:
-    ./dev_scripts/py_rust.sh install py_rust/.venv
+    ./dev_scripts/py_rust.sh install ./py_rust/.venv
 
     cd py_rust
 
@@ -105,10 +107,6 @@ py_rust () {
     else
         source .venv/bin/activate
     fi
-
-    cd .. # This type of stuff could be fixed with hellscript
-    ./dev_scripts/utils.sh py_install_if_missing pytest
-    cd py_rust
 
     cargo nextest run
     python -m pytest $@
