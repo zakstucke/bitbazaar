@@ -38,7 +38,7 @@ mod tests {
         "wc -l"
     };
 
-    static CAT_CMD: &str = if cfg!(windows) { "type" } else { "cat" };
+    static CAT_CMD: &str = if cfg!(windows) { "cmd /c type" } else { "cat" };
 
     #[rstest]
     // <-- basics:
@@ -90,14 +90,14 @@ mod tests {
     #[case::stderr_1(
         format!("{CAT_CMD} non_existent.txt || echo foo && {CAT_CMD} ree.txt"),
         if cfg!(windows) {
-            "foo\nprogram not found\nprogram not found"
+            "foo\nThe system cannot find the file specified.\nThe system cannot find the file specified."
         } else {
             "foo\ncat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory"
         },
         1,
         Some("foo"),
         Some(if cfg!(windows){
-            "program not found\nprogram not found"
+            "The system cannot find the file specified.\nThe system cannot find the file specified."
         } else {
             "cat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory"
         }),
