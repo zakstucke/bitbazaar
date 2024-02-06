@@ -1,11 +1,13 @@
 mod bash;
-mod cmd_err;
+mod builtins;
 mod cmd_out;
+mod errs;
 mod runner;
+mod shell;
 
-pub use bash::execute_bash;
-pub use cmd_err::CmdErr;
+pub use bash::Bash;
 pub use cmd_out::CmdOut;
+pub use errs::BashErr;
 
 #[cfg(test)]
 mod tests {
@@ -143,7 +145,7 @@ mod tests {
     #[case::lit_4("echo false '$(echo bar)'", "false $(echo bar)", 0, None, None, true)]
     // Don't test on windows this one, the OS seems to override and convert after leaving rust:
     #[case::lit_5("echo '~'", "~", 0, None, None, false)]
-    fn test_execute_bash<S: Into<String>>(
+    fn test_bash_basics<S: Into<String>>(
         #[case] cmd_str: String,
         #[case] exp_std_all: S,
         #[case] code: i32,
@@ -156,18 +158,94 @@ mod tests {
             return Ok(());
         }
 
-        let res = execute_bash(&cmd_str).change_context(AnyErr)?;
+        let res = Bash::new().cmd(cmd_str).run().change_context(AnyErr)?;
 
         assert_eq!(res.code, code, "{}: {}", res.code, res.std_all());
-
         if let Some(exp_stdout) = exp_stdout {
             assert_eq!(res.stdout.trim(), exp_stdout, "{}", res.std_all());
         }
         if let Some(exp_sterr) = exp_sterr {
             assert_eq!(res.stderr.trim(), exp_sterr, "{}", res.std_all());
         }
-
         assert_eq!(res.std_all().trim(), exp_std_all.into());
+        Ok(())
+    }
+
+    /// Check multi commands are treated like lines in a file,
+    /// and lines in a command are treated and work like a normal file.
+    /// Set -e should be enabled by default, but can be disabled with normal set +e bash syntax.
+    #[rstest]
+    // Multi line files should work as expected and handle comments.
+    #[case::ml_cmd(["# Start comment\necho hello # Inline comment\necho goodbye\n# End comment"], "hello\ngoodbye", 0)]
+    // Multi line commands should be newline separated, i.e. as if coming in from a file.
+    #[case::sim_ml_cmd(["# Start comment", "echo hello # Inline comment", "echo goodbye", "# End comment"], "hello\ngoodbye", 0)]
+    #[case::set_e_on_by_default(["echo hello", "false", "echo goodbye"], "hello", 1)]
+    #[case::set_e_can_be_disabled(["set +e", "echo hello", "false", "echo goodbye"], "hello\ngoodbye", 0)]
+    #[case::set_e_can_be_disabled_and_re_enabled(["set +e", "set -e", "echo hello", "false", "echo goodbye"], "hello", 1)]
+    fn test_bash_multiline<S: Into<String>>(
+        #[case] cmds: impl Into<Vec<S>>,
+        #[case] exp_std_all: S,
+        #[case] code: i32,
+        #[allow(unused_variables)] logging: (),
+    ) -> Result<(), AnyErr> {
+        let mut bash = Bash::new();
+        for cmd in cmds.into() {
+            bash = bash.cmd(cmd);
+        }
+        let res = bash.run().change_context(AnyErr)?;
+
+        assert_eq!(res.code, code, "{}: {}", res.code, res.std_all());
+        assert_eq!(res.std_all().trim(), exp_std_all.into());
+        Ok(())
+    }
+
+    /// Confirm setting a custom working dir on the builder works plus when changing with cd in bash.
+    #[rstest]
+    fn test_run_dir(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+        let temp_dir = tempfile::tempdir().change_context(AnyErr)?;
+        let temp_dir_pb = temp_dir.path().to_path_buf();
+
+        // Create: ./topfile.txt
+        // Create ./subdir/subfile.txt
+        std::fs::write(temp_dir_pb.join("topfile.txt"), "topfile!").change_context(AnyErr)?;
+        std::fs::create_dir(temp_dir_pb.join("subdir")).change_context(AnyErr)?;
+        std::fs::write(temp_dir_pb.join("subdir").join("subfile.txt"), "subfile!")
+            .change_context(AnyErr)?;
+
+        let res = Bash::new()
+            .chdir(&temp_dir_pb)
+            .cmd("pwd")
+            .cmd("cd subdir")
+            .cmd("pwd")
+            .cmd(format!("{} subfile.txt", CAT_CMD))
+            .cmd("cd ..")
+            .cmd(format!("{} topfile.txt", CAT_CMD))
+            .run()
+            .change_context(AnyErr)?;
+
+        assert_eq!(res.code, 0, "{}: {}", res.code, res.std_all());
+        assert_eq!(
+            res.stdout.trim(),
+            format!(
+                "{}\n{}\nsubfile!topfile!",
+                temp_dir_pb.display(),
+                temp_dir_pb.join("subdir").display()
+            )
+        );
+        Ok(())
+    }
+
+    /// Confirm setting env vars on the builder work.
+    #[rstest]
+    fn test_builder_env(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+        let res = Bash::new()
+            .env("FOO", "bar")
+            .env("BAZ", "qux")
+            .cmd("echo $FOO $(echo $BAZ)")
+            .run()
+            .change_context(AnyErr)?;
+        assert_eq!(res.code, 0, "{}: {}", res.code, res.std_all());
+        assert_eq!(res.stdout.trim(), format!("bar qux"));
         Ok(())
     }
 }
