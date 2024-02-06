@@ -2,57 +2,57 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/CODE_OF_CONDUCT/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/CONTRIBUTING/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/LICENSE/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/py_ref/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/py_ref/SUMMARY/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/py_ref/utils/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/py_rust_ref/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/py_rust_ref/SUMMARY/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/py_rust_ref/utils/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://zakstucke.github.io/bitbazaar/rust_ref/doc/static.files/SourceSerif4-LICENSE-3bb119e13b1258b7/</loc>
-         <lastmod>2024-01-26</lastmod>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
