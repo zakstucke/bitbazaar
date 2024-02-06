@@ -1,4 +1,5 @@
 /// The result of running a command
+#[derive(Debug, Clone)]
 pub struct CmdOut {
     /// The stdout of the command:
     pub stdout: String,
