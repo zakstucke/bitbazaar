@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    fs,
     path::{Path, PathBuf},
     str,
 };
@@ -52,8 +53,7 @@ impl Shell {
         cmds: Vec<ast::TopLevelCommand<String>>,
     ) -> Result<CmdOut, ShellErr> {
         let mut shell = Self {
-            // Inherit the root dir of the parent:
-            root_dir: root_dir.map(|p| p.to_path_buf()),
+            root_dir: None,
             vars: env,
             code: 0,
             stdout: String::new(),
@@ -61,6 +61,11 @@ impl Shell {
             // By default have set -e enabled to break if a line errors:
             set_e: true,
         };
+
+        if let Some(parent_root_dir) = root_dir {
+            // Set root dir:
+            shell.chdir(parent_root_dir.to_path_buf())?;
+        }
 
         if let Err(e) = shell.run_top_cmds(cmds) {
             match e.current_context() {
@@ -84,8 +89,11 @@ impl Shell {
         }
     }
 
-    pub fn chdir(&mut self, new_root_dir: PathBuf) {
-        self.root_dir = Some(new_root_dir);
+    pub fn chdir(&mut self, new_root_dir: PathBuf) -> Result<(), ShellErr> {
+        // canonicalize to ensure its absolute (to not break e.g. pwd)
+        self.root_dir =
+            Some(fs::canonicalize(new_root_dir).change_context(ShellErr::InternalError)?);
+        Ok(())
     }
 
     fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> Result<(), ShellErr> {
