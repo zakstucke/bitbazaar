@@ -1,11 +1,11 @@
 use std::{
     collections::HashMap,
-    fs,
     path::{Path, PathBuf},
     str,
 };
 
 use conch_parser::ast;
+use normpath::PathExt;
 
 use super::{errs::ShellErr, runner::PipeRunner, CmdOut};
 use crate::prelude::*;
@@ -90,9 +90,13 @@ impl Shell {
     }
 
     pub fn chdir(&mut self, new_root_dir: PathBuf) -> Result<(), ShellErr> {
-        // canonicalize to ensure its absolute (to not break e.g. pwd)
-        self.root_dir =
-            Some(fs::canonicalize(new_root_dir).change_context(ShellErr::InternalError)?);
+        // normalise to ensure its absolute (to not break e.g. pwd)
+        self.root_dir = Some(
+            new_root_dir
+                .normalize()
+                .change_context(ShellErr::InternalError)?
+                .into_path_buf(),
+        );
         Ok(())
     }
 

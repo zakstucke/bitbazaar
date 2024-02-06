@@ -1,4 +1,6 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
+
+use normpath::PathExt;
 
 use super::bad_call;
 use crate::{
@@ -62,8 +64,9 @@ pub fn cd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
 
     // Expand symbolic links if -P is specified
     if !follow_symlinks {
-        if let Ok(realpath) = fs::canonicalize(&target_path) {
-            target_path = realpath;
+        // Make absolute to expand symlinks:
+        if let Ok(realpath) = target_path.normalize() {
+            target_path = realpath.into_path_buf();
         } else {
             bad_call!("cd: Failed to get real path for {}", target_path.display());
         }

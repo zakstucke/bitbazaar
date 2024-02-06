@@ -11,8 +11,7 @@ pub use errs::BashErr;
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
+    use normpath::PathExt;
     use once_cell::sync::Lazy;
     use rstest::*;
 
@@ -205,8 +204,12 @@ mod tests {
     #[rstest]
     fn test_run_dir(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
         let temp_dir = tempfile::tempdir().change_context(AnyErr)?;
-        // canonicalize to make sure absolute (as pwd should always be absolute)
-        let temp_dir_pb = fs::canonicalize(temp_dir.path()).change_context(AnyErr)?;
+        // normalise to make sure absolute (as pwd should always be absolute)
+        let temp_dir_pb = temp_dir
+            .path()
+            .normalize()
+            .change_context(AnyErr)?
+            .into_path_buf();
 
         // Create: ./topfile.txt
         // Create ./subdir/subfile.txt

@@ -28,19 +28,24 @@ pub fn pwd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf};
+    use std::path::PathBuf;
+
+    use normpath::PathExt;
 
     use crate::cli::Bash;
 
     #[test]
     fn test_pwd() {
-        // canonicalize to make absolute:
-        let cur_dir = fs::canonicalize(std::env::current_dir().unwrap()).unwrap();
+        // Make sure made absolute with normalize:
+        let cur_dir = std::env::current_dir().unwrap().normalize().unwrap();
 
         // Default root should be the current dir (and absolute not relative):
         let out = Bash::new().cmd("pwd").run().unwrap();
         assert_eq!(out.code, 0);
-        assert_eq!(out.stdout, format!("{}\n", cur_dir.display()));
+        assert_eq!(
+            out.stdout,
+            format!("{}\n", cur_dir.as_os_str().to_string_lossy())
+        );
 
         // Relative chdir() on bash should still not break absoluteleness of pwd (fixing bug)
         let out = Bash::new()
@@ -49,6 +54,9 @@ mod tests {
             .run()
             .unwrap();
         assert_eq!(out.code, 0);
-        assert_eq!(out.stdout, format!("{}\n", cur_dir.display()));
+        assert_eq!(
+            out.stdout,
+            format!("{}\n", cur_dir.as_os_str().to_string_lossy())
+        );
     }
 }
