@@ -158,7 +158,7 @@ mod tests {
         0,
         None,
         None,
-        true
+        false // The windows cat variant doesn't support stdin
     )]
     // <-- home dir (tilde):
     #[case::home_1("echo ~", format!("{}", home()), 0, None, None, true)]
