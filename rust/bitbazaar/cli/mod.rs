@@ -53,8 +53,6 @@ mod tests {
 
     static CAT_CMD: &str = if cfg!(windows) { "cmd /c type" } else { "cat" };
 
-    static BAZ_FILE: &str = if cfg!(windows) { "D:/baz" } else { "/baz.txt" };
-
     #[rstest]
     // <-- basics:
     #[case::basic_1("echo 'hello world'", "hello world", 0, None, None, true)]
@@ -110,11 +108,11 @@ mod tests {
             "foo\ncat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory"
         },
         1,
-        Some("foo".into()),
+        Some("foo"),
         Some(if cfg!(windows){
-            "The system cannot find the file specified.\nThe system cannot find the file specified.".into()
+            "The system cannot find the file specified.\nThe system cannot find the file specified."
         } else {
-            "cat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory".into()
+            "cat: non_existent.txt: No such file or directory\ncat: ree.txt: No such file or directory"
         }),
         true
     )]
@@ -149,34 +147,13 @@ mod tests {
     #[case::redir_4("echo foo >/dev/null", "", 0, None, None, true)]
     #[case::redir_5("echo foo 1>/dev/null", "", 0, None, None, true)]
     // Stdout to stderr:
-    #[case::redir_6("echo foo 1>/dev/stderr", "foo", 0, Some("".into()), Some("foo".into()), true)]
-    #[case::redir_7("echo foo 1>&2", "foo", 0, Some("".into()), Some("foo".into()), true)]
-    #[case::redir_8("echo foo 1>/dev/fd/2", "foo", 0, Some("".into()), Some("foo".into()), true)]
+    #[case::redir_6("echo foo 1>/dev/stderr", "foo", 0, Some(""), Some("foo"), true)]
+    #[case::redir_7("echo foo 1>&2", "foo", 0, Some(""), Some("foo"), true)]
+    #[case::redir_8("echo foo 1>/dev/fd/2", "foo", 0, Some(""), Some("foo"), true)]
     // Stderr to stdout:
-    #[case::redir_9(
-        format!("cd {BAZ_FILE} 2>/dev/stdout"),
-        format!("cd: no such file or directory: {BAZ_FILE}"),
-        1,
-        Some(format!("cd: no such file or directory: {BAZ_FILE}")),
-        Some("".into()),
-        true
-    )]
-    #[case::redir_10(
-        format!("cd {BAZ_FILE} 2>&1"),
-        format!("cd: no such file or directory: {BAZ_FILE}"),
-        1,
-        Some(format!("cd: no such file or directory: {BAZ_FILE}")),
-        None,
-        true
-    )]
-    #[case::redir_11(
-        format!("cd {BAZ_FILE} 2>/dev/fd/1"),
-        format!("cd: no such file or directory: {BAZ_FILE}"),
-        1,
-        Some(format!("cd: no such file or directory: {BAZ_FILE}")),
-        Some("".into()),
-        true
-    )]
+    #[case::redir_9("stderr_echo foo 2>/dev/stdout", "foo", 0, Some("foo"), Some(""), true)]
+    #[case::redir_10("stderr_echo foo 2>&1", "foo", 0, Some("foo"), None, true)]
+    #[case::redir_11("stderr_echo foo 2>/dev/fd/1", "foo", 0, Some("foo"), Some(""), true)]
     // Read to stdin:
     #[case::redir_12(
         format!("echo foo > {fp} && <{fp} {CAT_CMD} && rm {fp}", fp=tf()),
@@ -213,13 +190,13 @@ mod tests {
     #[case::lit_4("echo false '$(echo bar)'", "false $(echo bar)", 0, None, None, true)]
     // Don't test on windows this one, the OS seems to override and convert after leaving rust:
     #[case::lit_5("echo '~'", "~", 0, None, None, false)]
-    fn test_bash_basics<S1: Into<String>>(
+    fn test_bash_basics<S: Into<String>>(
         #[case] cmd_str: String,
-        #[case] exp_std_all: S1,
+        #[case] exp_std_all: S,
         #[case] code: i32,
-        #[case] exp_stdout: Option<String>, // Only check if Some()
-        #[case] exp_sterr: Option<String>,  // Only check if Some()
-        #[case] test_on_windows: bool,      // Only check if Some()
+        #[case] exp_stdout: Option<&str>, // Only check if Some()
+        #[case] exp_sterr: Option<&str>,  // Only check if Some()
+        #[case] test_on_windows: bool,    // Only check if Some()
         #[allow(unused_variables)] logging: (),
     ) -> Result<(), AnyErr> {
         if cfg!(windows) && !test_on_windows {

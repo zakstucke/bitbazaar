@@ -37,5 +37,18 @@ pub static BUILTINS: Lazy<HashMap<&'static str, Builtin>> = Lazy::new(|| {
     builtins.insert("pwd", pwd::pwd);
     builtins.insert("exit", exit::exit);
     builtins.insert("set", set::set);
+
+    #[cfg(test)]
+    builtins.insert("stderr_echo", std_err_echo);
+
     builtins
 });
+
+#[cfg(test)]
+fn std_err_echo(_shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
+    Ok(CmdOut {
+        stdout: "".to_string(),
+        stderr: args.join(" "),
+        code: 0,
+    })
+}
