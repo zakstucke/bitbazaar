@@ -1,5 +1,6 @@
 use std::{
     io::{Read, Write},
+    path::PathBuf,
     process,
 };
 
@@ -20,23 +21,23 @@ pub fn handle_redirect(
     Ok(match redirect {
         ast::Redirect::Write(fd, name) => {
             let dest = Target::new(shell, name)?.set_write();
-            Data::new(last_out, fd)?.submit(dest)?
+            Data::new(last_out, fd)?.submit(shell, dest)?
         }
         ast::Redirect::Append(fd, name) => {
             let dest = Target::new(shell, name)?.set_write().set_append();
-            Data::new(last_out, fd)?.submit(dest)?
+            Data::new(last_out, fd)?.submit(shell, dest)?
         }
         ast::Redirect::DupWrite(fd, name) => {
             let dest = Target::new(shell, name)?.set_write();
-            Data::new(last_out, fd)?.submit(dest)?
+            Data::new(last_out, fd)?.submit(shell, dest)?
         }
         ast::Redirect::Read(fd, name) => {
             let dest = Target::new(shell, name)?.set_read();
-            Data::new(last_out, fd)?.submit(dest)?
+            Data::new(last_out, fd)?.submit(shell, dest)?
         }
         ast::Redirect::DupRead(fd, name) => {
             let dest = Target::new(shell, name)?.set_read();
-            Data::new(last_out, fd)?.submit(dest)?
+            Data::new(last_out, fd)?.submit(shell, dest)?
         }
         ast::Redirect::ReadWrite(..) => {
             return Err(err!(
@@ -203,7 +204,7 @@ impl Data {
         })
     }
 
-    fn submit(self, dest: Target) -> Result<RunnerCmdOut, ShellErr> {
+    fn submit(self, shell: &Shell, dest: Target) -> Result<RunnerCmdOut, ShellErr> {
         let mut conc = ConcreteOutput::default();
 
         match dest.variant {
@@ -243,7 +244,15 @@ impl Data {
                     opts.append(true);
                 }
 
-                let mut file = opts.open(name).change_context(ShellErr::InternalError)?;
+                // Make sure relative to current dir if it is a relative path:
+                let mut filepath = PathBuf::from(name);
+                if filepath.is_relative() {
+                    filepath = shell.active_dir()?.join(filepath)
+                }
+
+                let mut file = opts
+                    .open(filepath)
+                    .change_context(ShellErr::InternalError)?;
 
                 if dest.write {
                     self.write(&mut file)?;

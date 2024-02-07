@@ -25,10 +25,13 @@ mod tests {
         default_stdout_global_logging(tracing::Level::DEBUG).unwrap();
     }
 
+    // Temp file:
     fn tf() -> String {
         // Using debug formatting to make sure escaped properly on windows:
         format!("{:?}", NamedTempFile::new().unwrap().path())
     }
+
+    static GLOB_TD: Lazy<tempfile::TempDir> = Lazy::new(|| tempfile::tempdir().unwrap());
 
     static HOME_DIR: Lazy<String> = Lazy::new(|| {
         homedir::get_my_home()
@@ -129,7 +132,7 @@ mod tests {
     // <-- redirection:
     // Write:
     #[case::redir_1(format!("echo foo > {fp} && rm {fp}", fp=tf()), "", 0, None, None, true)]
-    #[case::redir_2(format!("echo foo > {fp} && {CAT_CMD} {fp} && rm {fp}", fp=tf()), "foo", 0, None, None, true)]
+    #[case::redir_2(format!("cd {dp:?} && echo foo > file.txt && {CAT_CMD} file.txt", dp=GLOB_TD.path()), "foo", 0, None, None, true)]
     // Write and append together:
     #[case::redir_3(
         format!("echo foo >> {fp} && echo bar > {fp} && echo ree >> {fp} && {CAT_CMD} {fp} && rm {fp}", fp=tf()),
