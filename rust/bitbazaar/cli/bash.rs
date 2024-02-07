@@ -33,6 +33,7 @@ use crate::prelude::*;
 /// - `"` double quotes
 /// - `\` escaping
 /// - `(...)` simple compound commands e.g. (echo foo && echo bar)
+/// - Basic file/stderr/stdout redirection
 ///
 /// This should theoretically work with multi line full bash scripts but only tested with single line commands.
 pub struct Bash {

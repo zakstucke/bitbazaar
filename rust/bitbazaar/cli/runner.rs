@@ -1,13 +1,17 @@
 use std::{
-    io::{Read, Write},
-    process::{self, ChildStderr, Stdio},
+    io::Write,
+    process::{self, Stdio},
     str,
 };
+
+use conch_parser::ast;
 
 use super::{
     builtins::Builtin,
     errs::{BuiltinErr, ShellErr},
+    redirect::handle_redirect,
     shell::Shell,
+    CmdOut,
 };
 use crate::prelude::*;
 
@@ -17,41 +21,101 @@ pub enum VariCommand {
     Normal(process::Command),
     // Instead of running a command, use the given string as stdin for the next command, or use as stdout if final.
     PipedStdout(String),
-}
-
-/// Allows passing in stdin from precomputed commands run by different runners.
-enum VariStdin {
-    Stdio(Stdio),
-    String(String),
+    Redirect(ast::DefaultRedirect),
 }
 
 #[derive(Default)]
 pub struct PipeRunner {
     pub negate: bool,
     commands: Vec<VariCommand>,
-    stderrs: Vec<ChildStderr>,
+    // These are the individual outputs of the commands, in various formats, previous will be modified/partially consumed depending on later commands.
+    outputs: Vec<RunnerCmdOut>,
+}
+
+pub enum RunnerCmdOut {
+    Concrete(ConcreteOutput),
+    Pending(process::Child),
+}
+
+impl Default for RunnerCmdOut {
+    fn default() -> Self {
+        RunnerCmdOut::Concrete(ConcreteOutput::default())
+    }
+}
+
+#[derive(Default)]
+pub struct ConcreteOutput {
+    pub stdout: Option<String>,
+    pub stderr: Option<String>,
+    pub code: Option<i32>,
+}
+
+impl RunnerCmdOut {
+    fn into_shell(self, shell: &mut Shell) -> Result<(), ShellErr> {
+        match self {
+            RunnerCmdOut::Concrete(conc) => {
+                if let Some(stdout) = conc.stdout {
+                    shell.stdout.push_str(&stdout);
+                }
+
+                if let Some(stderr) = conc.stderr {
+                    shell.stderr.push_str(&stderr);
+                }
+
+                if let Some(code) = conc.code {
+                    shell.code = code;
+                }
+            }
+            // This is probably the last command:
+            RunnerCmdOut::Pending(child) => {
+                let output = child
+                    .wait_with_output()
+                    .change_context(ShellErr::InternalError)?;
+
+                shell.stdout.push_str(
+                    str::from_utf8(&output.stdout).change_context(ShellErr::InternalError)?,
+                );
+                shell.stderr.push_str(
+                    str::from_utf8(&output.stderr).change_context(ShellErr::InternalError)?,
+                );
+                shell.code = output.status.code().unwrap_or(1);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl From<CmdOut> for RunnerCmdOut {
+    fn from(cmd_out: CmdOut) -> Self {
+        RunnerCmdOut::Concrete(ConcreteOutput {
+            stdout: Some(cmd_out.stdout),
+            stderr: Some(cmd_out.stderr),
+            code: Some(cmd_out.code),
+        })
+    }
 }
 
 impl PipeRunner {
     /// Add a new command to the runner.
-    pub fn add(&mut self, args: &[&str]) -> Result<(), ShellErr> {
+    pub fn add(&mut self, args: Vec<String>) -> Result<(), ShellErr> {
         let first_arg = args
-            .iter()
-            .next()
-            .ok_or_else(|| err!(ShellErr::InternalError, "No command provided"))?;
+            .first()
+            .ok_or_else(|| err!(ShellErr::InternalError, "No command provided"))?
+            .to_string();
 
         // Either use a rust builtin if implemented, or delegate to the OS:
-        let vari = if let Some(builtin) = super::builtins::BUILTINS.get(first_arg) {
+        let vari = if let Some(builtin) = super::builtins::BUILTINS.get(first_arg.as_str()) {
             VariCommand::Builtin(
-                first_arg.to_string(),
+                first_arg,
                 *builtin,
                 // Remaining args:
-                args.iter().skip(1).map(|s| s.to_string()).collect(),
+                args.into_iter().skip(1).collect(),
             )
         } else {
             let mut cmd = process::Command::new(first_arg);
             if args.len() > 1 {
-                cmd.args(args.iter().skip(1));
+                cmd.args(args.into_iter().skip(1));
             }
             VariCommand::Normal(cmd)
         };
@@ -60,29 +124,22 @@ impl PipeRunner {
         Ok(())
     }
 
+    pub fn add_redirect(&mut self, redirect: &ast::DefaultRedirect) -> Result<(), ShellErr> {
+        self.commands.push(VariCommand::Redirect(redirect.clone()));
+        Ok(())
+    }
+
     pub fn add_piped_stdout(&mut self, stdout: String) {
         self.commands.push(VariCommand::PipedStdout(stdout));
     }
 
     pub fn run(mut self, shell: &mut Shell) -> Result<(), ShellErr> {
-        let num_cmds = self.commands.len();
-
-        let mut stdin: Option<VariStdin> = None;
-        for (index, command) in self.commands.into_iter().enumerate() {
-            let is_last = index == num_cmds - 1;
-
-            match command {
+        for command in self.commands.into_iter() {
+            let last_out = self.outputs.last_mut();
+            let next_out: RunnerCmdOut = match command {
+                VariCommand::Redirect(redirect) => handle_redirect(shell, last_out, redirect)?,
                 VariCommand::Builtin(name, builtin, args) => match builtin(shell, &args) {
-                    Ok(cmd_out) => {
-                        shell.stderr.push_str(&cmd_out.stderr);
-                        // If last, set shell stdout and code, otherwise pipe into next command:
-                        if is_last {
-                            shell.stdout.push_str(&cmd_out.stdout);
-                            shell.code = cmd_out.code;
-                        } else {
-                            stdin = Some(VariStdin::String(cmd_out.stdout));
-                        }
-                    }
+                    Ok(cmd_out) => cmd_out.into(),
                     Err(mut e) => {
                         e = e.attach_printable(format!("Command: '{}' args: '{:?}'", name, args));
                         match e.current_context() {
@@ -96,15 +153,11 @@ impl PipeRunner {
                         }
                     }
                 },
-                VariCommand::PipedStdout(stdout) => {
-                    if !is_last {
-                        // If not last, need to use this as the stdin to the next command:
-                        stdin = Some(VariStdin::String(stdout));
-                    } else {
-                        // If last command, just use as output:
-                        shell.stdout.push_str(&stdout);
-                    }
-                }
+                VariCommand::PipedStdout(stdout) => RunnerCmdOut::Concrete(ConcreteOutput {
+                    stdout: Some(stdout),
+                    stderr: None,
+                    code: None,
+                }),
                 VariCommand::Normal(mut command) => {
                     // Set the working dir:
                     command.current_dir(shell.active_dir()?);
@@ -114,14 +167,21 @@ impl PipeRunner {
 
                     // Pipe in stdin if needed:
                     let mut str_stdin = None;
-                    if let Some(stdin) = stdin.take() {
-                        match stdin {
-                            VariStdin::Stdio(stdio) => {
-                                command.stdin(stdio);
+                    if let Some(last_out) = last_out {
+                        match last_out {
+                            // Might contain stdout, in which case take it and use as stdin:
+                            RunnerCmdOut::Concrete(conc) => {
+                                if let Some(stdout) = conc.stdout.take() {
+                                    str_stdin = Some(stdout);
+                                    command.stdin(Stdio::piped());
+                                }
                             }
-                            VariStdin::String(s) => {
-                                str_stdin = Some(s);
-                                command.stdin(Stdio::piped());
+
+                            // Child process, pipe its handle through to the next command, keeping track of the stderr:
+                            RunnerCmdOut::Pending(child) => {
+                                if let Some(stdout) = child.stdout.take() {
+                                    command.stdin(stdout);
+                                }
                             }
                         };
                     }
@@ -144,74 +204,38 @@ impl PipeRunner {
                                     .change_context(ShellErr::InternalError)?;
                             }
 
-                            // Not last command, need to pipe into next:
-                            if !is_last {
-                                let stdout_handle = child.stdout.ok_or_else(|| {
-                                    err!(
-                                        ShellErr::InternalError,
-                                        "No stdout handle from previous command."
-                                    )
-                                })?;
-
-                                let stderr_handle = child.stderr.ok_or_else(|| {
-                                    err!(
-                                        ShellErr::InternalError,
-                                        "No stderr handle from previous command."
-                                    )
-                                })?;
-
-                                self.stderrs.push(stderr_handle);
-                                stdin = Some(VariStdin::Stdio(stdout_handle.into()));
-                            } else {
-                                // Last command, need to finalise all:
-
-                                // Wait for the output of the final command:
-                                let output = child
-                                    .wait_with_output()
-                                    .change_context(ShellErr::InternalError)?;
-
-                                // Load in the stderrs from previous commands:
-                                for mut stderr in std::mem::take(&mut self.stderrs) {
-                                    stderr
-                                        .read_to_string(&mut shell.stderr)
-                                        .change_context(ShellErr::InternalError)?;
-                                }
-
-                                // Add on the stderr from the final command:
-                                shell.stderr.push_str(
-                                    str::from_utf8(&output.stderr)
-                                        .change_context(ShellErr::InternalError)?
-                                        .to_string()
-                                        .as_str(),
-                                );
-
-                                // Read the out from the final command:
-                                shell.stdout.push_str(
-                                    str::from_utf8(&output.stdout)
-                                        .change_context(ShellErr::InternalError)?,
-                                );
-
-                                shell.code = output.status.code().unwrap_or(1);
-                            }
+                            RunnerCmdOut::Pending(child)
                         }
                         Err(e) => {
                             // Command might error straight away, in which case convert the err to stderr.
                             // this gives more or less parity with bash:
-
-                            let err_out = e.to_string();
-                            if !err_out.trim().is_empty() {
-                                shell.stderr.push_str(&err_out);
-                                if !shell.stderr.ends_with('\n') {
-                                    shell.stderr.push('\n');
-                                }
-                            }
-
-                            // If the spawn errored, something went wrong, so set the code:
-                            shell.code = e.raw_os_error().unwrap_or(1);
+                            RunnerCmdOut::Concrete(ConcreteOutput {
+                                // If the spawn errored, something went wrong, so set the code:
+                                code: Some(e.raw_os_error().unwrap_or(1)),
+                                stdout: None,
+                                stderr: {
+                                    let mut err_out = e.to_string();
+                                    if !err_out.trim().is_empty() {
+                                        if !err_out.ends_with('\n') {
+                                            err_out.push('\n');
+                                        }
+                                        Some(err_out)
+                                    } else {
+                                        None
+                                    }
+                                },
+                            })
                         }
                     }
                 }
             };
+
+            self.outputs.push(next_out);
+        }
+
+        // Load all the outputs into the shell:
+        for output in self.outputs {
+            output.into_shell(shell)?;
         }
 
         // Negate the code if needed:

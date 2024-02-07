@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    mem,
     path::{Path, PathBuf},
     str,
 };
@@ -237,16 +238,11 @@ impl Shell {
         pipe_runner: &mut PipeRunner,
         cmd: &ast::DefaultSimpleCommand,
     ) -> Result<(), ShellErr> {
-        // Get the environment variables the command (and all inner) need:
-        let env = cmd
-            .redirects_or_env_vars
-            .iter()
-            .map(|env_var| match env_var {
-                ast::RedirectOrEnvVar::Redirect(_) => Err(err!(
-                    ShellErr::BashFeatureUnsupported,
-                    "Redirection not implemented."
-                )
-                .attach_printable(format!("{env_var:?}"))),
+        let mut env = Vec::<(String, String)>::new();
+
+        for item in cmd.redirects_or_env_vars.iter() {
+            match item {
+                ast::RedirectOrEnvVar::Redirect(redirect) => pipe_runner.add_redirect(redirect)?,
                 ast::RedirectOrEnvVar::EnvVar(name, val) => {
                     let value = if let Some(val) = val {
                         self.process_complex_word(&val.0)?
@@ -254,25 +250,9 @@ impl Shell {
                         "".to_string()
                     };
                     debug!("Setting env var: '{}'='{}'", name, value);
-                    Ok((name, value))
+                    env.push((name.to_string(), value));
                 }
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let mut args = Vec::with_capacity(cmd.redirects_or_cmd_words.len());
-        for arg in cmd.redirects_or_cmd_words.iter() {
-            let arg_str = match arg {
-                ast::RedirectOrCmdWord::Redirect(redirect) => {
-                    return Err(err!(
-                        ShellErr::BashFeatureUnsupported,
-                        "Redirection not implemented."
-                    )
-                    .attach_printable(format!("{redirect:?}")))
-                }
-                ast::RedirectOrCmdWord::CmdWord(word) => self.process_complex_word(&word.0)?,
-            };
-
-            args.push(arg_str);
+            }
         }
 
         // Add the env vars to the current shell to in this command, later and parser expansions etc:
@@ -280,20 +260,33 @@ impl Shell {
             self.vars.insert(name.to_string(), val.to_string());
         }
 
-        // Add only if has args, e.g. this command was "bar=3;" then no os command is actually needed:
+        let mut args = vec![];
+        for arg in cmd.redirects_or_cmd_words.iter() {
+            match arg {
+                ast::RedirectOrCmdWord::CmdWord(word) => {
+                    args.push(self.process_complex_word(&word.0)?)
+                }
+                ast::RedirectOrCmdWord::Redirect(redirect) => {
+                    // A redirect occurring, split off into 2 commands surrounding the redirect:
+                    let args_partial = mem::take(&mut args);
+                    pipe_runner.add(args_partial)?;
+                    pipe_runner.add_redirect(redirect)?;
+                }
+            }
+        }
+
+        // Only add final if args exist:
         if !args.is_empty() {
-            pipe_runner.add(
-                args.iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .as_slice(),
-            )?;
+            pipe_runner.add(args)?;
         };
 
         Ok(())
     }
 
-    fn process_complex_word(&mut self, word: &ast::DefaultComplexWord) -> Result<String, ShellErr> {
+    pub fn process_complex_word(
+        &mut self,
+        word: &ast::DefaultComplexWord,
+    ) -> Result<String, ShellErr> {
         match word {
             ast::ComplexWord::Single(word) => self.process_word(word, None, false),
             ast::ComplexWord::Concat(words) => {
