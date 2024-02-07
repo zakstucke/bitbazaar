@@ -353,8 +353,10 @@ impl Shell {
             }
             ast::SimpleWord::Param(param) => self.process_param(param)?,
             ast::SimpleWord::Subst(sub) => self.process_substitution(sub)?,
+
             ast::SimpleWord::Colon => {
-                return Err(unsup("':', useful for handling tilde expansions."));
+                // Colon does have some special meaning, but not currently supporting and also has normal meaning (e.g. on windows), so leaving as is:
+                ":".to_string()
             }
             ast::SimpleWord::Question => {
                 return Err(unsup("'?', useful for handling pattern expansions."));
