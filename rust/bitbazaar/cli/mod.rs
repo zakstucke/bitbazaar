@@ -2,6 +2,7 @@ mod bash;
 mod builtins;
 mod cmd_out;
 mod errs;
+mod redirect;
 mod runner;
 mod shell;
 
@@ -14,6 +15,7 @@ mod tests {
     use normpath::PathExt;
     use once_cell::sync::Lazy;
     use rstest::*;
+    use tempfile::NamedTempFile;
 
     use super::*;
     use crate::{errors::prelude::*, logging::default_stdout_global_logging};
@@ -21,6 +23,11 @@ mod tests {
     #[fixture]
     fn logging() -> () {
         default_stdout_global_logging(tracing::Level::DEBUG).unwrap();
+    }
+
+    fn tf() -> String {
+        // Using debug formatting to make sure escaped properly on windows:
+        format!("{:?}", NamedTempFile::new().unwrap().path())
     }
 
     static HOME_DIR: Lazy<String> = Lazy::new(|| {
@@ -118,6 +125,40 @@ mod tests {
         None,
         None,
         true
+    )]
+    // <-- redirection:
+    // Write:
+    #[case::redir_1(format!("echo foo > {fp} && rm {fp}", fp=tf()), "", 0, None, None, true)]
+    #[case::redir_2(format!("echo foo > {fp} && {CAT_CMD} {fp} && rm {fp}", fp=tf()), "foo", 0, None, None, true)]
+    // Write and append together:
+    #[case::redir_3(
+        format!("echo foo >> {fp} && echo bar > {fp} && echo ree >> {fp} && {CAT_CMD} {fp} && rm {fp}", fp=tf()),
+        // Second should override the first, then final ree is appended:
+        "bar\nree",
+        0,
+        None,
+        None,
+        true
+    )]
+    // Stdout to null:
+    #[case::redir_4("echo foo >/dev/null", "", 0, None, None, true)]
+    #[case::redir_5("echo foo 1>/dev/null", "", 0, None, None, true)]
+    // Stdout to stderr:
+    #[case::redir_6("echo foo 1>/dev/stderr", "foo", 0, Some(""), Some("foo"), true)]
+    #[case::redir_7("echo foo 1>&2", "foo", 0, Some(""), Some("foo"), true)]
+    #[case::redir_8("echo foo 1>/dev/fd/2", "foo", 0, Some(""), Some("foo"), true)]
+    // Stderr to stdout:
+    #[case::redir_9("stderr_echo foo 2>/dev/stdout", "foo", 0, Some("foo"), Some(""), true)]
+    #[case::redir_10("stderr_echo foo 2>&1", "foo", 0, Some("foo"), None, true)]
+    #[case::redir_11("stderr_echo foo 2>/dev/fd/1", "foo", 0, Some("foo"), Some(""), true)]
+    // Read to stdin:
+    #[case::redir_12(
+        format!("echo foo > {fp} && <{fp} {CAT_CMD} && rm {fp}", fp=tf()),
+        "foo",
+        0,
+        None,
+        None,
+        false // The windows cat variant doesn't support stdin
     )]
     // <-- home dir (tilde):
     #[case::home_1("echo ~", format!("{}", home()), 0, None, None, true)]
