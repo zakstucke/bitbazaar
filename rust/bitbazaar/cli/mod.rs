@@ -26,11 +26,8 @@ mod tests {
     }
 
     fn tf() -> String {
-        NamedTempFile::new()
-            .unwrap()
-            .path()
-            .to_string_lossy()
-            .to_string()
+        // Using debug formatting to make sure escaped properly on windows:
+        format!("{:?}", NamedTempFile::new().unwrap().path())
     }
 
     static HOME_DIR: Lazy<String> = Lazy::new(|| {
