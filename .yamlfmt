@@ -1,3 +1,5 @@
+doublestar: true  # Include/exclude patterns will use git style globbing
+
 formatter:
   type: basic
   max_line_length: 100

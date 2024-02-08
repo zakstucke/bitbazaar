@@ -6,8 +6,6 @@ build-backend = "maturin"
 python-source = "python"
 module-name = "bitbazaar_rs._rs"
 
-dependencies = []
-
 [project]
 name = "bitbazaar_rs"
 description = "An assortment of publicly available cross-language utilities useful to my projects."
@@ -31,6 +29,9 @@ classifiers = [
   'Programming Language :: Rust',
   'License :: OSI Approved',
 ]
+
+# Python deps:
+dependencies = []
 
 [project.urls]
 "Sourcecode" = "https://github.com/zakstucke/bitbazaar"
