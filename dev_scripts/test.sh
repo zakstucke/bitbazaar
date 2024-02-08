@@ -100,7 +100,8 @@ py_rust () {
         source .venv/bin/activate
     fi
 
-    cargo nextest run
+    # Have to specify to compile in debug mode (meaning it will use the install_debug call above)
+    cargo nextest run --cargo-profile dev --all-features
     python -m pytest $@
     deactivate
     cd ..
@@ -108,7 +109,7 @@ py_rust () {
 
 rust () {
 
-    cargo nextest run --manifest-path ./rust/Cargo.toml --all-features $@
+    cargo nextest run --cargo-profile dev --manifest-path ./rust/Cargo.toml --all-features $@
 }
 
 docs () {
