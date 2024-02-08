@@ -221,6 +221,7 @@ jobs:
         with:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
 
+
       - name: Install Node.js
         uses: actions/setup-node@v2
         with:
@@ -323,6 +324,7 @@ jobs:
 
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
       - name: upload to Crates.io
         run: |
           cd rust

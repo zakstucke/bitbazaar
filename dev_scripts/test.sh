@@ -103,6 +103,7 @@ py_rust () {
     # Have to specify to compile in debug mode (meaning it will use the install_debug call above)
     cargo nextest run --cargo-profile dev --all-features
     python -m pytest $@
+
     deactivate
     cd ..
 }
