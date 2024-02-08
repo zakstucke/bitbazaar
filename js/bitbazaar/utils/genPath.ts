@@ -3,7 +3,7 @@
  * Works with filepaths and urls, with dynamic defaults depending on what comes in.
  */
 export const genPath = (
-    path: string,
+    path_in: string,
     {
         sShlash = undefined, // If isn't a root url (e.g. starting with http), or a relative path, then will default to true, otherwise false
         eSlash = undefined, // NOTE! defaults to true if dir, false if file
@@ -15,7 +15,7 @@ export const genPath = (
     } = {},
 ): string => {
     // Strip any leading or trailing whitespace:
-    path = path.trim();
+    let path = path_in.trim();
     if (extra) {
         extra = extra.map((e) => e.trim());
     }

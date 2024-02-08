@@ -2,323 +2,337 @@ name: Package Release
 
 # A manual workflow, triggered from the UI
 on:
-    workflow_dispatch:
-        branches:
-            - main
-        inputs:
-            py_release:
-                description: "Python Release"
-                type: boolean
-                required: false
-                default: false
-            py_version:
-                description: "Python Version (now 0.0.2)"
-                default: "0.0.2"
-            js_release:
-                description: "JS Release"
-                type: boolean
-                required: false
-                default: false
-            js_version:
-                description: "JS Version (now 0.0.22)"
-                default: "0.0.22"
-            py_rust_release:
-                description: "Rust-backed Python Release"
-                type: boolean
-                required: false
-                default: false
-            py_rust_version:
-                description: "Rust-backed Python Version (now 0.0.3)"
-                default: "0.0.3"
-            rust_release:
-                description: "Rust Release"
-                type: boolean
-                required: false
-                default: false
-            rust_version:
-                description: "Rust Version (now 0.0.28)"
-                default: "0.0.28"
+  workflow_dispatch:
+    branches:
+      - main
+    inputs:
+      py_release:
+        description: "Python Release"
+        type: boolean
+        required: false
+        default: false
+      py_version:
+        description: "Python Version"
+        default: "0.0.0"
+      js_release:
+        description: "JS Release"
+        type: boolean
+        required: false
+        default: false
+      js_version:
+        description: "JS Version"
+        default: "0.0.0"
+      py_rust_release:
+        description: "Rust-backed Python Release"
+        type: boolean
+        required: false
+        default: false
+      py_rust_version:
+        description: "Rust-backed Python Version"
+        default: "0.0.0"
+      rust_release:
+        description: "Rust Release"
+        type: boolean
+        required: false
+        default: false
+      rust_version:
+        description: "Rust Version"
+        default: "0.0.0"
 
 jobs:
-    commit_versions:
-        name: Bump Pkg Versions
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-        outputs:
-            new-sha: ${{ steps.sha.outputs.SHA }}
-        steps:
-            - name: Checks out repo with a token that allows pushing to main without PR
-              uses: actions/checkout@v4
-              with:
-                  token: ${{ secrets.VERSION_BOT_PAT }}
-            - uses: actions/setup-python@v4
-            - uses: ./.github/actions/install-pre-commit
-
-            - name: Set up PDM
-              if: ${{ inputs.py_release }}
-              uses: pdm-project/setup-pdm@v3
-              with:
-                  python-version: "3.12"
-                  cache: true
-                  cache-dependency-path: "py/pdm.lock"
-            - name: Update Python version
-              if: ${{ inputs.py_release }}
-              run: |
-                  ./dev_scripts/pkg.sh ver_py_update ${{ inputs.py_version }}
-
-            # Js project
-            - name: "Install Bun, no npm should be needed"
-              if: ${{ inputs.js_release }}
-              uses: oven-sh/setup-bun@v1
-              with:
-                  bun-version: latest
-            - name: Install js dependencies
-              if: ${{ inputs.js_release }}
-              run: |
-                  cd ./js
-                  bun install
-
-            # Formatting and checking uses nightly rather than stable:
-            - uses: dtolnay/rust-toolchain@nightly
-              if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
-              with:
-                  components: rustfmt, clippy
-
-            - name: Update Rust-backed Python version
-              if: ${{ inputs.py_rust_release }}
-              run: |
-                  ./dev_scripts/pkg.sh ver_py_rust_update ${{ inputs.py_rust_version }}
-
-            - name: Update Rust version
-              if: ${{ inputs.rust_release }}
-              run: |
-                  ./dev_scripts/pkg.sh ver_rust_update ${{ inputs.rust_version }}
-
-            - name: add and format added files with pre-commit
-              # Running on staged change only as that's all that's needed, || true as don't want it to fail, just modify
-              run: |
-                  git add . &&
-                  ./dev_scripts/test.sh pre_till_success &&
-                  git add .
-
-            - name: Commit the new version to the repo
-              uses: EndBug/add-and-commit@v9
-              with:
-                  push: true
-                  message: "chore: bump package versions for release"
-                  author_name: github-actions
-                  author_email: action@github.com
-
-            - name: get sha
-              id: sha
-              run: |
-                  sha_new=$(git rev-parse HEAD)
-                  echo $sha_new
-                  echo "::set-output name=SHA::$sha_new"
-
-            - run: echo ${{ steps.sha.outputs.SHA }}
-
-    # Rebuild docs each time this is run, note there is currently no versioning in the docs for each of the individually packages, will need to be added when a public package is being properly released
-    docs:
-        name: Docs Release
-        needs: [commit_versions]
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  ref: ${{ needs.commit_versions.outputs.new-sha }}
-
-            - name: Set up PDM
-              uses: pdm-project/setup-pdm@v3
-              with:
-                  python-version: "3.12"
-                  cache: true
-                  cache-dependency-path: "docs/pdm.lock"
-
-            - name: Install dependencies
-              run: |
-                  pdm sync -p ./docs
-
-            - name: Install Node.js
-              uses: actions/setup-node@v2
-              with:
-                  node-version: "20"
-
-            - name: Build docs
-              run: |
-                  ./dev_scripts/docs.sh build
-
-            - name: Deploy to GitHub Pages
-              uses: crazy-max/ghaction-github-pages@v4
-              with:
-                  keep_history: true
-                  target_branch: docs-site
-                  build_dir: site
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    py_release:
-        name: Python Release
-        needs: [commit_versions]
-        # Run only if requested:
-        if: ${{ inputs.py_release }}
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  ref: ${{ needs.commit_versions.outputs.new-sha }}
-
-            - name: Set up PDM
-              uses: pdm-project/setup-pdm@v3
-              with:
-                  python-version: "3.12"
-                  cache: true
-                  cache-dependency-path: "py/pdm.lock"
-
-            - name: Publish package publicly to PyPI
-              run: |
-                  export PDM_PUBLISH_USERNAME="__token__"
-                  export PDM_PUBLISH_PASSWORD="${{ secrets.PYPI_TOKEN }}"
-                  pdm publish -p ./py --repository pypi
-
-            - name: Publish the release notes
-              uses: release-drafter/release-drafter@v5
-              with:
-                  publish: true
-                  tag: "v${{ inputs.py_version }}_py"
-                  name: "v${{ inputs.py_version }} - Python"
-              env:
-                  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-    js_release:
-        name: JS Release
-        needs: [commit_versions]
-        # Run only if requested:
-        if: ${{ inputs.js_release }}
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  ref: ${{ needs.commit_versions.outputs.new-sha }}
-
-            - name: Install Node.js
-              uses: actions/setup-node@v2
-              with:
-                  node-version: "20"
-
-            - name: Install deps, build lib and copy package.json and README.md to dist which is published as root
-              run: |
-                  cd js
-                  npm install
-                  npm run build
-                  cp package.json dist/
-                  cp README.md dist/
-
-            - name: Publish publicly to NPM
-              run: |
-                  cd js/dist
-                  npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
-                  npm publish
-
-            - name: Publish the release notes
-              uses: release-drafter/release-drafter@v5
-              with:
-                  publish: true
-                  tag: "v${{ inputs.js_version }}_js"
-                  name: "v${{ inputs.js_version }} - JS"
-              env:
-                  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-    py_rust_build:
-        needs: [commit_versions]
-        # Run only if requested:
-        if: ${{ inputs.py_rust_release }}
-        uses: ./.github/workflows/py-rust-build.yml
+  commit_versions:
+    name: Bump Pkg Versions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      new-sha: ${{ steps.sha.outputs.SHA }}
+    steps:
+      - name: Checks out repo with a token that allows pushing to main without PR
+        uses: actions/checkout@v4
         with:
-            new-sha: ${{ needs.commit_versions.outputs.new-sha }}
+          token: ${{ secrets.VERSION_BOT_PAT }}
+      - uses: actions/setup-python@v4
+      - uses: ./.github/actions/install-pre-commit
 
-    py_rust_release:
-        name: Rust-backed Python Library Release
-        # Make needs multiline:
-        needs: [commit_versions, py_rust_build]
-        # Run only if requested:
+      - name: Install zetch
+        run: pip install zetch
+
+      - name: Set up PDM
+        if: ${{ inputs.py_release }}
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: "3.12"
+          cache: true
+          cache-dependency-path: 'py/pdm.lock'
+      - name: Update Python version
+        if: ${{ inputs.py_release }}
+        run: |
+          zetch put zetch.config.toml context.static.PY_VERSION.value ${{ inputs.py_version }}
+
+      # Js project
+      - name: "Install Bun, no npm should be needed"
+        if: ${{ inputs.js_release }}
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Install js dependencies
+        if: ${{ inputs.js_release }}
+        run: |
+          cd ./js
+          bun install
+      - name: Update JS version
+        if: ${{ inputs.js_release }}
+        run: |
+          zetch put zetch.config.toml context.static.JS_VERSION.value ${{ inputs.js_version }}
+
+      # Formatting and checking uses nightly rather than stable:
+      - uses: dtolnay/rust-toolchain@nightly
+        if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
+        with:
+          components: rustfmt, clippy
+
+      - name: Update Rust-backed Python version
         if: ${{ inputs.py_rust_release }}
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  ref: ${{ needs.commit_versions.outputs.new-sha }}
+        run: |
+          zetch put zetch.config.toml context.static.PY_RUST_VERSION.value ${{ inputs.py_rust_version }}
 
-            - name: get dist artifacts built in py_rust_build job
-              uses: actions/download-artifact@v3
-              with:
-                  name: py_rust_build_files
-                  path: py_rust/dist
-
-            - uses: actions/setup-python@v4
-              with:
-                  python-version: "3.12"
-            - run: pip install twine
-
-            - name: Make sure release contents seem valid
-              run: twine check py_rust/dist/*
-
-            - name: upload to pypi
-              run: twine upload py_rust/dist/*
-              env:
-                  TWINE_USERNAME: __token__
-                  TWINE_PASSWORD: "${{ secrets.PYPI_TOKEN }}"
-
-            - name: Publish the release notes
-              uses: release-drafter/release-drafter@v5
-              with:
-                  publish: true
-                  tag: "v${{ inputs.py_rust_version }}_py_rs"
-                  name: "v${{ inputs.py_rust_version }} - Rust-backed Python Library"
-              env:
-                  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-    rs_release:
-        name: Rust Release
-        needs: [commit_versions]
-        # Run only if requested:
+      - name: Update Rust version
         if: ${{ inputs.rust_release }}
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  ref: ${{ needs.commit_versions.outputs.new-sha }}
+        run: |
+          zetch put zetch.config.toml context.static.RUST_VERSION.value ${{ inputs.rust_version }}
 
-            - name: Install rust toolchain
-              uses: dtolnay/rust-toolchain@stable
+      - name: add and format added files with pre-commit
+        # Running on staged change only as that's all that's needed, || true as don't want it to fail, just modify
+        run: |
+          git add . &&
+          ./dev_scripts/test.sh pre_till_success &&
+          git add .
 
-            - name: upload to Crates.io
-              run: |
-                  cd rust
-                  cargo publish --token ${{ secrets.CRATES_TOKEN }}
+      - name: Commit the new version to the repo
+        uses: EndBug/add-and-commit@v9
+        with:
+          push: true
+          message: "chore: bump package versions for release"
+          author_name: github-actions
+          author_email: action@github.com
 
-            - name: Publish the release notes
-              uses: release-drafter/release-drafter@v5
-              with:
-                  publish: true
-                  tag: "v${{ inputs.rust_version }}_rs"
-                  name: "v${{ inputs.rust_version }} - Rust"
-              env:
-                  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: get sha
+        id: sha
+        run: |
+          sha_new=$(git rev-parse HEAD)
+          echo $sha_new
+          echo "::set-output name=SHA::$sha_new"
+
+      - run: echo ${{ steps.sha.outputs.SHA }}
+
+  # Rebuild docs each time this is run, note there is currently no versioning in the docs for each of the individually packages, will need to be added when a public package is being properly released
+  docs:
+    name: Docs Release
+    needs: [commit_versions]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.commit_versions.outputs.new-sha }}
+
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: "3.12"
+          cache: true
+          cache-dependency-path: 'docs/pdm.lock'
+
+      - name: Install dependencies
+        run: |
+          pdm sync -p ./docs
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Build docs
+        run: |
+          ./dev_scripts/docs.sh build
+
+      - name: Deploy to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          keep_history: true
+          target_branch: docs-site
+          build_dir: site
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  py_release:
+    name: Python Release
+    needs: [commit_versions]
+    # Run only if requested:
+    if: ${{ inputs.py_release }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.commit_versions.outputs.new-sha }}
+
+
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: "3.12"
+          cache: true
+          cache-dependency-path: 'py/pdm.lock'
+
+      - name: Publish package publicly to PyPI
+        run: |
+          export PDM_PUBLISH_USERNAME='__token__'
+          export PDM_PUBLISH_PASSWORD='${{ secrets.PYPI_TOKEN }}'
+          pdm publish -p ./py --repository pypi
+
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v5
+        with:
+          publish: true
+          tag: "v${{ inputs.py_version }}_py"
+          name: "v${{ inputs.py_version }} - Python"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+
+  js_release:
+    name: JS Release
+    needs: [commit_versions]
+    # Run only if requested:
+    if: ${{ inputs.js_release }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.commit_versions.outputs.new-sha }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install deps, build lib and copy package.json and README.md to dist which is published as
+          root
+        run: |
+          cd js
+          npm install
+          npm run build
+          cp package.json dist/
+          cp README.md dist/
+
+      - name: Publish publicly to NPM
+        run: |
+          cd js/dist
+          npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+          npm publish
+
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v5
+        with:
+          publish: true
+          tag: "v${{ inputs.js_version }}_js"
+          name: "v${{ inputs.js_version }} - JS"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+
+
+  py_rust_build:
+    needs: [commit_versions]
+    # Run only if requested:
+    if: ${{ inputs.py_rust_release }}
+    uses: ./.github/workflows/py-rust-build.yml
+    with:
+      new-sha: ${{ needs.commit_versions.outputs.new-sha }}
+
+  py_rust_release:
+    name: Rust-backed Python Library Release
+    # Make needs multiline:
+    needs: [commit_versions, py_rust_build]
+    # Run only if requested:
+    if: ${{ inputs.py_rust_release }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.commit_versions.outputs.new-sha }}
+
+
+      - name: get dist artifacts built in py_rust_build job
+        uses: actions/download-artifact@v3
+        with:
+          name: py_rust_build_files
+          path: py_rust/dist
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - run: pip install twine
+
+      - name: Make sure release contents seem valid
+        run: twine check py_rust/dist/*
+
+      - name: upload to pypi
+        run: twine upload py_rust/dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: "${{ secrets.PYPI_TOKEN }}"
+
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v5
+        with:
+          publish: true
+          tag: "v${{ inputs.py_rust_version }}_py_rs"
+          name: "v${{ inputs.py_rust_version }} - Rust-backed Python Library"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+
+  rs_release:
+    name: Rust Release
+    needs: [commit_versions]
+    # Run only if requested:
+    if: ${{ inputs.rust_release }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.commit_versions.outputs.new-sha }}
+
+
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: upload to Crates.io
+        run: |
+          cd rust
+          cargo publish --token ${{ secrets.CRATES_TOKEN }}
+
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v5
+        with:
+          publish: true
+          tag: "v${{ inputs.rust_version }}_rs"
+          name: "v${{ inputs.rust_version }} - Rust"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

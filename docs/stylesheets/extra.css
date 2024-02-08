@@ -1,15 +1,15 @@
 :root {
-    /* https://github.com/squidfunk/mkdocs-material/blob/master/src/templates/assets/stylesheets/main/_colors.scss */
+  /* https://github.com/squidfunk/mkdocs-material/blob/master/src/templates/assets/stylesheets/main/_colors.scss */
 
-    /* Note we've only set this up to support the dark mode / slate base: */
+  /* Note we've only set this up to support the dark mode / slate base: */
 
-    /* Primary color shades */
-    --md-primary-fg-color: #a16eff;
-    --md-primary-fg-color--dark: #a16eff;
-    --md-primary-bg-color: #ffffff;
+  /* Primary color shades */
+  --md-primary-fg-color: #a16eff;
+  --md-primary-fg-color--dark: #a16eff;
+  --md-primary-bg-color: #ffffff;
 
-    /* Accent color shades */
-    --md-accent-fg-color: #ae82ff;
-    --md-accent-fg-color--transparent: #a16eff10; /* The 10 added at the end gives it 10% alpha */
-    --md-accent-bg-color: #ffffff;
+  /* Accent color shades */
+  --md-accent-fg-color: #ae82ff;
+  --md-accent-fg-color--transparent: #a16eff10; /* The 10 added at the end gives it 10% alpha */
+  --md-accent-bg-color: #ffffff;
 }

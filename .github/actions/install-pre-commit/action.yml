@@ -4,16 +4,16 @@
 name: install pre-commit
 description: "install pre-commit but don't run it"
 runs:
-    using: composite
-    steps:
-        - run: python -m pip install pre-commit
-          shell: bash
-        - run: python -m pip freeze --local
-          shell: bash
-        - uses: actions/cache@v3
-          with:
-              path: ~/.cache/pre-commit
-              key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
-        - name: Make sure pre-commit installed and up to date
-          shell: bash
-          run: pre-commit install --install-hooks
+  using: composite
+  steps:
+    - run: python -m pip install pre-commit
+      shell: bash
+    - run: python -m pip freeze --local
+      shell: bash
+    - uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+    - name: Make sure pre-commit installed and up to date
+      shell: bash
+      run: pre-commit install --install-hooks

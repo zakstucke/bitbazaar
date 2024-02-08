@@ -1,6 +1,6 @@
 import preact from "@preact/preset-vite";
 import { minify } from "html-minifier-terser";
-import { defineConfig, UserConfig } from "vite";
+import { type UserConfig, defineConfig } from "vite";
 import checker from "vite-plugin-checker";
 import Inspect from "vite-plugin-inspect";
 import { VitePWA } from "vite-plugin-pwa";
@@ -9,7 +9,7 @@ import { genPath } from "@root/utils/genPath";
 
 import fs from "fs/promises";
 
-import { genBackendProxies, ProxyConf } from "./genProxy";
+import { type ProxyConf, genBackendProxies } from "./genProxy";
 
 const baseNonFrontendGlobs: string[] = [
     "**/.git/**",
@@ -113,7 +113,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
         throw new Error(`Unexpected vite mode: ${mode}`);
     }
 
-    // eslint-disable-next-line no-console
+    // biome-ignore lint/suspicious/noConsoleLog: dev fn
     console.log(`Vite mode: ${mode}, prod=${isProd}, test=${isTest}, dev=${isDev}`);
 
     const assetsPath = genPath(conf.staticPath, {
@@ -212,7 +212,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                     await fs.mkdir(genPath(conf.sameDomStaticPath, { extra: ["sworker"] }));
                 }
 
-                // eslint-disable-next-line no-console
+                // biome-ignore lint/suspicious/noConsoleLog: dev fn
                 console.log(`Moving webmanifest from ${oldLoc} to ${newLoc}`);
                 await fs.rename(oldLoc, newLoc);
 
@@ -220,7 +220,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                 const indexLoc = genPath(assetsPath, {
                     extra: ["index.html"],
                 });
-                // eslint-disable-next-line no-console
+                // biome-ignore lint/suspicious/noConsoleLog: dev fn
                 console.log(`Reading index.html from ${oldLoc} and minifying...`);
                 const indexSrc = await fs.readFile(indexLoc, "utf-8");
                 const indexMinified = await minify(indexSrc, {
@@ -236,7 +236,7 @@ export const createConfig = (mode: string, conf: TopViteConfig): UserConfig => {
                 const newIndexLoc = genPath(conf.sameDomStaticPath, {
                     extra: ["site_index.html"],
                 });
-                // eslint-disable-next-line no-console
+                // biome-ignore lint/suspicious/noConsoleLog: dev fn
                 console.log(
                     `Minified index.html from ${indexSrc.length} to ${indexMinified.length} bytes, writing to ${newIndexLoc}.`,
                 );

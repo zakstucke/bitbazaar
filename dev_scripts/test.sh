@@ -55,10 +55,8 @@ pre_till_success () {
 qa () {
     pre_till_success
 
+    echo "pyright..."
     ./dev_scripts/test.sh pyright
-
-    # Eslint
-    ./dev_scripts/test.sh eslint
 }
 
 py () {
@@ -89,15 +87,9 @@ js () {
     cd ..
 }
 
-eslint () {
-    cd ./js/
-    bunx --bun eslint "./**/*.{js,jsx,ts,tsx}"
-    cd ..
-}
-
 py_rust () {
     # Build the package up to date in the specific virtualenv:
-    ./dev_scripts/py_rust.sh install ./py_rust/.venv
+    ./dev_scripts/py_rust.sh install_debug ./py_rust/.venv
 
     cd py_rust
 

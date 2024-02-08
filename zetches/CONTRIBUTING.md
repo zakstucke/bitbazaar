@@ -39,20 +39,24 @@ Request features on the [Issue Tracker](https://github.com/zakstucke/bitbazaar/i
 -   Install [`pipx`](https://pypa.github.io/pipx/)
 -   `./dev_scripts/initial_setup.sh initial_setup`
 
+
 ### Python
 
 -   Make sure Python 3.11+ is installed
 -   Install [`PDM`](https://pdm.fming.dev/latest/#update-the-pdm-version)
+
 
 ### JS:
 
 -   Install `node` 20 or greater
 -   Install [`npx`](https://www.npmjs.com/package/npx) globally
 
+
 ### Rust-backed Python library
 
 -   Make sure Python 3.11+ is installed
 -   Install [`rust`](https://www.rust-lang.org/tools/install)
+
 
 ### Rust:
 

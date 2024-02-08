@@ -5,18 +5,18 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "bitbazaar_rs._rs"
+
 dependencies = []
 
 [project]
 name = "bitbazaar_rs"
 description = "An assortment of publicly available cross-language utilities useful to my projects."
 readme = "README.md"
-license = {text = "MIT"}
-authors = [
-  {name = "Zachary Stucke", email = "zakstucke@gmail.com"},
-]
+license = { text = "MIT" }
+authors = [{ name = "Zachary Stucke", email = "zakstucke@gmail.com" }]
 requires-python = ">=3.11"
 classifiers = [
+
   'Development Status :: 1 - Planning',
   'Typing :: Typed',
   'Operating System :: POSIX :: Linux',

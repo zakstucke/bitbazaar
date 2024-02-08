@@ -1,4 +1,4 @@
-import { ProxyOptions, UserConfig } from "vite";
+import type { ProxyOptions, UserConfig } from "vite";
 
 import { genPath } from "@root/utils/genPath";
 

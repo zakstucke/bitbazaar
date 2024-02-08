@@ -1,4 +1,4 @@
-import { RouteParams_T } from "./types";
+import type { RouteParams_T } from "./types";
 
 /** Simple type wrapper fn to make writing a params definition shorter.
  * @param params An array of tuples, first item is the param name, second is the param type as a string.

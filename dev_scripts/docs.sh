@@ -9,7 +9,7 @@ js_sub_build () {
     index_paths=$(find ./js/bitbazaar \( -name "index.ts" -o -name "index.js" -o -name "index.cjs" -o -name "index.tsx" -o -name "index.jsx" \) -exec printf "%s " {} +)
 
     # Typedoc needs the target package's deps to be installed:
-    npm install --prefix ./js install
+    npm install --prefix ./js
     npx --yes typedoc@0.25.3 --out ./docs/js_ref --readme none --tsconfig ./js/tsconfig.json $index_paths
 }
 
@@ -28,7 +28,8 @@ build () {
 
 
     # Build the docs locally:
-    pdm run -p ./docs mkdocs build
+    # If fails first time, run again with the weird python fallback to fix:
+    pdm run -p ./docs mkdocs build || PY_DOC_FALLBACK="1" pdm run -p ./docs mkdocs build
 }
 
 serve () {

@@ -2,249 +2,254 @@ name: Tests
 
 # Run when a new PR is created for main branch:
 on:
-    pull_request:
-        branches:
-            - "main"
+  pull_request:
+    branches:
+      - "main"
 
 jobs:
-    # This can be used as the status check for branch protection, saves added each and every actual test job to the rules.
-    # https://github.com/marketplace/actions/alls-green
-    check_all_passed: # This job does nothing and is only used for the branch protection
-        if: always()
-        runs-on: ubuntu-latest
-        needs:
-            - qa
-            - tests_docs
-            - tests_python
-            - tests_js
-            - tests_py_rust
-            - tests_rust
 
-        steps:
-            - name: Decide whether the needed jobs succeeded or failed
-              uses: re-actors/alls-green@release/v1
-              id: all-green
-              with:
-                  jobs: ${{ toJSON(needs) }}
-                  # Everything but qa might be skipped if nothing's changed in its folder:
-                  allowed-skips: tests_docs, tests_python, tests_js, tests_py_rust, tests_rust,
-    qa:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+  # This can be used as the status check for branch protection, saves added each and every actual test job to the rules.
+  # https://github.com/marketplace/actions/alls-green
+  check_all_passed:  # This job does nothing and is only used for the branch protection
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - qa
+      - tests_docs
+      - tests_python
+      - tests_js
+      - tests_py_rust
+      - tests_rust
 
-            - uses: actions/setup-python@v4
-              with:
-                  python-version: "3.12"
-                  cache: pip
-            - uses: ./.github/actions/install-pre-commit
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        id: all-green
+        with:
+          jobs: ${{ toJSON(needs) }}
+          # Everything but qa might be skipped if nothing's changed in its folder:
+          allowed-skips: tests_docs, tests_python, tests_js, tests_py_rust, tests_rust,
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            # Python project
-            - name: Set up PDM
-              uses: pdm-project/setup-pdm@v3
-              with:
-                  python-version: "3.12"
-                  cache: true
-                  cache-dependency-path: "py/pdm.lock"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: ./.github/actions/install-pre-commit
 
-            - name: Install dependencies
-              run: |
-                  pdm sync -p ./py -G:all
+      # Python project
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: "3.12"
+          cache: true
+          cache-dependency-path: 'py/pdm.lock'
 
-            # Js project
-            - name: "Install Bun, no npm should be needed"
-              uses: oven-sh/setup-bun@v1
-              with:
-                  bun-version: latest
-            - name: Install js dependencies
-              run: |
-                  cd ./js
-                  bun install
+      - name: Install dependencies
+        run: |
+          pdm sync -p ./py -G:all
 
-            # Formatting and checking uses nightly rather than stable:
-            - uses: dtolnay/rust-toolchain@nightly
-              with:
-                  components: rustfmt, clippy
+      # Js project
+      - name: "Install Bun, no npm should be needed"
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Install js dependencies
+        run: |
+          cd ./js
+          bun install
 
-            - name: Run QA
-              run: |
-                  ./dev_scripts/test.sh qa
+      # Formatting and checking uses nightly rather than stable:
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
 
-    whos_changed:
-        uses: ./.github/workflows/whos-changed.yml
+      - name: Run QA
+        run: |
+          ./dev_scripts/test.sh qa
 
-    tests_docs:
-        name: Test documentation build
-        needs: whos_changed
-        # Only run if applicable things have changed:
-        if: needs.whos_changed.outputs.docs-changed == 'true'
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+  whos_changed:
+    uses: ./.github/workflows/whos-changed.yml
 
-            - name: Set up PDM
-              uses: pdm-project/setup-pdm@v3
-              with:
-                  python-version: "3.12"
-                  cache: true
-                  cache-dependency-path: "docs/pdm.lock"
+  tests_docs:
+    name: Test documentation build
+    needs: whos_changed
+    # Only run if applicable things have changed:
+    if: needs.whos_changed.outputs.docs-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Install Node.js
-              uses: actions/setup-node@v2
-              with:
-                  node-version: "20"
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: "3.12"
+          cache: true
+          cache-dependency-path: 'docs/pdm.lock'
 
-            - name: Install rust toolchain
-              uses: dtolnay/rust-toolchain@stable
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
 
-            - name: Install dependencies
-              run: |
-                  pdm sync -p ./docs
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-            - name: Test docs
-              run: |
-                  ./dev_scripts/test.sh docs
+      - name: Install dependencies
+        run: |
+          pdm sync -p ./docs
 
-    tests_python:
-        needs: whos_changed
-        # Only run if applicable things have changed:
-        if: needs.whos_changed.outputs.py-changed == 'true'
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    # Ubuntu test on all versions:
-                    - { python: "3.11", os: "ubuntu-latest", coverage: false }
-                    - { python: "3.12", os: "ubuntu-latest", coverage: true } # Only run coverage check on the newest version to save time
+      - name: Test docs
+        run: |
+          ./dev_scripts/test.sh docs
 
-                    # Make sure other os types work on newest version:
-                    # - { python: "3.12", os: "macOS-latest" } # Mac uses 10x minutes, skipping for now considering devs usually use mac and v similar to linux
-                    - { python: "3.12", os: "windows-latest", coverage: false } # 2x minutes, most different architecture so worth testing
+  tests_python:
+    needs: whos_changed
+    # Only run if applicable things have changed:
+    if: needs.whos_changed.outputs.py-changed == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu test on all versions:
+          - {python: "3.11", os: "ubuntu-latest", coverage: false}
+          - {python: "3.12", os: "ubuntu-latest", coverage: true}  # Only run coverage check on the newest version to save time
 
-        steps:
-            - uses: actions/checkout@v4
+          # Make sure other os types work on newest version:
+          # - { python: "3.12", os: "macOS-latest" } # Mac uses 10x minutes, skipping for now considering devs usually use mac and v similar to linux
+          - {python: "3.12", os: "windows-latest", coverage: false,}  # 2x minutes, most different architecture so worth testing
 
-            - name: Set up PDM
-              uses: pdm-project/setup-pdm@v3
-              with:
-                  python-version: ${{ matrix.python }}
-                  cache: true
-                  cache-dependency-path: "py/pdm.lock"
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Install dependencies
-              run: |
-                  pdm sync -p ./py -G:all
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: ${{ matrix.python }}
+          cache: true
+          cache-dependency-path: 'py/pdm.lock'
 
-            - name: Run tests (linux)
-              if: matrix.os == 'ubuntu-latest'
-              run: |
-                  COVERAGE=${{ matrix.coverage }} ./dev_scripts/test.sh py
+      - name: Install dependencies
+        run: |
+          pdm sync -p ./py -G:all
 
-            - name: Run tests (windows)
-              if: matrix.os == 'windows-latest'
-              run: |
-                  $env:COVERAGE=${{ matrix.coverage }}
-                  bash ./dev_scripts/test.sh py
+      - name: Run tests (linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          COVERAGE=${{ matrix.coverage }} ./dev_scripts/test.sh py
+      - name: Run tests (windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $env:COVERAGE=${{ matrix.coverage }}
+          bash ./dev_scripts/test.sh py
 
-    tests_js:
-        needs: whos_changed
-        # Only run if applicable things have changed:
-        if: needs.whos_changed.outputs.js-changed == 'true'
-        runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v4
+  tests_js:
+    needs: whos_changed
+    # Only run if applicable things have changed:
+    if: needs.whos_changed.outputs.js-changed == 'true'
+    runs-on: ubuntu-latest
 
-            # Js project
-            - name: "Install Bun, no npm should be needed"
-              uses: oven-sh/setup-bun@v1
-              with:
-                  bun-version: latest
-            - name: Install js dependencies
-              run: |
-                  cd ./js
-                  bun install
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Run tests
-              run: |
-                  ./dev_scripts/test.sh js
+      # Js project
+      - name: "Install Bun, no npm should be needed"
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Install js dependencies
+        run: |
+          cd ./js
+          bun install
 
-    tests_py_rust:
-        needs: whos_changed
-        # Only run if applicable things have changed:
-        if: needs.whos_changed.outputs.py-rust-changed == 'true'
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    # Ubuntu test on all versions:
-                    - { python: "3.11", os: "ubuntu-latest" }
-                    - { python: "3.12", os: "ubuntu-latest" }
+      - name: Run tests
+        run: |
+          ./dev_scripts/test.sh js
 
-                    # Make sure other os types work on newest version:
-                    # - { python: "3.12", os: "macOS-latest" } # Mac uses 10x minutes, skipping for now considering devs usually use mac and v similar to linux
-                    - { python: "3.12", os: "windows-latest" } # 2x minutes, most different architecture so worth testing
+  tests_py_rust:
+    needs: whos_changed
+    # Only run if applicable things have changed:
+    if: needs.whos_changed.outputs.py-rust-changed == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu test on all versions:
+          - {python: "3.11", os: "ubuntu-latest"}
+          - {python: "3.12", os: "ubuntu-latest"}
 
-        steps:
-            - uses: actions/checkout@v4
+          # Make sure other os types work on newest version:
+          # - { python: "3.12", os: "macOS-latest" } # Mac uses 10x minutes, skipping for now considering devs usually use mac and v similar to linux
+          - {python: "3.12", os: "windows-latest",}  # 2x minutes, most different architecture so worth testing
 
-            - name: Install rust toolchain
-              uses: dtolnay/rust-toolchain@stable
-            - name: Install nextest
-              uses: taiki-e/install-action@nextest
-            - uses: Swatinem/rust-cache@v2
-              with:
-                  workspaces: "./py_rust -> target"
+    steps:
+      - uses: actions/checkout@v4
 
-            - uses: actions/setup-python@v4
-              with:
-                  python-version: "${{ matrix.python }}"
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./py_rust -> target"
+          cache-on-failure: "true"
+          cache-all-crates: "true"
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
 
-            - name: Setup venv (problems with the automatic creating in scripts as it uses pipx and for some reason ends with wrong py version)
-              run: |
-                  pip install virtualenv
-                  python -m virtualenv ./py_rust/.venv
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "${{ matrix.python }}"
 
-            - name: Run tests (linux)
-              if: matrix.os == 'ubuntu-latest'
-              run: |
-                  ./dev_scripts/test.sh py_rust
+      - name: Setup venv (problems with the automatic creating in scripts as it uses pipx and for some
+          reason ends with wrong py version)
+        run: |
+          pip install virtualenv
+          python -m virtualenv ./py_rust/.venv
 
-            - name: Run tests (windows)
-              if: matrix.os == 'windows-latest'
-              run: |
-                  bash ./dev_scripts/test.sh py_rust
+      - name: Run tests (linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          ./dev_scripts/test.sh py_rust
+      - name: Run tests (windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          bash ./dev_scripts/test.sh py_rust
 
-    tests_rust:
-        needs: whos_changed
-        # Only run if applicable things have changed:
-        if: needs.whos_changed.outputs.rust-changed == 'true'
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false
-            matrix:
-                # Run on both linux and windows (dev testing on mac and much more expensive in terms of build minutes),
-                # windows most likely to fail unexpectedly.
-                os: [ubuntu-latest, windows-latest]
-        steps:
-            - uses: actions/checkout@v4
 
-            - name: Install rust toolchain
-              uses: dtolnay/rust-toolchain@stable
-            - name: Install nextest
-              uses: taiki-e/install-action@nextest
-            - uses: Swatinem/rust-cache@v2
-              with:
-                  workspaces: "./rust -> target"
+  tests_rust:
+    needs: whos_changed
+    # Only run if applicable things have changed:
+    if: needs.whos_changed.outputs.rust-changed == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run on both linux and windows (dev testing on mac and much more expensive in terms of build minutes),
+        # windows most likely to fail unexpectedly.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Run tests (linux)
-              if: matrix.os == 'ubuntu-latest'
-              run: |
-                  ./dev_scripts/test.sh rust --no-fail-fast
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./rust -> target"
+          cache-on-failure: "true"
+          cache-all-crates: "true"
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
 
-            - name: Run tests (windows)
-              if: matrix.os == 'windows-latest'
-              run: |
-                  bash ./dev_scripts/test.sh rust --no-fail-fast
+      - name: Run tests (linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          ./dev_scripts/test.sh rust --no-fail-fast
+      - name: Run tests (windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          bash ./dev_scripts/test.sh rust --no-fail-fast
