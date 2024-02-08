@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 
 import fs from "fs/promises";
 
-import { createConfig, TopViteConfig } from ".";
+import { type TopViteConfig, createConfig } from ".";
 
 import { genBackendProxies } from "./genProxy";
 

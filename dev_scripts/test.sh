@@ -55,10 +55,8 @@ pre_till_success () {
 qa () {
     pre_till_success
 
+    echo "pyright..."
     ./dev_scripts/test.sh pyright
-
-    # Eslint
-    ./dev_scripts/test.sh eslint
 }
 
 py () {
@@ -89,15 +87,9 @@ js () {
     cd ..
 }
 
-eslint () {
-    cd ./js/
-    bunx --bun eslint "./**/*.{js,jsx,ts,tsx}"
-    cd ..
-}
-
 py_rust () {
     # Build the package up to date in the specific virtualenv:
-    ./dev_scripts/py_rust.sh install ./py_rust/.venv
+    ./dev_scripts/py_rust.sh install_debug ./py_rust/.venv
 
     cd py_rust
 
@@ -108,15 +100,17 @@ py_rust () {
         source .venv/bin/activate
     fi
 
-    cargo nextest run
+    # Have to specify to compile in debug mode (meaning it will use the install_debug call above)
+    cargo nextest run --cargo-profile dev --all-features
     python -m pytest $@
+
     deactivate
     cd ..
 }
 
 rust () {
 
-    cargo nextest run --manifest-path ./rust/Cargo.toml --all-features $@
+    cargo nextest run --cargo-profile dev --manifest-path ./rust/Cargo.toml --all-features $@
 }
 
 docs () {

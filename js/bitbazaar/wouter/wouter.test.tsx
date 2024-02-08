@@ -1,9 +1,9 @@
-import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "bun:test";
+import { cleanup, render, screen } from "@testing-library/react";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 
-import { route, routeParams, RouteParamsOutput_T, routes } from ".";
+import { type RouteParamsOutput_T, route, routeParams, routes } from ".";
 
 const Error404 = () => <p>404</p>;
 

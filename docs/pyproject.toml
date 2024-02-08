@@ -2,12 +2,14 @@
 
 [project]
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = { text = "MIT" }
+
 classifiers = [
   # Prevent accidental upload to public pypi:
   # https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#classifiers
   "Private :: Do Not Upload",
 ]
+
 dependencies = [
   "mkdocs-material>=9.4.4",
   "mkdocstrings[python]>=0.23.0",

@@ -3,90 +3,93 @@ name: "Py-Rust Build"
 # Originally derived from https://github.com/samuelcolvin/watchfiles/blob/main/.github/workflows/ci.yml
 
 on:
-    workflow_call:
-        inputs:
-            new-sha:
-                required: true
-                type: string
+  workflow_call:
+    inputs:
+      new-sha:
+        required: true
+        type: string
 
 jobs:
-    build:
-        name: >
-            build on ${{ matrix.platform || matrix.os }} (${{ matrix.target }} - ${{ matrix.manylinux || 'auto' }})
+  build:
+    name: build on ${{ matrix.os }} (${{ matrix.target }} - ${{ matrix.interpreter || 'all' }}${{ matrix.os
+      == 'linux' && format(' - {0}', matrix.manylinux == 'auto' && 'manylinux' || matrix.manylinux) ||
+      '' }})
 
-        strategy:
-            fail-fast: true # Want release to cancel if any fail, so may as well fail fast to save some minutes
-            matrix:
-                os: [linux, macos, windows]
-                target: [x86_64, aarch64]
-                manylinux: [auto]
-                include:
-                    # manylinux for various platforms:
-                    - os: linux
-                      manylinux: auto
-                      target: i686
-                    - os: linux
-                      manylinux: auto
-                      target: aarch64
-                    - os: linux
-                      manylinux: auto
-                      target: armv7
-                    - os: linux
-                      manylinux: auto
-                      target: ppc64le
-                    - os: linux
-                      manylinux: auto
-                      target: s390x
+    strategy:
+      fail-fast: true  # Want release to cancel if any fail, so may as well fail fast to save some minutes
+      matrix:
+        os: [linux, macos, windows]
+        target: [x86_64, aarch64]
+        manylinux: [auto]
+        include:
+          # manylinux for various platforms:
+          - os: linux
+            manylinux: auto
+            target: i686
+          - os: linux
+            manylinux: auto
+            target: aarch64
+          - os: linux
+            manylinux: auto
+            target: armv7
+          - os: linux
+            manylinux: auto
+            target: ppc64le
+          - os: linux
+            manylinux: auto
+            target: s390x
 
-                    # musllinux
-                    - os: linux
-                      manylinux: musllinux_1_1
-                      target: x86_64
-                    - os: linux
-                      manylinux: musllinux_1_1
-                      target: aarch64
+          # musllinux
+          - os: linux
+            manylinux: musllinux_1_1
+            target: x86_64
+          - os: linux
+            manylinux: musllinux_1_1
+            target: aarch64
 
-                    # macos;
-                    # all versions x86_64:
-                    - os: macos
-                      target: x86_64
+          # macos;
+          - os: macos
+            target: x86_64
+          - os: macos
+            target: aarch64
 
-                    # windows;
-                    - os: windows
-                      target: i686
-                      python-architecture: x86
-                    # aarch64 only 3.11 and up, also not PGO optimized
-                    - os: windows
-                      target: aarch64
-                      interpreter: 3.11 3.12
-        runs-on: ${{ (matrix.os == 'linux' && 'ubuntu') || matrix.os }}-latest
+          # windows;
+          - os: windows
+            target: i686
+            python-architecture: x86
+          # Windows arm only supports python 3.11 and up:
+          - os: windows
+            target: aarch64
+            interpreter: 3.11 3.12
+    runs-on: ${{ (matrix.os == 'linux' && 'ubuntu') || matrix.os }}-latest
 
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  ref: ${{ inputs.new-sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.new-sha }}
 
-            - uses: actions/setup-python@v4
-              with:
-                  python-version: "3.12"
-                  architecture: ${{ matrix.python-architecture || 'x64' }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.python-architecture || 'x64' }}
 
-            - name: copy in README and LICENSE from root
-              run: cp README.md py_rust/README.md && cp LICENSE.md py_rust/LICENSE.md
+      - name: copy in README and LICENSE from root
+        run: cp README.md py_rust/README.md && cp LICENSE.md py_rust/LICENSE.md
 
-            - name: build wheels
-              uses: PyO3/maturin-action@v1
-              with:
-                  target: ${{ matrix.target }}
-                  manylinux: ${{ matrix.manylinux || 'auto' }}
-                  args: --manifest-path py_rust/Cargo.toml --release --out py_rust/dist --interpreter ${{ matrix.interpreter || '3.11 3.12' }}
-                  rust-toolchain: stable
-                  docker-options: -e CI
-                  sccache: true
+      - name: build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --manifest-path py_rust/Cargo.toml --release --out py_rust/dist --interpreter ${{ matrix.interpreter
+            || '3.11 3.12' }}
+          rust-toolchain: stable
+          docker-options: -e CI
+          sccache: true
 
-            - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} py_rust/dist/
+      - run: ${{ (matrix.os == 'windows' && 'dir') || 'ls -lh' }} py_rust/dist/
 
-            - uses: actions/upload-artifact@v3
-              with:
-                  name: py_rust_build_files
-                  path: py_rust/dist
+      - uses: actions/upload-artifact@v3
+        with:
+          name: py_rust_build_files
+          path: py_rust/dist

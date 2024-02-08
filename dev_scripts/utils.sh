@@ -9,7 +9,9 @@ run_parallel () {
 }
 
 py_install_if_missing () {
-    if ! python -c "import $1" &> /dev/null; then
+    # Make a version replacing dashes with underscores for the import check:
+    with_underscores=$(echo $1 | sed 's/-/_/g')
+    if ! python -c "import $with_underscores" &> /dev/null; then
         echo "$1 is not installed. Installing..."
         python -m pip install $1
     fi

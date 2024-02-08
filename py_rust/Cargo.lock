@@ -118,9 +118,9 @@ dependencies = [
 
 [[package]]
 name = "bitbazaar"
-version = "0.0.20"
+version = "0.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd4771c10da11f3f8c23d1fce9f50cadeb3cfb6c35d099f3a05afaca48b2c2dd"
+checksum = "3572d2f022b0dff0c9020bdce3da6a97cfddb33efb7ebf95463c86ca9230a43a"
 dependencies = [
  "chrono",
  "clap",
@@ -130,7 +130,7 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "regex",
- "shlex",
+ "strum",
  "time",
  "tracing",
  "tracing-appender",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "bitbazaar_rs"
-version = "0.0.3"
+version = "0.0.0"
 dependencies = [
  "bitbazaar",
  "colored",
@@ -750,12 +750,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shlex"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
 name = "smallvec"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -772,6 +766,9 @@ name = "strum"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
+dependencies = [
+ "strum_macros",
+]
 
 [[package]]
 name = "strum_macros"

@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import { Route, Switch } from "wouter";
 
-import { InnerRouteConfig_T, RouteConfig_T } from "./types";
+import type { InnerRouteConfig_T, RouteConfig_T } from "./types";
 import { ValiWrapper } from "./valiWrapper";
 
 /** The producer of wouter <Switch /> components and all the routes, with a fallback and param coercion.

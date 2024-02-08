@@ -5,6 +5,8 @@ private/
 !*private*.zetch.*
 !*private*.*.zetch
 
+process_data/
+
 # Tempate files
 .cop.*.yml
 

@@ -1,8 +1,8 @@
-import React from "react";
+import type React from "react";
 
 import { assertNever, genPath } from "@root/utils";
 
-import { InnerRouteConfig_T, RouteParams_T, RouteParamsOutput_T } from "./types";
+import type { InnerRouteConfig_T, RouteParamsOutput_T, RouteParams_T } from "./types";
 
 /** A path config holder.
  *
@@ -38,27 +38,29 @@ export const route = <const Params extends RouteParams_T>({
         // Create the validator depending on the type:
         let validator: ((param: string) => unknown) | null = null;
         switch (param_type) {
-            case "float":
+            case "float": {
                 validator = (param: string) => {
                     // Try and convert to a number:
                     const num = parseFloat(param);
-                    if (isNaN(num)) {
+                    if (Number.isNaN(num)) {
                         throw new Error("Invalid number");
                     }
                     return num;
                 };
                 break;
-            case "int":
+            }
+            case "int": {
                 validator = (param: string) => {
                     // Try and convert to a number:
                     const num = parseInt(param);
-                    if (isNaN(num)) {
+                    if (Number.isNaN(num)) {
                         throw new Error("Invalid number");
                     }
                     return num;
                 };
                 break;
-            case "boolean":
+            }
+            case "boolean": {
                 validator = (param: string) => {
                     const lower = param.toLowerCase();
                     if (["true", "True", "1", "y"].includes(lower)) {
@@ -70,9 +72,11 @@ export const route = <const Params extends RouteParams_T>({
                     throw new Error("Invalid boolean");
                 };
                 break;
-            case "string":
+            }
+            case "string": {
                 validator = (param: string) => param;
                 break;
+            }
             default:
                 assertNever(param_type);
         }

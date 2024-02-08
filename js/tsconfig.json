@@ -5,7 +5,7 @@
             "@root": ["./bitbazaar"],
             "@root/*": ["./bitbazaar/*"],
             "@scripts": ["./scripts"],
-            "@scripts/*": ["./scripts/*"]
+            "@scripts/*": ["./scripts/*"],
         },
         "declaration": true,
         "noImplicitAny": false,
@@ -42,7 +42,7 @@
         "dist/**/*",
         "lib/**/*",
         "**/*.zetch.*",
-        "**/*.zetch"
+        "**/*.zetch",
     ],
     "include": ["**/*"]
 }

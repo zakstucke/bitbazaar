@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 
 export const ValiWrapper = ({
     params,
@@ -11,13 +12,17 @@ export const ValiWrapper = ({
     Comp: React.ComponentType;
     Comp404: React.ComponentType;
 }) => {
+    // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
     const cleanedParams: object | null = useMemo(() => {
         try {
             const cleaned = {};
-            Object.entries(params).forEach(([key, value]) => {
-                // @ts-expect-error - quick fix, probs should sort
-                cleaned[key] = validators[key](value as string);
-            });
+            for (const [key, value] of Object.entries(params)) {
+                const validator = validators[key];
+                if (!validator) {
+                    return null;
+                }
+                cleaned[key] = validator(value as string);
+            }
             return cleaned;
         } catch (e) {
             return null;
