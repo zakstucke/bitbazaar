@@ -1,15 +1,18 @@
 import contextlib
 import logging
 import re
-import tempfile
 import typing as tp
 from abc import ABC, abstractmethod
 
 from bitbazaar._testing import BUF
+from bitbazaar.testing import TmpFileManager
 from bitbazaar.tracing import GlobalLog
 from bitbazaar.tracing._utils import severity_to_log_level
 from opentelemetry.sdk._logs import LogData
 from opentelemetry.sdk.trace import ReadableSpan
+
+if tp.TYPE_CHECKING:  # pragma: no cover
+    from _typeshed import StrPath
 
 
 class GenericLog(tp.TypedDict):
@@ -149,9 +152,9 @@ def otlp_logger(from_level: int):
 
 
 class FileChecker(ConsoleChecker):
-    logpath: str
+    logpath: "StrPath"
 
-    def __init__(self, logpath: str):
+    def __init__(self, logpath: "StrPath"):
         self.logpath = logpath
 
     def _get_entries(self):
@@ -161,17 +164,18 @@ class FileChecker(ConsoleChecker):
 
 @contextlib.contextmanager
 def file_logger(from_level: int):
-    temp = tempfile.NamedTemporaryFile()
-    log = GlobalLog(
-        "MA SERVICE",
-        file={
-            "from_level": from_level,
-            "logpath": temp.name,
-            "max_backups": 5,
-            "max_bytes": 1000000,
-        },
-    )
-    try:
-        yield log, FileChecker(temp.name)
-    finally:
-        log.shutdown()
+    with TmpFileManager() as manager:
+        tf = manager.tmpfile(content="", suffix=".log")
+        log = GlobalLog(
+            "MA SERVICE",
+            file={
+                "from_level": from_level,
+                "logpath": tf,
+                "max_backups": 5,
+                "max_bytes": 1000000,
+            },
+        )
+        try:
+            yield log, FileChecker(tf)
+        finally:
+            log.shutdown()
