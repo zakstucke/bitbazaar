@@ -1,5 +1,5 @@
 import logging
-import os
+import platform
 import typing as tp
 
 import opentelemetry._logs._internal
@@ -73,7 +73,7 @@ def prepare_providers(
     resource = resources.Resource(
         attributes={
             resources.SERVICE_NAME: args["service_name"],
-            resources.SERVICE_INSTANCE_ID: os.uname().nodename,
+            resources.SERVICE_INSTANCE_ID: platform.uname().node,  # Instead of os.uname().nodename to work with windows as well.
         }
     )
 
