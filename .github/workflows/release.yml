@@ -7,37 +7,37 @@ on:
       - main
     inputs:
       py_release:
-        description: "Python Release"
+        description: Python Release
         type: boolean
         required: false
         default: false
       py_version:
-        description: "Python Version"
-        default: "0.0.0"
+        description: Python Version
+        default: 0.0.1
       js_release:
-        description: "JS Release"
+        description: JS Release
         type: boolean
         required: false
         default: false
       js_version:
-        description: "JS Version"
-        default: "0.0.0"
+        description: JS Version
+        default: 0.0.0
       py_rust_release:
-        description: "Rust-backed Python Release"
+        description: Rust-backed Python Release
         type: boolean
         required: false
         default: false
       py_rust_version:
-        description: "Rust-backed Python Version"
-        default: "0.0.0"
+        description: Rust-backed Python Version
+        default: 0.0.0
       rust_release:
-        description: "Rust Release"
+        description: Rust Release
         type: boolean
         required: false
         default: false
       rust_version:
-        description: "Rust Version"
-        default: "0.0.0"
+        description: Rust Version
+        default: 0.0.0
 
 jobs:
   commit_versions:
@@ -63,16 +63,16 @@ jobs:
         if: ${{ inputs.py_release }}
         uses: pdm-project/setup-pdm@v3
         with:
-          python-version: "3.12"
+          python-version: '3.12'
           cache: true
-          cache-dependency-path: 'py/pdm.lock'
+          cache-dependency-path: py/pdm.lock
       - name: Update Python version
         if: ${{ inputs.py_release }}
         run: |
           zetch put zetch.config.toml context.static.PY_VERSION.value ${{ inputs.py_version }}
 
-      # Js project
-      - name: "Install Bun, no npm should be needed"
+        # Js project
+      - name: Install Bun, no npm should be needed
         if: ${{ inputs.js_release }}
         uses: oven-sh/setup-bun@v1
         with:
@@ -87,7 +87,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.JS_VERSION.value ${{ inputs.js_version }}
 
-      # Formatting and checking uses nightly rather than stable:
+        # Formatting and checking uses nightly rather than stable:
       - uses: dtolnay/rust-toolchain@nightly
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         with:
@@ -114,7 +114,7 @@ jobs:
         uses: EndBug/add-and-commit@v9
         with:
           push: true
-          message: "chore: bump package versions for release"
+          message: 'chore: bump package versions for release'
           author_name: github-actions
           author_email: action@github.com
 
@@ -143,9 +143,9 @@ jobs:
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
         with:
-          python-version: "3.12"
+          python-version: '3.12'
           cache: true
-          cache-dependency-path: 'docs/pdm.lock'
+          cache-dependency-path: docs/pdm.lock
 
       - name: Install dependencies
         run: |
@@ -154,7 +154,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: "20"
+          node-version: '20'
 
       - name: Build docs
         run: |
@@ -187,9 +187,9 @@ jobs:
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
         with:
-          python-version: "3.12"
+          python-version: '3.12'
           cache: true
-          cache-dependency-path: 'py/pdm.lock'
+          cache-dependency-path: py/pdm.lock
 
       - name: Publish package publicly to PyPI
         run: |
@@ -201,10 +201,10 @@ jobs:
         uses: release-drafter/release-drafter@v5
         with:
           publish: true
-          tag: "v${{ inputs.py_version }}_py"
-          name: "v${{ inputs.py_version }} - Python"
+          tag: v${{ inputs.py_version }}_py
+          name: v${{ inputs.py_version }} - Python
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
   js_release:
@@ -225,7 +225,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: "20"
+          node-version: '20'
 
       - name: Install deps, build lib and copy package.json and README.md to dist which is published as
           root
@@ -246,10 +246,10 @@ jobs:
         uses: release-drafter/release-drafter@v5
         with:
           publish: true
-          tag: "v${{ inputs.js_version }}_js"
-          name: "v${{ inputs.js_version }} - JS"
+          tag: v${{ inputs.js_version }}_js
+          name: v${{ inputs.js_version }} - JS
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
 
@@ -285,7 +285,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: '3.12'
       - run: pip install twine
 
       - name: Make sure release contents seem valid
@@ -295,16 +295,16 @@ jobs:
         run: twine upload py_rust/dist/*
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: "${{ secrets.PYPI_TOKEN }}"
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
 
       - name: Publish the release notes
         uses: release-drafter/release-drafter@v5
         with:
           publish: true
-          tag: "v${{ inputs.py_rust_version }}_py_rs"
-          name: "v${{ inputs.py_rust_version }} - Rust-backed Python Library"
+          tag: v${{ inputs.py_rust_version }}_py_rs
+          name: v${{ inputs.py_rust_version }} - Rust-backed Python Library
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
   rs_release:
@@ -334,7 +334,7 @@ jobs:
         uses: release-drafter/release-drafter@v5
         with:
           publish: true
-          tag: "v${{ inputs.rust_version }}_rs"
-          name: "v${{ inputs.rust_version }} - Rust"
+          tag: v${{ inputs.rust_version }}_rs
+          name: v${{ inputs.rust_version }} - Rust
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
