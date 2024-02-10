@@ -12,7 +12,7 @@ custom_extensions = []
 commands = ["./dev_scripts/pkg.sh update_versions"]
 
 [context.static]
-PY_VERSION = { value = "0.0.3" }
+PY_VERSION = { value = "0.0.4" }
 JS_VERSION = { value = "0.0.22" }
 RUST_VERSION = { value = "0.0.28" }
 PY_RUST_VERSION = { value = "0.0.3" }
