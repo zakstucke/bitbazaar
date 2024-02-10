@@ -19,7 +19,7 @@ import bitbazaar._testing
 from bitbazaar import utils
 
 from ._file_handler import CustomRotatingFileHandler
-from ._formatting import console_log_formatter, console_span_formatter
+from ._formatting import console_span_formatter
 from ._utils import log_level_to_severity
 
 
@@ -66,9 +66,7 @@ class CustConsoleLogExporter(ConsoleLogExporter):
     def export(self, log_data: tp.Sequence[LogData]) -> LogExportResult:
         filtered = fil_log_data(log_data, self._filter_from_level)
         if bitbazaar._testing.IS_TEST:
-            bitbazaar._testing.BUF.extend(
-                [console_log_formatter(log.log_record) for log in filtered]
-            )
+            bitbazaar._testing.BUF.extend([self.formatter(log.log_record) for log in filtered])
             return LogExportResult.SUCCESS
         return super().export(filtered)  # pragma: no cover
 

@@ -47,7 +47,7 @@ def file_span_formatter(span: ReadableSpan) -> str:
     return out
 
 
-def console_log_formatter(log: LogRecord) -> str:
+def console_log_formatter(log: LogRecord, show_sids: bool) -> str:
     out = ""
     lvl_desc, lvl_markup = (
         _lvl_to_desc_and_markup(severity_to_log_level(log.severity_number))
@@ -63,7 +63,7 @@ def console_log_formatter(log: LogRecord) -> str:
     # Make sure it doesn't accidentally match rich markup:
     out += escape(_fmt_body(log, lvl_text)) + "\n"
 
-    out += _fmt_where_parts(log, False)
+    out += _fmt_where_parts(log, False, show_sids)
 
     console = get_console()
     with console.capture() as capture:
@@ -84,7 +84,7 @@ def file_log_formatter(log: LogRecord) -> str:
     out += lvl_text
 
     out += _fmt_body(log, lvl_text) + "\n"
-    out += _fmt_where_parts(log, True)
+    out += _fmt_where_parts(log, True, True)
 
     # Useful for splitting during tests:
     if bitbazaar._testing.IS_TEST:
@@ -166,10 +166,10 @@ def _fmt_body(log: LogRecord, lvl_text: str) -> str:
     return body_out.rstrip()
 
 
-def _fmt_where_parts(log: LogRecord, is_file: bool) -> str:
+def _fmt_where_parts(log: LogRecord, is_file: bool, show_sids: bool) -> str:
     parts: dict[str, tp.Any] = {}
 
-    if log.span_id is not None:
+    if show_sids and log.span_id is not None:
         parts["sid"] = f"0x{trace_api.format_span_id(log.span_id)}"
 
     # Don't include this extra data when just to console:

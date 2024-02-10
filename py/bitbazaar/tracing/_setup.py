@@ -118,9 +118,9 @@ def prepare_providers(
     if console is not None:
         log_provider.add_log_record_processor(
             BatchLogRecordProcessor(
-                CustConsoleLogExporter(formatter=console_log_formatter).from_level(
-                    console["from_level"]
-                )
+                CustConsoleLogExporter(
+                    formatter=lambda record: console_log_formatter(record, console["spans"])
+                ).from_level(console["from_level"])
             )
         )
         if console["spans"]:
