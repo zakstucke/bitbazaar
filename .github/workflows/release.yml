@@ -13,7 +13,7 @@ on:
         default: false
       py_version:
         description: Python Version
-        default: 0.0.1
+        default: 0.0.2
       js_release:
         description: JS Release
         type: boolean
@@ -21,7 +21,7 @@ on:
         default: false
       js_version:
         description: JS Version
-        default: 0.0.0
+        default: 0.0.22
       py_rust_release:
         description: Rust-backed Python Release
         type: boolean
@@ -29,7 +29,7 @@ on:
         default: false
       py_rust_version:
         description: Rust-backed Python Version
-        default: 0.0.0
+        default: 0.0.3
       rust_release:
         description: Rust Release
         type: boolean
@@ -37,7 +37,7 @@ on:
         default: false
       rust_version:
         description: Rust Version
-        default: 0.0.0
+        default: 0.0.28
 
 jobs:
   commit_versions:
@@ -71,7 +71,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.PY_VERSION.value ${{ inputs.py_version }}
 
-        # Js project
+          # Js project
       - name: Install Bun, no npm should be needed
         if: ${{ inputs.js_release }}
         uses: oven-sh/setup-bun@v1
@@ -87,7 +87,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.JS_VERSION.value ${{ inputs.js_version }}
 
-        # Formatting and checking uses nightly rather than stable:
+          # Formatting and checking uses nightly rather than stable:
       - uses: dtolnay/rust-toolchain@nightly
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         with:
