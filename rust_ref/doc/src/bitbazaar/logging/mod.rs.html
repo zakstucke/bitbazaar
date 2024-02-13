@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/logging/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/logging/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -481,7 +482,7 @@
 </span><span class="kw">mod </span>diff_file_log;
 <span class="kw">mod </span>global_log;
 <span class="kw">mod </span>macros;
-<span class="attr">#[cfg(feature = <span class="string">&quot;opentelemetry&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
 </span><span class="kw">mod </span>ot_tracing_bridge;
 
 <span class="kw">pub use </span>clap_log_level_args::ClapLogLevelArgs;
@@ -501,10 +502,10 @@
     <span class="kw">use </span><span class="kw">crate</span>::errors::prelude::<span class="kw-2">*</span>;
 
     <span class="kw">fn </span>log_all() {
-        <span class="macro">debug!</span>(<span class="string">&quot;DLOG&quot;</span>);
-        <span class="macro">info!</span>(<span class="string">&quot;ILOG&quot;</span>);
-        <span class="macro">warn!</span>(<span class="string">&quot;WLOG&quot;</span>);
-        <span class="macro">error!</span>(<span class="string">&quot;ELOG&quot;</span>);
+        <span class="macro">debug!</span>(<span class="string">"DLOG"</span>);
+        <span class="macro">info!</span>(<span class="string">"ILOG"</span>);
+        <span class="macro">warn!</span>(<span class="string">"WLOG"</span>);
+        <span class="macro">error!</span>(<span class="string">"ELOG"</span>);
     }
 
     <span class="kw">fn </span>into_vec(logs: <span class="kw-2">&amp;</span>Mutex&lt;Vec&lt;String&gt;&gt;) -&gt; Vec&lt;String&gt; {
@@ -512,7 +513,7 @@
     }
 
     <span class="attr">#[rstest]
-    #[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can&#39;t run in parallel.
+    #[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can't run in parallel.
     </span><span class="kw">fn </span>test_log_formatting_basic(
         <span class="comment">// All combinations of:
         </span><span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_timestamp: bool,
@@ -537,22 +538,22 @@
             <span class="comment">// Lvl should always be included:
             </span><span class="macro">assert!</span>(
                 out_log.contains(<span class="kw-2">&amp;</span>lvl.to_string().to_uppercase()),
-                <span class="string">&quot;{}&quot;</span>,
+                <span class="string">"{}"</span>,
                 out_log
             );
             <span class="kw">if </span>include_loc {
-                <span class="macro">assert!</span>(out_log.contains(<span class="string">&quot;mod.rs&quot;</span>), <span class="string">&quot;{}&quot;</span>, out_log);
+                <span class="macro">assert!</span>(out_log.contains(<span class="string">"mod.rs"</span>), <span class="string">"{}"</span>, out_log);
             }
             <span class="kw">if </span>include_timestamp {
                 <span class="comment">// Confirm matches regex HH:MM:SS.mmm:
-                </span><span class="macro">assert!</span>(regex::Regex::new(<span class="string">r&quot;\d{2}:\d{2}:\d{2}.\d{3}&quot;</span>)
+                </span><span class="macro">assert!</span>(regex::Regex::new(<span class="string">r"\d{2}:\d{2}:\d{2}.\d{3}"</span>)
                     .change_context(AnyErr)<span class="question-mark">?
                     </span>.is_match(out_log));
             }
             <span class="comment">// Should include the actual log:
             </span><span class="macro">assert!</span>(
                 out_log.contains(in_log),
-                <span class="string">&quot;Expected to contain: &#39;{}&#39;, out: &#39;{}&#39;&quot;</span>,
+                <span class="string">"Expected to contain: '{}', out: '{}'"</span>,
                 in_log,
                 out_log
             );
@@ -561,25 +562,25 @@
         };
 
         <span class="kw">let </span>out = into_vec(<span class="kw-2">&amp;</span>LOGS);
-        <span class="macro">assert_eq!</span>(out.len(), <span class="number">4</span>, <span class="string">&quot;{:?}&quot;</span>, out);
-        chk_log(Level::DEBUG, <span class="string">&quot;DLOG&quot;</span>, <span class="kw-2">&amp;</span>out[<span class="number">0</span>])<span class="question-mark">?</span>;
-        chk_log(Level::INFO, <span class="string">&quot;ILOG&quot;</span>, <span class="kw-2">&amp;</span>out[<span class="number">1</span>])<span class="question-mark">?</span>;
-        chk_log(Level::WARN, <span class="string">&quot;WLOG&quot;</span>, <span class="kw-2">&amp;</span>out[<span class="number">2</span>])<span class="question-mark">?</span>;
-        chk_log(Level::ERROR, <span class="string">&quot;ELOG&quot;</span>, <span class="kw-2">&amp;</span>out[<span class="number">3</span>])<span class="question-mark">?</span>;
+        <span class="macro">assert_eq!</span>(out.len(), <span class="number">4</span>, <span class="string">"{:?}"</span>, out);
+        chk_log(Level::DEBUG, <span class="string">"DLOG"</span>, <span class="kw-2">&amp;</span>out[<span class="number">0</span>])<span class="question-mark">?</span>;
+        chk_log(Level::INFO, <span class="string">"ILOG"</span>, <span class="kw-2">&amp;</span>out[<span class="number">1</span>])<span class="question-mark">?</span>;
+        chk_log(Level::WARN, <span class="string">"WLOG"</span>, <span class="kw-2">&amp;</span>out[<span class="number">2</span>])<span class="question-mark">?</span>;
+        chk_log(Level::ERROR, <span class="string">"ELOG"</span>, <span class="kw-2">&amp;</span>out[<span class="number">3</span>])<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="attr">#[rstest]
     </span><span class="comment">// No matchers on either targets, so picked up by both targets:
-    </span><span class="attr">#[case::both(<span class="prelude-val">None</span>, <span class="macro">vec!</span>[<span class="string">&quot;with_matcher DEBUG LOG1&quot;</span>, <span class="string">&quot;no_matcher DEBUG LOG1&quot;</span>, <span class="string">&quot;with_matcher DEBUG LOG2&quot;</span>, <span class="string">&quot;no_matcher DEBUG LOG2&quot;</span>]</span>)]
+    </span><span class="attr">#[case::both(<span class="prelude-val">None</span>, <span class="macro">vec!</span>[<span class="string">"with_matcher DEBUG LOG1"</span>, <span class="string">"no_matcher DEBUG LOG1"</span>, <span class="string">"with_matcher DEBUG LOG2"</span>, <span class="string">"no_matcher DEBUG LOG2"</span>]</span>)]
     <span class="comment">// Matcher matches on first target, so no matcher target should ignore that log, i.e. one each:
     </span><span class="attr">#[case::one_each(<span class="prelude-val">Some</span>(regex::Regex::new(
-        <span class="kw">if </span><span class="macro">cfg!</span>(windows) {<span class="string">r&quot;logging\\mod.rs&quot;</span>} <span class="kw">else </span>{<span class="string">r&quot;logging/mod.rs&quot;</span>}
-    ).unwrap()), <span class="macro">vec!</span>[<span class="string">&quot;with_matcher DEBUG LOG1&quot;</span>, <span class="string">&quot;no_matcher DEBUG LOG2&quot;</span>]</span>)]
+        <span class="kw">if </span><span class="macro">cfg!</span>(windows) {<span class="string">r"logging\\mod.rs"</span>} <span class="kw">else </span>{<span class="string">r"logging/mod.rs"</span>}
+    ).unwrap()), <span class="macro">vec!</span>[<span class="string">"with_matcher DEBUG LOG1"</span>, <span class="string">"no_matcher DEBUG LOG2"</span>]</span>)]
     <span class="comment">// Matcher failed, so both should be picked up by the one with no matcher:
-    </span><span class="attr">#[case::no_match(<span class="prelude-val">Some</span>(regex::Regex::new(<span class="string">r&quot;kdkfjdf&quot;</span>).unwrap()), <span class="macro">vec!</span>[<span class="string">&quot;no_matcher DEBUG LOG1&quot;</span>, <span class="string">&quot;no_matcher DEBUG LOG2&quot;</span>]</span>)]
-    <span class="attr">#[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can&#39;t run in parallel.
+    </span><span class="attr">#[case::no_match(<span class="prelude-val">Some</span>(regex::Regex::new(<span class="string">r"kdkfjdf"</span>).unwrap()), <span class="macro">vec!</span>[<span class="string">"no_matcher DEBUG LOG1"</span>, <span class="string">"no_matcher DEBUG LOG2"</span>]</span>)]
+    <span class="attr">#[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can't run in parallel.
     </span><span class="kw">fn </span>test_log_matchers(
         <span class="attr">#[case] </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
         <span class="attr">#[case] </span>expected_logs: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
@@ -594,7 +595,7 @@
         </span><span class="kw">let </span><span class="kw-2">mut </span>builder = GlobalLog::builder()
             .custom(<span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, |log| {
                 LOGS.lock().push(<span class="macro">format!</span>(
-                    <span class="string">&quot;with_matcher {}&quot;</span>,
+                    <span class="string">"with_matcher {}"</span>,
                     String::from_utf8_lossy(log).trim()
                 ));
             })
@@ -608,7 +609,7 @@
         </span><span class="kw">let </span>log = builder
             .custom(<span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, |log| {
                 LOGS.lock().push(<span class="macro">format!</span>(
-                    <span class="string">&quot;no_matcher {}&quot;</span>,
+                    <span class="string">"no_matcher {}"</span>,
                     String::from_utf8_lossy(log).trim()
                 ));
             })
@@ -616,8 +617,8 @@
             </span>.build()<span class="question-mark">?</span>;
 
         log.with_tmp_global(|| {
-            <span class="macro">debug!</span>(<span class="string">&quot;LOG1&quot;</span>);
-            diff_file_log::diff_file_log(<span class="string">&quot;LOG2&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"LOG1"</span>);
+            diff_file_log::diff_file_log(<span class="string">"LOG2"</span>);
         })<span class="question-mark">?</span>;
 
         <span class="macro">assert_eq!</span>(into_vec(<span class="kw-2">&amp;</span>LOGS), expected_logs);
@@ -626,11 +627,11 @@
     }
 
     <span class="attr">#[rstest]
-    #[case(Level::DEBUG, <span class="macro">vec!</span>[<span class="string">&quot;DLOG&quot;</span>, <span class="string">&quot;ILOG&quot;</span>, <span class="string">&quot;WLOG&quot;</span>, <span class="string">&quot;ELOG&quot;</span>]</span>)]
-    <span class="attr">#[case(Level::INFO, <span class="macro">vec!</span>[<span class="string">&quot;ILOG&quot;</span>, <span class="string">&quot;WLOG&quot;</span>, <span class="string">&quot;ELOG&quot;</span>]</span>)]
-    <span class="attr">#[case(Level::WARN, <span class="macro">vec!</span>[<span class="string">&quot;WLOG&quot;</span>, <span class="string">&quot;ELOG&quot;</span>]</span>)]
-    <span class="attr">#[case(Level::ERROR, <span class="macro">vec!</span>[<span class="string">&quot;ELOG&quot;</span>]</span>)]
-    <span class="attr">#[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can&#39;t run in parallel.
+    #[case(Level::DEBUG, <span class="macro">vec!</span>[<span class="string">"DLOG"</span>, <span class="string">"ILOG"</span>, <span class="string">"WLOG"</span>, <span class="string">"ELOG"</span>]</span>)]
+    <span class="attr">#[case(Level::INFO, <span class="macro">vec!</span>[<span class="string">"ILOG"</span>, <span class="string">"WLOG"</span>, <span class="string">"ELOG"</span>]</span>)]
+    <span class="attr">#[case(Level::WARN, <span class="macro">vec!</span>[<span class="string">"WLOG"</span>, <span class="string">"ELOG"</span>]</span>)]
+    <span class="attr">#[case(Level::ERROR, <span class="macro">vec!</span>[<span class="string">"ELOG"</span>]</span>)]
+    <span class="attr">#[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can't run in parallel.
     </span><span class="kw">fn </span>test_log_filtering(
         <span class="attr">#[case] </span>level_from: Level,
         <span class="attr">#[case] </span>expected_found: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
@@ -665,7 +666,7 @@
             }
             <span class="macro">assert!</span>(
                 found,
-                <span class="string">&quot;Unexpected log: {}. Level from: {:?}, all LOGS: {:?}&quot;</span>,
+                <span class="string">"Unexpected log: {}. Level from: {:?}, all LOGS: {:?}"</span>,
                 log, level_from, out
             );
         }
@@ -679,13 +680,13 @@
         <span class="kw">let </span>temp_dir = tempdir().change_context(AnyErr)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>log = GlobalLog::builder()
-            .file(<span class="string">&quot;foo.log&quot;</span>, temp_dir.path())
+            .file(<span class="string">"foo.log"</span>, temp_dir.path())
             .level_from(Level::DEBUG)<span class="question-mark">?
             </span>.build()<span class="question-mark">?</span>;
 
         log.with_tmp_global(log_all)<span class="question-mark">?</span>;
 
-        <span class="comment">// Sleep for 50ms to make sure everything&#39;s been flushed to the file: (happens in separate thread)
+        <span class="comment">// Sleep for 50ms to make sure everything's been flushed to the file: (happens in separate thread)
         </span>std::thread::sleep(std::time::Duration::from_millis(<span class="number">50</span>));
 
         <span class="kw">let </span>files: HashMap&lt;String, String&gt; = temp_dir
@@ -708,34 +709,34 @@
         <span class="kw">let </span>name = files.keys().next().unwrap();
         <span class="kw">let </span>contents = files.get(name).unwrap();
 
-        <span class="comment">// Check name matches &quot;foo.log%Y-%m-%d&quot; with regex:
-        </span><span class="kw">let </span>re = regex::Regex::new(<span class="string">r&quot;^foo.log.\d{4}-\d{2}-\d{2}$&quot;</span>).change_context(AnyErr)<span class="question-mark">?</span>;
-        <span class="macro">assert!</span>(re.is_match(name), <span class="string">&quot;{}&quot;</span>, name);
+        <span class="comment">// Check name matches "foo.log%Y-%m-%d" with regex:
+        </span><span class="kw">let </span>re = regex::Regex::new(<span class="string">r"^foo.log.\d{4}-\d{2}-\d{2}$"</span>).change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="macro">assert!</span>(re.is_match(name), <span class="string">"{}"</span>, name);
 
         <span class="kw">let </span>out = contents.lines().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="macro">assert_eq!</span>(out.len(), <span class="number">4</span>, <span class="string">&quot;{}&quot;</span>, contents);
-        <span class="macro">assert!</span>(out[<span class="number">0</span>].contains(<span class="string">&quot;DLOG&quot;</span>), <span class="string">&quot;{}&quot;</span>, out[<span class="number">0</span>]);
-        <span class="macro">assert!</span>(out[<span class="number">1</span>].contains(<span class="string">&quot;ILOG&quot;</span>), <span class="string">&quot;{}&quot;</span>, out[<span class="number">1</span>]);
-        <span class="macro">assert!</span>(out[<span class="number">2</span>].contains(<span class="string">&quot;WLOG&quot;</span>), <span class="string">&quot;{}&quot;</span>, out[<span class="number">2</span>]);
-        <span class="macro">assert!</span>(out[<span class="number">3</span>].contains(<span class="string">&quot;ELOG&quot;</span>), <span class="string">&quot;{}&quot;</span>, out[<span class="number">3</span>]);
+        <span class="macro">assert_eq!</span>(out.len(), <span class="number">4</span>, <span class="string">"{}"</span>, contents);
+        <span class="macro">assert!</span>(out[<span class="number">0</span>].contains(<span class="string">"DLOG"</span>), <span class="string">"{}"</span>, out[<span class="number">0</span>]);
+        <span class="macro">assert!</span>(out[<span class="number">1</span>].contains(<span class="string">"ILOG"</span>), <span class="string">"{}"</span>, out[<span class="number">1</span>]);
+        <span class="macro">assert!</span>(out[<span class="number">2</span>].contains(<span class="string">"WLOG"</span>), <span class="string">"{}"</span>, out[<span class="number">2</span>]);
+        <span class="macro">assert!</span>(out[<span class="number">3</span>].contains(<span class="string">"ELOG"</span>), <span class="string">"{}"</span>, out[<span class="number">3</span>]);
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;opentelemetry&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
     #[rstest]
-    #[tokio::test(flavor = <span class="string">&quot;multi_thread&quot;</span>)]
+    #[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
     </span><span class="kw">async fn </span>test_opentelemetry() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">use </span>std::path::PathBuf;
 
         <span class="kw">use </span><span class="kw">crate</span>::misc::in_ci;
 
-        <span class="comment">// Collector won&#39;t be running ci:
+        <span class="comment">// Collector won't be running ci:
         </span><span class="kw">if </span>in_ci() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
 
-        <span class="kw">let </span>logpath = PathBuf::from(<span class="string">&quot;../logs/otlp.log&quot;</span>);
+        <span class="kw">let </span>logpath = PathBuf::from(<span class="string">"../logs/otlp.log"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>cur_str_len = <span class="number">0</span>;
         <span class="kw">if </span>logpath.exists() {
             cur_str_len = std::fs::read_to_string(<span class="kw-2">&amp;</span>logpath)
@@ -744,25 +745,25 @@
         }
 
         <span class="kw">let </span>log = GlobalLog::builder()
-            .otlp(<span class="number">4317</span>, <span class="string">&quot;rust-test&quot;</span>, <span class="string">&quot;0.1.0&quot;</span>)
+            .otlp(<span class="number">4317</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>)
             .level_from(Level::DEBUG)<span class="question-mark">?
             </span>.build()<span class="question-mark">?</span>;
 
         log.with_tmp_global(|| {
-            <span class="macro">debug!</span>(<span class="string">&quot;BEFORE&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"BEFORE"</span>);
             example_spanned_fn();
-            <span class="macro">warn!</span>(<span class="string">&quot;AFTER&quot;</span>);
+            <span class="macro">warn!</span>(<span class="string">"AFTER"</span>);
 
             <span class="comment">// Use a metric:
-            </span><span class="kw">let </span>meter = log.meter(<span class="string">&quot;my_meter&quot;</span>);
-            <span class="kw">let </span>counter = meter.u64_counter(<span class="string">&quot;my_counter&quot;</span>).init();
+            </span><span class="kw">let </span>meter = log.meter(<span class="string">"my_meter"</span>);
+            <span class="kw">let </span>counter = meter.u64_counter(<span class="string">"my_counter"</span>).init();
             counter.add(<span class="number">1</span>, <span class="kw-2">&amp;</span>[]);
         })<span class="question-mark">?</span>;
 
-        <span class="comment">// Make sure everything&#39;s been sent:
+        <span class="comment">// Make sure everything's been sent:
         </span>log.flush()<span class="question-mark">?</span>;
 
-        <span class="comment">// Wait for a second, as that&#39;s how often the collector writes to the debug file:
+        <span class="comment">// Wait for a second, as that's how often the collector writes to the debug file:
         </span>tokio::time::sleep(tokio::time::Duration::from_millis(<span class="number">1000</span>)).<span class="kw">await</span>;
 
         <span class="comment">// Logs should now exist in the collector, which is configured to write them to ./logs/otlp.log for testing:
@@ -777,14 +778,14 @@
             <span class="kw">let </span>value: serde_json::Value = serde_json::from_str(line)
                 .change_context(AnyErr)
                 .attach_printable_lazy(|| {
-                    <span class="macro">format!</span>(<span class="string">&quot;Couldn&#39;t decode line as json. Line: &#39;{}&#39;&quot;</span>, line)
+                    <span class="macro">format!</span>(<span class="string">"Couldn't decode line as json. Line: '{}'"</span>, line)
                 })<span class="question-mark">?</span>;
 
-            <span class="kw">if </span>line.contains(<span class="string">&quot;resourceMetrics&quot;</span>) {
+            <span class="kw">if </span>line.contains(<span class="string">"resourceMetrics"</span>) {
                 <span class="kw">for </span>resource <span class="kw">in </span>value
                     .as_object()
                     .unwrap()
-                    .get(<span class="string">&quot;resourceMetrics&quot;</span>)
+                    .get(<span class="string">"resourceMetrics"</span>)
                     .unwrap()
                     .as_array()
                     .unwrap()
@@ -792,7 +793,7 @@
                     <span class="kw">for </span>scope <span class="kw">in </span>resource
                         .as_object()
                         .unwrap()
-                        .get(<span class="string">&quot;scopeMetrics&quot;</span>)
+                        .get(<span class="string">"scopeMetrics"</span>)
                         .unwrap()
                         .as_array()
                         .unwrap()
@@ -800,7 +801,7 @@
                         <span class="kw">for </span>metric <span class="kw">in </span>scope
                             .as_object()
                             .unwrap()
-                            .get(<span class="string">&quot;metrics&quot;</span>)
+                            .get(<span class="string">"metrics"</span>)
                             .unwrap()
                             .as_array()
                             .unwrap()
@@ -809,7 +810,7 @@
                                 name: metric
                                     .as_object()
                                     .unwrap()
-                                    .get(<span class="string">&quot;name&quot;</span>)
+                                    .get(<span class="string">"name"</span>)
                                     .unwrap()
                                     .as_str()
                                     .unwrap()
@@ -818,11 +819,11 @@
                         }
                     }
                 }
-            } <span class="kw">else if </span>line.contains(<span class="string">&quot;resourceSpans&quot;</span>) {
+            } <span class="kw">else if </span>line.contains(<span class="string">"resourceSpans"</span>) {
                 <span class="kw">for </span>resource <span class="kw">in </span>value
                     .as_object()
                     .unwrap()
-                    .get(<span class="string">&quot;resourceSpans&quot;</span>)
+                    .get(<span class="string">"resourceSpans"</span>)
                     .unwrap()
                     .as_array()
                     .unwrap()
@@ -830,7 +831,7 @@
                     <span class="kw">for </span>scope <span class="kw">in </span>resource
                         .as_object()
                         .unwrap()
-                        .get(<span class="string">&quot;scopeSpans&quot;</span>)
+                        .get(<span class="string">"scopeSpans"</span>)
                         .unwrap()
                         .as_array()
                         .unwrap()
@@ -838,22 +839,22 @@
                         <span class="kw">for </span>span <span class="kw">in </span>scope
                             .as_object()
                             .unwrap()
-                            .get(<span class="string">&quot;spans&quot;</span>)
+                            .get(<span class="string">"spans"</span>)
                             .unwrap()
                             .as_array()
                             .unwrap()
                         {
                             spans.push(GenSpan {
-                                sid: span.get(<span class="string">&quot;spanId&quot;</span>).unwrap().as_str().unwrap().into(),
+                                sid: span.get(<span class="string">"spanId"</span>).unwrap().as_str().unwrap().into(),
                             });
                         }
                     }
                 }
-            } <span class="kw">else if </span>line.contains(<span class="string">&quot;resourceLogs&quot;</span>) {
+            } <span class="kw">else if </span>line.contains(<span class="string">"resourceLogs"</span>) {
                 <span class="kw">for </span>resource <span class="kw">in </span>value
                     .as_object()
                     .unwrap()
-                    .get(<span class="string">&quot;resourceLogs&quot;</span>)
+                    .get(<span class="string">"resourceLogs"</span>)
                     .unwrap()
                     .as_array()
                     .unwrap()
@@ -861,7 +862,7 @@
                     <span class="kw">for </span>scope <span class="kw">in </span>resource
                         .as_object()
                         .unwrap()
-                        .get(<span class="string">&quot;scopeLogs&quot;</span>)
+                        .get(<span class="string">"scopeLogs"</span>)
                         .unwrap()
                         .as_array()
                         .unwrap()
@@ -869,17 +870,17 @@
                         <span class="kw">for </span>log <span class="kw">in </span>scope
                             .as_object()
                             .unwrap()
-                            .get(<span class="string">&quot;logRecords&quot;</span>)
+                            .get(<span class="string">"logRecords"</span>)
                             .unwrap()
                             .as_array()
                             .unwrap()
                         {
                             <span class="kw">let </span>log = log.as_object().unwrap();
                             logs.push(GenLog {
-                                sid: log.get(<span class="string">&quot;spanId&quot;</span>).unwrap().as_str().unwrap().into(),
-                                body: otlp_value_to_string(log.get(<span class="string">&quot;body&quot;</span>).unwrap()),
+                                sid: log.get(<span class="string">"spanId"</span>).unwrap().as_str().unwrap().into(),
+                                body: otlp_value_to_string(log.get(<span class="string">"body"</span>).unwrap()),
                                 attrs: log
-                                    .get(<span class="string">&quot;attributes&quot;</span>)
+                                    .get(<span class="string">"attributes"</span>)
                                     .unwrap()
                                     .as_array()
                                     .unwrap()
@@ -887,8 +888,8 @@
                                     .map(|attr| {
                                         <span class="kw">let </span>attr = attr.as_object().unwrap();
                                         (
-                                            attr.get(<span class="string">&quot;key&quot;</span>).unwrap().as_str().unwrap().into(),
-                                            otlp_value_to_string(attr.get(<span class="string">&quot;value&quot;</span>).unwrap()),
+                                            attr.get(<span class="string">"key"</span>).unwrap().as_str().unwrap().into(),
+                                            otlp_value_to_string(attr.get(<span class="string">"value"</span>).unwrap()),
                                         )
                                     })
                                     .collect(),
@@ -897,7 +898,7 @@
                     }
                 }
             } <span class="kw">else </span>{
-                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">&quot;Unexpected line: {}&quot;</span>, line));
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Unexpected line: {}"</span>, line));
             }
         }
 
@@ -905,28 +906,28 @@
         <span class="macro">assert_eq!</span>(logs.len(), <span class="number">3</span>);
 
         <span class="comment">// Span should be assigned to nested log only, logs should be in order
-        </span><span class="macro">assert_eq!</span>(logs[<span class="number">0</span>].body, <span class="string">&quot;BEFORE&quot;</span>);
-        <span class="macro">assert_eq!</span>(logs[<span class="number">0</span>].sid, <span class="string">&quot;&quot;</span>);
-        <span class="macro">assert_eq!</span>(logs[<span class="number">1</span>].body, <span class="string">&quot;NESTED&quot;</span>);
+        </span><span class="macro">assert_eq!</span>(logs[<span class="number">0</span>].body, <span class="string">"BEFORE"</span>);
+        <span class="macro">assert_eq!</span>(logs[<span class="number">0</span>].sid, <span class="string">""</span>);
+        <span class="macro">assert_eq!</span>(logs[<span class="number">1</span>].body, <span class="string">"NESTED"</span>);
         <span class="macro">assert_eq!</span>(logs[<span class="number">1</span>].sid, spans[<span class="number">0</span>].sid);
-        <span class="macro">assert_eq!</span>(logs[<span class="number">2</span>].body, <span class="string">&quot;AFTER&quot;</span>);
-        <span class="macro">assert_eq!</span>(logs[<span class="number">2</span>].sid, <span class="string">&quot;&quot;</span>);
+        <span class="macro">assert_eq!</span>(logs[<span class="number">2</span>].body, <span class="string">"AFTER"</span>);
+        <span class="macro">assert_eq!</span>(logs[<span class="number">2</span>].sid, <span class="string">""</span>);
 
         <span class="comment">// Metadata should be correctly attached:
         </span><span class="macro">assert_eq!</span>(
-            logs[<span class="number">2</span>].attrs.get(<span class="string">&quot;code.namespace&quot;</span>).unwrap(),
-            <span class="string">&quot;bitbazaar::logging::tests&quot;
+            logs[<span class="number">2</span>].attrs.get(<span class="string">"code.namespace"</span>).unwrap(),
+            <span class="string">"bitbazaar::logging::tests"
         </span>);
 
         <span class="comment">// Metric should show up:
-        </span><span class="macro">assert_eq!</span>(metrics[<span class="number">0</span>].name, <span class="string">&quot;my_counter&quot;</span>);
+        </span><span class="macro">assert_eq!</span>(metrics[<span class="number">0</span>].name, <span class="string">"my_counter"</span>);
 
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="attr">#[tracing::instrument]
     </span><span class="kw">fn </span>example_spanned_fn() {
-        <span class="macro">error!</span>(<span class="string">&quot;NESTED&quot;</span>);
+        <span class="macro">error!</span>(<span class="string">"NESTED"</span>);
     }
 
     <span class="kw">struct </span>GenMetric {
@@ -945,12 +946,12 @@
 
     <span class="kw">fn </span>otlp_value_to_string(value: <span class="kw-2">&amp;</span>serde_json::Value) -&gt; String {
         <span class="kw">let </span>val = value.as_object().unwrap();
-        <span class="kw">if </span>val.contains_key(<span class="string">&quot;stringValue&quot;</span>) {
-            val.get(<span class="string">&quot;stringValue&quot;</span>).unwrap().as_str().unwrap().into()
-        } <span class="kw">else if </span>val.contains_key(<span class="string">&quot;intValue&quot;</span>) {
-            val.get(<span class="string">&quot;intValue&quot;</span>).unwrap().as_str().unwrap().into()
+        <span class="kw">if </span>val.contains_key(<span class="string">"stringValue"</span>) {
+            val.get(<span class="string">"stringValue"</span>).unwrap().as_str().unwrap().into()
+        } <span class="kw">else if </span>val.contains_key(<span class="string">"intValue"</span>) {
+            val.get(<span class="string">"intValue"</span>).unwrap().as_str().unwrap().into()
         } <span class="kw">else </span>{
-            <span class="macro">panic!</span>(<span class="string">&quot;Unknown value: {:?}&quot;</span>, val)
+            <span class="macro">panic!</span>(<span class="string">"Unknown value: {:?}"</span>, val)
         }
     }
 }
