@@ -77,12 +77,20 @@ repos:
         types: [rust]
         args: [--manifest-path=./rust/Cargo.toml, --]
       - id: cargo-check
-        name: cargo-check
+        name: cargo-check-all-features
         description: Check the package for errors.
         entry: cargo +nightly check
         language: rust
         types: [rust]
         args: [--manifest-path=./rust/Cargo.toml, --all-features]
+        pass_filenames: false
+      - id: cargo-check
+        name: cargo-check-default-features
+        description: Check the package for errors.
+        entry: cargo +nightly check
+        language: rust
+        types: [rust]
+        args: [--manifest-path=./rust/Cargo.toml]
         pass_filenames: false
       - id: cargo-clippy
         name: cargo-clippy
@@ -104,12 +112,20 @@ repos:
         types: [rust]
         args: [--manifest-path=./py_rust/Cargo.toml, --]
       - id: cargo-check
-        name: cargo-check
+        name: cargo-check-all-features
         description: Check the package for errors.
         entry: cargo +nightly check
         language: rust
         types: [rust]
         args: [--manifest-path=./py_rust/Cargo.toml, --all-features]
+        pass_filenames: false
+      - id: cargo-check
+        name: cargo-check-default-features
+        description: Check the package for errors.
+        entry: cargo +nightly check
+        language: rust
+        types: [rust]
+        args: [--manifest-path=./py_rust/Cargo.toml]
         pass_filenames: false
       - id: cargo-clippy
         name: cargo-clippy

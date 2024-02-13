@@ -122,16 +122,19 @@ impl GlobalLog {
     ///
     /// Note there doesn't seem to be an underlying interface to force through metrics.
     pub fn flush(&self) -> Result<(), AnyErr> {
-        if let Some(prov) = &self.otlp_providers.logger_provider {
-            prov.force_flush();
+        #[cfg(feature = "opentelemetry")]
+        {
+            if let Some(prov) = &self.otlp_providers.logger_provider {
+                prov.force_flush();
+            }
+            if let Some(prov) = &self.otlp_providers.tracer_provider {
+                prov.force_flush();
+            }
+            self.otlp_providers
+                .meter_provider
+                .force_flush()
+                .change_context(AnyErr)?;
         }
-        if let Some(prov) = &self.otlp_providers.tracer_provider {
-            prov.force_flush();
-        }
-        self.otlp_providers
-            .meter_provider
-            .force_flush()
-            .change_context(AnyErr)?;
         Ok(())
     }
 }
