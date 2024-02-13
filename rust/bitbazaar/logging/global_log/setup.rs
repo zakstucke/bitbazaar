@@ -4,7 +4,7 @@ use tracing_subscriber::{
 };
 
 use super::{builder::GlobalLogBuilder, GlobalLog};
-use crate::{misc::is_tcp_port_listening, prelude::*};
+use crate::prelude::*;
 
 /// Need the write trait for our write function.
 impl std::io::Write for super::builder::CustomConf {
@@ -112,7 +112,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                 use opentelemetry_otlp::{new_exporter, new_pipeline, WithExportConfig};
                 use opentelemetry_sdk::{logs as sdklogs, resource, trace as sdktrace};
 
-                if !is_tcp_port_listening("localhost", otlp.port)? {
+                if !crate::misc::is_tcp_port_listening("localhost", otlp.port)? {
                     return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", otlp.port));
                 }
 
