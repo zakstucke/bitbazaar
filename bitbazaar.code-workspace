@@ -164,6 +164,8 @@
       "**/package-lock.json": true,
       "**/Cargo.lock": true,
       "**/pdm.lock": true,
+      "**/logs/**": true,
+      "**/process_data/**": true,
     }
   },
   "launch": {

@@ -18,11 +18,11 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::*;
-    use crate::{errors::prelude::*, logging::default_stdout_global_logging};
+    use crate::{errors::prelude::*, logging::GlobalLog};
 
     #[fixture]
     fn logging() -> () {
-        default_stdout_global_logging(tracing::Level::DEBUG).unwrap();
+        GlobalLog::setup_quick_stdout_global_logging(tracing::Level::DEBUG).unwrap();
     }
 
     // Temp file:

@@ -1,9 +1,11 @@
+import json
 import logging
 import typing as tp
 
 from opentelemetry import trace as trace_api
 from opentelemetry.sdk import util as open_util
 from opentelemetry.sdk._logs._internal import LogRecord
+from opentelemetry.sdk.metrics._internal.point import MetricsData
 from opentelemetry.sdk.trace import ReadableSpan, StatusCode
 from rich.console import Console as RichConsole
 from rich.markup import escape
@@ -16,7 +18,6 @@ CONSOLE: RichConsole | None = None
 
 
 def get_console() -> RichConsole:
-    """Lazy so IS_TEST is set before it's called."""
     global CONSOLE
     if CONSOLE is None:
         # No color if testing to allow regexes to work:
@@ -24,14 +25,71 @@ def get_console() -> RichConsole:
     return CONSOLE
 
 
+def file_metric_formatter(metrics: MetricsData) -> str:
+    outs: list[str] = []
+    for resource_metrics in metrics.resource_metrics:
+        for scope_metrics in resource_metrics.scope_metrics:
+            for metric in scope_metrics.metrics:
+                parts = {}
+                parts["name"] = metric.name
+                if metric.description:  # pragma: no cover
+                    parts["description"] = metric.description
+                if metric.unit:  # pragma: no cover
+                    parts["unit"] = metric.unit
+                parts["data"] = json.loads(metric.data.to_json())
+                out = "METRIC: {}".format(" ".join([f"{k}={v}" for k, v in parts.items()]))
+
+                # Useful for splitting during tests:
+                if bitbazaar._testing.IS_TEST:
+                    out += "ENTRY_FIN"
+                outs.append(out)
+    return "\n".join(outs)
+
+
+def console_metric_formatter(metrics: MetricsData) -> str:
+    outs: list[str] = []
+    for resource_metrics in metrics.resource_metrics:
+        for scope_metrics in resource_metrics.scope_metrics:
+            for metric in scope_metrics.metrics:
+                parts = {}
+                parts["name"] = metric.name
+                if metric.description:  # pragma: no cover
+                    parts["description"] = metric.description
+                if metric.unit:  # pragma: no cover
+                    parts["unit"] = metric.unit
+                parts["data"] = json.loads(metric.data.to_json())
+                out = "METRIC: {}".format(" ".join([f"{k}={v}" for k, v in parts.items()]))
+
+                # Useful for splitting during tests:
+                if bitbazaar._testing.IS_TEST:
+                    out += "ENTRY_FIN"
+
+                outs.append(out)
+
+    out = "\n".join(outs)
+    console = get_console()
+    with console.capture() as capture:
+        console.print("[dim]" + out + "[/]")
+    out = capture.get()
+
+    return out
+
+
 def console_span_formatter(span: ReadableSpan) -> str:
     parts = _span_parts(span, False)
     out = f"[bold]SPAN: [/]({span.name}) "
     out += " ".join(f"{k}={v}" for k, v in parts.items() if v is not None)
+
     console = get_console()
     with console.capture() as capture:
         console.print("[dim]" + out + "[/]")
-    return capture.get()
+    out = capture.get()
+
+    # Useful for splitting during tests:
+    if bitbazaar._testing.IS_TEST:
+        out += "ENTRY_FIN"
+
+    return out
 
 
 def file_span_formatter(span: ReadableSpan) -> str:
@@ -68,7 +126,14 @@ def console_log_formatter(log: LogRecord, show_sids: bool) -> str:
     console = get_console()
     with console.capture() as capture:
         console.print(out, end="")
-    return capture.get()
+
+    out = capture.get()
+
+    # Useful for splitting during tests:
+    if bitbazaar._testing.IS_TEST:
+        out += "ENTRY_FIN"
+
+    return out
 
 
 def file_log_formatter(log: LogRecord) -> str:
@@ -185,12 +250,15 @@ def _fmt_where_parts(log: LogRecord, is_file: bool, show_sids: bool) -> str:
         for key, value in log.attributes.items():
             parts[key] = value
 
-    parts_str = " ".join(f"{k}={v}" for k, v in parts.items())
-    # Only include color for console:
-    if is_file:
-        return f"    where {parts_str}\n"
+    if parts:
+        parts_str = " ".join(f"{k}={v}" for k, v in parts.items())
+        # Only include color for console:
+        if is_file:
+            return f"    where {parts_str}\n"
+        else:
+            return f"[dim italic]    where {parts_str}[/]\n"
     else:
-        return f"[dim italic]    where {parts_str}[/]\n"
+        return ""
 
 
 def _format_duration(nanoseconds: int) -> str:  # pragma: no cover

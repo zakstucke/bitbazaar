@@ -3,11 +3,12 @@ import logging
 from opentelemetry import trace
 from opentelemetry.context import Context
 from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import SpanKind, _Links
 from opentelemetry.util.types import Attributes
 
-from bitbazaar import utils
+from bitbazaar import misc
 
 from ._file_handler import CustomRotatingFileHandler
 from ._setup import ConsoleSink, FileSink, OLTPSink, prepare_providers
@@ -16,23 +17,40 @@ from ._setup import ConsoleSink, FileSink, OLTPSink, prepare_providers
 class GlobalLog:
     tracer_provider: TracerProvider
     logger_provider: LoggerProvider
+    meter_provider: MeterProvider
     tracer: trace.Tracer
     file_handler: CustomRotatingFileHandler | None
 
     def __init__(
         self,
         service_name: str,
+        service_version: str,
         console: ConsoleSink | None = None,
         otlp: OLTPSink | None = None,
         file: FileSink | None = None,
     ):
-        """Initialize tracing for a project.
+        """Initialize logs, traces/spans and metrics for a project.
 
-        NOTE: only the otlp sink logs spans, but file logger will include sid in logs, to allow finding them from oltp (e.g. debug in file, but only info up in oltp.)
+        Logging: normal `.debug()/.info()/.warn()` etc methods available.
+
+        Tracing/spans: `.span()` can be used to create a new span, or as a decorator to wrap functions.
+
+        Metrics: `.get_meter()` can be used.
+
+        Auto-instrumentation: `self.meter_provider/tracer_provider/logger_provider` are exposed from the instance to allow interaction with auto instrumentation libraries.
+
+        If open telemetry used, is opinionated in the fact it should be speaking to a local collector via grpc insecurely on localhost with no headers, only the port can be configured.
+        The collector itself should be post-processing speaking to the outside world, to minimise tracing's impact on this program's performance.
         """
-        self.tracer_provider, self.logger_provider, self.file_handler = prepare_providers(
+        (
+            self.meter_provider,
+            self.tracer_provider,
+            self.logger_provider,
+            self.file_handler,
+        ) = prepare_providers(
             {
                 "service_name": service_name,
+                "service_version": service_version,
                 "console": console,
                 "otlp": otlp,
                 "file": file,
@@ -40,25 +58,29 @@ class GlobalLog:
         )
         self.tracer = trace.get_tracer("GlobalLog")
 
-    @utils.copy_sig(logging.debug)
+    @misc.copy_sig(logging.debug)
     def debug(self, *args, **kwargs):  # type: ignore
         logging.debug(*args, **kwargs)
 
-    @utils.copy_sig(logging.info)
+    @misc.copy_sig(logging.info)
     def info(self, *args, **kwargs):  # type: ignore
         logging.info(*args, **kwargs)
 
-    @utils.copy_sig(logging.warning)
+    @misc.copy_sig(logging.warning)
     def warn(self, *args, **kwargs):  # type: ignore
         logging.warning(*args, **kwargs)
 
-    @utils.copy_sig(logging.error)
+    @misc.copy_sig(logging.error)
     def error(self, *args, **kwargs):  # type: ignore
         logging.error(*args, **kwargs)
 
-    @utils.copy_sig(logging.critical)
+    @misc.copy_sig(logging.critical)
     def crit(self, *args, **kwargs):  # type: ignore
         logging.critical(*args, **kwargs)
+
+    @misc.copy_sig(MeterProvider.get_meter)
+    def get_meter(self, *args, **kwargs):  # type: ignore
+        return self.meter_provider.get_meter(*args, **kwargs)
 
     # Can't copy sig because different self types, effectively just copied full interface to not lose information.
     def span(
@@ -148,51 +170,14 @@ class GlobalLog:
         """Force all logs/spans through, useful when testing."""
         self.tracer_provider.force_flush()
         self.logger_provider.force_flush()
+        self.meter_provider.force_flush()
         if self.file_handler:
             self.file_handler.flush()
 
     def shutdown(self) -> None:
-        """Shuts/closes everything down. Happens automatically at end of program anyway."""
+        """Shuts/closes everything down."""
         self.tracer_provider.shutdown()
         self.logger_provider.shutdown()
+        self.meter_provider.shutdown()
         if self.file_handler:
             self.file_handler.close()
-
-    # TODO in some format, maybe in a generic creator for fastapi/django/celery, but probably outside the tracing module interacting with the tracer_provider.
-    # def instrument_fastapi(self, app: "FastAPI") -> None:
-    #     """Instrument fastapi with automatic tracing. 'fastapi' extra pkg feature must be installed."""
-    #     try:
-    #         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    #     except ImportError as e:
-    #         raise ImportError(
-    #             "To use this method, you must have the 'fastapi' extra pkg feature installed."
-    #         ) from e
-
-    #     FastAPIInstrumentor.instrument_app(app, tracer_provider=self.tracer_provider)
-
-    # def instrument_django(self) -> None:
-    #     """Instrument django with automatic tracing. 'django' extra pkg feature must be installed."""
-    #     try:
-    #         from opentelemetry.instrumentation.django import DjangoInstrumentor
-    #     except ImportError as e:
-    #         raise ImportError(
-    #             "To use this method, you must have the 'django' extra pkg feature installed."
-    #         ) from e
-
-    #     # Make sure DJANGO_SETTINGS_MODULE env var is set:
-    #     if not os.environ.get("DJANGO_SETTINGS_MODULE"):
-    #         raise ValueError(
-    #             "'DJANGO_SETTINGS_MODULE' env var must already be set to instrument django."
-    #         )
-
-    #     DjangoInstrumentor().instrument()
-
-    # def instrument_celery(self) -> None:
-    #     """Instrument celery with automatic tracing. 'celery' extra pkg feature must be installed."""
-    #     try:
-    #         from opentelemetry.instrumentation.celery import CeleryInstrumentor
-    #     except ImportError as e:
-    #         raise ImportError(
-    #             "To use this method, you must have the 'celery' extra pkg feature installed."
-    #         ) from e
-    #     CeleryInstrumentor().instrument()

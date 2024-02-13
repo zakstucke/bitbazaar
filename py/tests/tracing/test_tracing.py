@@ -2,19 +2,28 @@ import logging
 import typing as tp
 
 import pytest
+from bitbazaar.misc import in_ci
 from bitbazaar.tracing import GlobalLog
 
 from .trace_generics import Checker, console_logger, file_logger, otlp_logger
 
+ttl_cases: list[tuple[str, tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]]]] = [
+    ("console", lambda log_level: console_logger(log_level, span=False, metric=False)),
+    ("console", lambda log_level: console_logger(log_level, span=True, metric=False)),
+    ("file", lambda log_level: file_logger(log_level)),
+]
 
-@pytest.mark.parametrize(
-    "desc, log_manager",
-    [
-        ("console", lambda log_level: console_logger(log_level, span=False)),
-        ("otlp", lambda log_level: otlp_logger(log_level)),
-        ("file", lambda log_level: file_logger(log_level)),
-    ],
-)
+# OTLP only when have access to the local collector:
+if not in_ci():
+    ttl_cases.append(
+        (
+            "otlp",
+            lambda log_level: otlp_logger(log_level),
+        )
+    )
+
+
+@pytest.mark.parametrize("desc, log_manager", ttl_cases)
 def test_tracing_level(
     desc: str,
     log_manager: tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]],
@@ -44,20 +53,25 @@ def test_tracing_level(
             log.crit("IS_C")
             log.flush()
 
-            logs = checker.logs()
+            logs, _, _ = checker.read()
             assert len(logs) == len(should_match)
             for i, (lvl, msg) in enumerate(should_match):
                 assert lvl == logs[i]["level"] and msg in logs[i]["body"]
 
 
-@pytest.mark.parametrize(
-    "desc, log_manager",
-    [
-        ("console", lambda log_level: console_logger(log_level, span=True)),
+tts_cases: list[tuple[str, tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]]]] = [
+    ("console", lambda log_level: console_logger(log_level, span=True, metric=False)),
+    ("file", lambda log_level: file_logger(log_level)),
+]
+
+# OTLP only when have access to the local collector:
+if not in_ci():
+    tts_cases.append(
         ("otlp", lambda log_level: otlp_logger(log_level)),
-        ("file", lambda log_level: file_logger(log_level)),
-    ],
-)
+    )
+
+
+@pytest.mark.parametrize("desc, log_manager", tts_cases)
 def test_tracing_spans(
     desc: str,
     log_manager: tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]],
@@ -77,13 +91,12 @@ def test_tracing_spans(
             pass
         log.flush()
 
-        logs = checker.logs()
+        logs, spans, _ = checker.read()
         assert len(logs) == 4
-        spans = checker.spans()
         assert len(spans) == 3
 
         # First log should be before any spans and not attached:
-        assert logs[0]["sid"] in ["0x0000000000000000", "0"]
+        assert checker.sid_is_nully(logs[0]["sid"])
 
         # Nested should come through first:
         assert spans[0]["name"] == "NESTED_SPAN"
@@ -97,4 +110,39 @@ def test_tracing_spans(
         assert spans[2]["name"] == "SPAN_WILL_RAISE"
 
         # Last log should be after all spans and not attached:
-        assert logs[3]["sid"] in ["0x0000000000000000", "0"]
+        assert checker.sid_is_nully(logs[3]["sid"])
+
+
+ttm_cases: list[tuple[str, tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]]]] = [
+    ("console", lambda log_level: console_logger(log_level, span=True, metric=True)),
+    ("file", lambda log_level: file_logger(log_level)),
+]
+
+# OTLP only when have access to the local collector:
+if not in_ci():
+    ttm_cases.append(
+        ("otlp", lambda log_level: otlp_logger(log_level)),
+    )
+
+
+@pytest.mark.parametrize("desc, log_manager", ttm_cases)
+def test_tracing_metrics(
+    desc: str,
+    log_manager: tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]],
+):
+    """Confirm metrics are recorded and mapped properly."""
+    with log_manager(logging.DEBUG) as (log, checker):
+        meter = log.get_meter("my meter")
+
+        counter = meter.create_counter("my_counter")
+        counter.add(1)
+
+        histogram = meter.create_histogram("my_histogram")
+        histogram.record(99.9)
+
+        log.flush()
+
+        _, _, metrics = checker.read()
+        assert len(metrics) == 2
+        assert metrics[0]["name"] == "my_counter"
+        assert metrics[1]["name"] == "my_histogram"
