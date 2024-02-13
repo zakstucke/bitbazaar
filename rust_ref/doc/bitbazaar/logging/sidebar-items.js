@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["SubLayerFilter","SubLayerVariant"],"fn":["create_subscriber","default_stdout_global_logging"],"struct":["ClapLogLevelArgs","CreatedSubscriber","SubCustomWriter","SubLayer"]};
+window.SIDEBAR_ITEMS = {"struct":["ClapLogLevelArgs","GlobalLog"]};

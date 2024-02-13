@@ -43,7 +43,7 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>warn_user_once_by_id {
     (<span class="macro-nonterminal">$id</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
-        <span class="kw">use </span>log::warn;
+        <span class="kw">use </span>tracing::warn;
 
         <span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>states) = <span class="macro-nonterminal">$crate::logging::SENT_WARNING_IDS</span>.lock() {
             <span class="kw">if </span>!states.contains(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$id</span>) {
@@ -59,7 +59,7 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>warn_user_once {
     ($(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
-        <span class="kw">use </span>log::warn;
+        <span class="kw">use </span>tracing::warn;
 
         <span class="kw">static </span>WARNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(<span class="bool-val">false</span>);
         <span class="kw">if </span>!WARNED.swap(<span class="bool-val">true</span>, std::sync::atomic::Ordering::SeqCst) {
