@@ -122,7 +122,7 @@ def prepare_providers(
     # Add the handler for oltp: (console/backend/file will be handled through this single handler)
     logging.getLogger().addHandler(log_handler)
 
-    if otlp is not None:
+    if otlp is not None:  # pragma: no cover (is covered but not in CI)
         if not is_tcp_port_listening("localhost", otlp["port"]):
             raise ConnectionError(  # pragma: no cover
                 "Couldn't connect to a collector locally on port {}, are you sure the collector is running?".format(

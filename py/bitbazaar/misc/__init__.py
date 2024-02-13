@@ -26,7 +26,9 @@ def in_ci() -> bool:
     return any([var in os.environ for var in _CI_ENV_VARS])
 
 
-def is_tcp_port_listening(host: str, port: int) -> bool:
+def is_tcp_port_listening(
+    host: str, port: int
+) -> bool:  # pragma: no cover (is covered but not in CI)
     """Check if something is listening on a certain tcp port or not."""
     try:
         # Create a TCP socket
@@ -39,5 +41,5 @@ def is_tcp_port_listening(host: str, port: int) -> bool:
         # If connection is successful, something is listening on the port
         s.close()
         return True
-    except OSError:  # pragma: no cover
+    except OSError:
         return False

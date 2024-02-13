@@ -28,7 +28,7 @@ from ._file_handler import CustomRotatingFileHandler
 from ._utils import log_level_to_severity
 
 
-class CustOTLPLogExporterGRPC(OTLPLogExporterGRPC):
+class CustOTLPLogExporterGRPC(OTLPLogExporterGRPC):  # pragma: no cover (is covered but not in CI)
     _filter_from_level: int | None
 
     @misc.copy_sig(OTLPLogExporterGRPC.__init__)
@@ -45,7 +45,7 @@ class CustOTLPLogExporterGRPC(OTLPLogExporterGRPC):
         return super().export(filtered)
 
 
-class CustOTLPSpanExporterGRPC(OTLPSpanExporterGRPC):
+class CustOTLPSpanExporterGRPC(OTLPSpanExporterGRPC):  # pragma: no cover (is covered but not in CI)
     pass
 
 
