@@ -1,15 +1,16 @@
 import contextlib
+import io
+import json
 import logging
+import os
 import re
+import time
 import typing as tp
 from abc import ABC, abstractmethod
 
-from bitbazaar._testing import BUF
 from bitbazaar.testing import TmpFileManager
 from bitbazaar.tracing import GlobalLog
 from bitbazaar.tracing._utils import severity_to_log_level
-from opentelemetry.sdk._logs import LogData
-from opentelemetry.sdk.trace import ReadableSpan
 
 if tp.TYPE_CHECKING:  # pragma: no cover
     from _typeshed import StrPath
@@ -26,24 +27,41 @@ class GenericSpan(tp.TypedDict):
     name: str
 
 
+class GenericMetric(tp.TypedDict):
+    name: str
+
+
 class Checker(ABC):
     @abstractmethod
-    def logs(self) -> list[GenericLog]:
+    def _logs(self) -> list[GenericLog]:
         """First item is sid, second is log message."""
         pass
 
     @abstractmethod
-    def spans(self) -> list[GenericSpan]:
+    def _spans(self) -> list[GenericSpan]:
         """First item is sid, second is name."""
         pass
 
-
-class ConsoleChecker(Checker):
-    def __init__(self):
+    @abstractmethod
+    def _metrics(self) -> list[GenericMetric]:
+        """First item is sid, second is name."""
         pass
 
-    def _get_entries(self):
-        return BUF
+    @abstractmethod
+    def read(self) -> tuple[list[GenericLog], list[GenericSpan], list[GenericMetric]]:
+        pass
+
+    def sid_is_nully(self, sid: tp.Any):
+        if not sid or sid in ["0x0000000000000000", "0"]:
+            return True
+        return False
+
+
+class ConsoleChecker(Checker):
+    buf: io.StringIO
+
+    def __init__(self, buf: io.StringIO):
+        self.buf = buf
 
     def _coerce_level(self, log: str) -> str:
         if "DEBUG" in log:
@@ -59,8 +77,13 @@ class ConsoleChecker(Checker):
 
         raise ValueError(f"Couldn't find level in log: '{log}'")
 
-    def logs(self) -> list[GenericLog]:
-        logs = [item for item in self._get_entries() if "SPAN" not in item]
+    def _get_entries(self) -> list[str]:
+        self.buf.seek(0)
+        contents = self.buf.read()
+        return [item for item in contents.split("ENTRY_FIN") if item.strip()]
+
+    def _logs(self) -> list[GenericLog]:
+        logs = [item for item in self._get_entries() if "SPAN" not in item and "METRIC" not in item]
         out: list[GenericLog] = []
         for log in logs:
             sid_search = re.search(r"sid=(\w+)", log)
@@ -68,7 +91,7 @@ class ConsoleChecker(Checker):
             out.append({"sid": sid, "level": self._coerce_level(log), "body": log})
         return out
 
-    def spans(self) -> list[GenericSpan]:
+    def _spans(self) -> list[GenericSpan]:
         spans = [item for item in self._get_entries() if "SPAN" in item]
         out: list[GenericSpan] = []
         for span in spans:
@@ -88,65 +111,142 @@ class ConsoleChecker(Checker):
                 raise ValueError("Couldn't find sid for span! Span: '{}'".format(span))
         return out
 
+    def _metrics(self) -> list[GenericMetric]:
+        metrics = [item for item in self._get_entries() if "METRIC" in item]
+        out: list[GenericMetric] = []
+        for metric in metrics:
+            name_search = re.search(r"name=(\w+)", metric)
+            if not name_search:
+                raise ValueError("Couldn't find name for metric! Metric: '{}'".format(metric))
+            out.append({"name": name_search.group(1)})
+        return out
+
+    def read(self) -> tuple[list[GenericLog], list[GenericSpan], list[GenericMetric]]:
+        return self._logs(), self._spans(), self._metrics()
+
 
 @contextlib.contextmanager
-def console_logger(from_level: int, span: bool):
-    BUF.clear()
-    log = GlobalLog("MA SERVICE", console={"from_level": from_level, "spans": span})
+def console_logger(from_level: int, span: bool, metric: bool):
+    buf = io.StringIO()
+    log = GlobalLog(
+        "Python Test",
+        "1.0",
+        console={"from_level": from_level, "spans": span, "metrics": metric, "writer": buf},
+    )
     try:
-        yield log, ConsoleChecker()
+        yield log, ConsoleChecker(buf)
     finally:
         log.shutdown()
 
 
 class OLTPChecker(Checker):
+    logpath: str
+    seek: int
+
     def __init__(self):
-        pass
+        self.logpath = os.path.join("..", "logs", "otlp.log")
+        self.seek = 0
 
-    def _get_entries(self):
-        return BUF
+    def _get_entries(self) -> list[tp.Any]:
+        entries = []
+        with open(self.logpath, "rb") as f:
+            # Start from the reset point:
+            f.seek(self.seek)
 
-    def logs(self) -> list[GenericLog]:
-        logs = [item for item in self._get_entries() if isinstance(item, LogData)]
+            contents = f.read().decode("utf8")
+            for lin in contents.split("\n"):
+                lin = lin.strip()
+                if lin:
+                    try:
+                        entries.append(json.loads(lin))
+                    except json.JSONDecodeError as e:
+                        raise ValueError("Couldn't decode otlp entry: '{}'".format(lin)) from e
+        return entries
+
+    def reset_logs(self):
+        """The collector is appending, and deleting the contents really confuses the collector (it keeps writing from where it was leaving NULS where we deleted).
+
+        Instead, we record the length of file when reset is called, this becomes the start point for _get_entries() when it's called.
+        """
+        try:
+            # Open the file in binary mode ('rb') to get the file size
+            with open(self.logpath, "rb") as file:
+                # Move the cursor to the end of the file
+                file.seek(0, os.SEEK_END)
+                # Get the seek value which represents the end of the file
+                self.seek = file.tell()
+        except FileNotFoundError:
+            pass
+
+    def _logs(self) -> list[GenericLog]:
+        logs = []
+        for item in self._get_entries():
+            if "resourceLogs" in item:
+                for resource in item["resourceLogs"]:
+                    for scope in resource["scopeLogs"]:
+                        for log in scope["logRecords"]:
+                            logs.append(log)
         out: list[GenericLog] = []
         for log in logs:
-            sid = str(log.log_record.span_id) if log.log_record.span_id is not None else None
-            if log.log_record.severity_number is None:
-                raise ValueError(f"Log record doesn't have severity number! Log: '{log}'")
-            lvl = logging.getLevelName(severity_to_log_level(log.log_record.severity_number))
+            lvl = logging.getLevelName(severity_to_log_level(log["severityNumber"]))
             if lvl == "WARNING":
                 lvl = "WARN"
             out.append(
                 {
-                    "sid": sid,
-                    "body": str(log.log_record.body),
+                    "sid": log["spanId"],
+                    "body": log["body"]["stringValue"],
                     "level": lvl,
                 }
             )
         return out
 
-    def spans(self) -> list[GenericSpan]:
-        spans = [item for item in self._get_entries() if isinstance(item, ReadableSpan)]
+    def _spans(self) -> list[GenericSpan]:
+        spans = []
+        for item in self._get_entries():
+            if "resourceSpans" in item:
+                for resource in item["resourceSpans"]:
+                    for scope in resource["scopeSpans"]:
+                        for span in scope["spans"]:
+                            spans.append(span)
         out: list[GenericSpan] = []
         for span in spans:
-            if span.context is not None:
-                out.append(
-                    {
-                        "sid": str(span.context.span_id),
-                        "name": span.name,
-                    }
-                )
-            else:
-                raise ValueError("Couldn't find sid for span! Span: '{}'".format(span))
+            out.append(
+                {
+                    "sid": span["spanId"],
+                    "name": span["name"],
+                }
+            )
         return out
+
+    def _metrics(self) -> list[GenericMetric]:
+        metrics = []
+        for item in self._get_entries():
+            if "resourceMetrics" in item:
+                for resource in item["resourceMetrics"]:
+                    for scope in resource["scopeMetrics"]:
+                        for metric in scope["metrics"]:
+                            metrics.append({"name": metric["name"]})
+        return metrics
+
+    def read(self) -> tuple[list[GenericLog], list[GenericSpan], list[GenericMetric]]:
+        # Have to wait for the collector to have actually written the output to file, it does this every second:
+        time.sleep(1)
+        return self._logs(), self._spans(), self._metrics()
 
 
 @contextlib.contextmanager
 def otlp_logger(from_level: int):
-    BUF.clear()
-    log = GlobalLog("MA SERVICE", otlp={"from_level": from_level, "headers": {}, "url": "foo"})
+    checker = OLTPChecker()
+    checker.reset_logs()
+
+    log = GlobalLog(
+        "1.0",
+        "Python Test",
+        otlp={"from_level": from_level, "port": 4317},
+    )
+
     try:
-        yield log, OLTPChecker()
+        yield log, checker
     finally:
         log.shutdown()
 
@@ -167,7 +267,8 @@ def file_logger(from_level: int):
     with TmpFileManager() as manager:
         tf = manager.tmpfile(content="", suffix=".log")
         log = GlobalLog(
-            "MA SERVICE",
+            "Python Test",
+            "1.0",
             file={
                 "from_level": from_level,
                 "logpath": tf,

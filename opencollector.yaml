@@ -1,0 +1,64 @@
+receivers:
+  # Where programs/open telemetry sdks should send their data:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  # Prevent memory usage from exceeding 40% of the total available RAM,
+  # will start applying backpressure to the sources when memory usage exceeds 25% of the total available RAM
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 40
+    spike_limit_percentage: 25
+  batch:
+    # If hit this number before timeout, will send batch:
+    send_batch_size: 10000
+    # Will always send after this timeout, even if send_batch_size not reached yet:
+    timeout: 1s
+
+exporters:
+  otlp/dev_oo:
+    endpoint: host.docker.internal:5081
+    headers:
+      Authorization: "Basic cm9vdEByb290LmNvbTpDUENWeFJjeU9qVUl4RWJh"
+      organization: default
+      stream-name: default
+    tls:
+      insecure: true
+
+  # Writes all opentelemetry logs, traces, metrics to a file, useful for testing:
+  file/debug_file_writing:
+    path: ./logs/otlp.log
+    rotation:
+      max_megabytes: 10
+      max_days: 3
+      max_backups: 3
+      localtime: true
+    flush_interval: 1  # Write every 1 seconds
+
+service:
+  telemetry:
+    logs:
+      level: "info"
+
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters:
+        - file/debug_file_writing
+        - otlp/dev_oo
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters:
+        - file/debug_file_writing
+        - otlp/dev_oo
+    metrics:  # Don't bother with memory limiting for metrics, traces and logs will be the largest consumers of memory
+      receivers: [otlp]
+      processors: [batch]
+      exporters:
+        - file/debug_file_writing
+        - otlp/dev_oo

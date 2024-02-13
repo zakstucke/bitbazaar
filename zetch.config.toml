@@ -19,5 +19,6 @@ PY_RUST_VERSION = { value = "0.0.3" }
 JS_ALIASES = { value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json" }
 
 [context.env]
+DEBUG = { default = true }
 
 [context.cli]

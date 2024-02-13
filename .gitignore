@@ -6,6 +6,7 @@ private/
 !*private*.*.zetch
 
 process_data/
+logs/
 
 # Tempate files
 .cop.*.yml

@@ -60,6 +60,8 @@ qa () {
 }
 
 py () {
+    ./dev_scripts/run.sh ensure_collector # Needed for open telemetry tests in bitbazaar
+
     cd ./py/
     # Check for COVERAGE=False/false, which is set in some workflow runs to make faster:
     if [[ "$COVERAGE" == "False" ]] || [[ "$COVERAGE" == "false" ]]; then
@@ -109,6 +111,7 @@ py_rust () {
 }
 
 rust () {
+    ./dev_scripts/run.sh ensure_collector # Needed for open telemetry tests in bitbazaar
 
     cargo nextest run --cargo-profile dev --manifest-path ./rust/Cargo.toml --all-features $@
 }

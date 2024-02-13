@@ -1,13 +1,20 @@
 import typing as tp
 
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
+    OTLPLogExporter as OTLPLogExporterGRPC,
+)
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+    OTLPSpanExporter as OTLPSpanExporterGRPC,
+)
 from opentelemetry.sdk._logs import LogData
 from opentelemetry.sdk._logs.export import (
     ConsoleLogExporter,
     LogExporter,
     LogExportResult,
 )
+from opentelemetry.sdk.metrics._internal.export import MetricExportResult
+from opentelemetry.sdk.metrics._internal.point import MetricsData
+from opentelemetry.sdk.metrics.export import MetricExporter
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export import (
     ConsoleSpanExporter,
@@ -15,18 +22,16 @@ from opentelemetry.sdk.trace.export import (
     SpanExportResult,
 )
 
-import bitbazaar._testing
-from bitbazaar import utils
+from bitbazaar import misc
 
 from ._file_handler import CustomRotatingFileHandler
-from ._formatting import console_span_formatter
 from ._utils import log_level_to_severity
 
 
-class CustOTLPLogExporter(OTLPLogExporter):
+class CustOTLPLogExporterGRPC(OTLPLogExporterGRPC):  # pragma: no cover (is covered but not in CI)
     _filter_from_level: int | None
 
-    @utils.copy_sig(OTLPLogExporter.__init__)
+    @misc.copy_sig(OTLPLogExporterGRPC.__init__)
     def __init__(self, *args, **kwargs):  # type: ignore
         self._filter_from_level = None
         super().__init__(*args, **kwargs)
@@ -37,24 +42,17 @@ class CustOTLPLogExporter(OTLPLogExporter):
 
     def export(self, log_data: tp.Sequence[LogData]) -> LogExportResult:
         filtered = fil_log_data(log_data, self._filter_from_level)
-        if bitbazaar._testing.IS_TEST:
-            bitbazaar._testing.BUF.extend(filtered)
-            return LogExportResult.SUCCESS
-        return super().export(filtered)  # pragma: no cover
+        return super().export(filtered)
 
 
-class CustOTLPSpanExporter(OTLPSpanExporter):
-    def export(self, spans: tp.Sequence[ReadableSpan]) -> SpanExportResult:
-        if bitbazaar._testing.IS_TEST:
-            bitbazaar._testing.BUF.extend(spans)
-            return SpanExportResult.SUCCESS
-        return super().export(spans)  # pragma: no cover
+class CustOTLPSpanExporterGRPC(OTLPSpanExporterGRPC):  # pragma: no cover (is covered but not in CI)
+    pass
 
 
 class CustConsoleLogExporter(ConsoleLogExporter):
     _filter_from_level: int | None
 
-    @utils.copy_sig(ConsoleLogExporter.__init__)
+    @misc.copy_sig(ConsoleLogExporter.__init__)
     def __init__(self, *args, **kwargs):  # type: ignore
         self._filter_from_level = None
         super().__init__(*args, **kwargs)
@@ -65,18 +63,11 @@ class CustConsoleLogExporter(ConsoleLogExporter):
 
     def export(self, log_data: tp.Sequence[LogData]) -> LogExportResult:
         filtered = fil_log_data(log_data, self._filter_from_level)
-        if bitbazaar._testing.IS_TEST:
-            bitbazaar._testing.BUF.extend([self.formatter(log.log_record) for log in filtered])
-            return LogExportResult.SUCCESS
-        return super().export(filtered)  # pragma: no cover
+        return super().export(filtered)
 
 
 class CustConsoleSpanExporter(ConsoleSpanExporter):
-    def export(self, spans: tp.Sequence[ReadableSpan]) -> SpanExportResult:
-        if bitbazaar._testing.IS_TEST:
-            bitbazaar._testing.BUF.extend([console_span_formatter(span) for span in spans])
-            return SpanExportResult.SUCCESS
-        return super().export(spans)  # pragma: no cover
+    pass
 
 
 class CustFileLogExporter(LogExporter):
@@ -118,6 +109,27 @@ class CustFileSpanExporter(SpanExporter):
     def shutdown(self) -> None:
         self._file_handler.close()
         return super().shutdown()
+
+
+class CustFileMetricExporter(MetricExporter):
+    _file_handler: CustomRotatingFileHandler
+
+    def __init__(self, handler: CustomRotatingFileHandler):
+        self._file_handler = handler
+        super().__init__()
+
+    def export(
+        self, metrics_data: MetricsData, timeout_millis: float = 10000, **kwargs: tp.Any
+    ) -> MetricExportResult:
+        self._file_handler.emit(metrics_data)
+        return MetricExportResult.SUCCESS
+
+    def force_flush(self, timeout_millis: float = 10000) -> bool:
+        self._file_handler.flush()
+        return True
+
+    def shutdown(self, timeout_millis: float = 30000, **kwargs: tp.Any) -> None:
+        self._file_handler.close()
 
 
 def fil_log_data(data: tp.Sequence[LogData], lvl: int | None) -> tp.Sequence[LogData]:

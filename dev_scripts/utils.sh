@@ -24,7 +24,15 @@ replace_text () {
     awk "{sub(\"$1\",\"$2\")} {print}" $3 > temp.txt && mv temp.txt $3
 }
 
-
+# Returns "true" if looks like in_ci, "false" otherwise:
+in_ci () {
+    # Check if any of the CI/CD environment variables are set
+    if [ -n "$GITHUB_ACTIONS" ] || [ -n "$TRAVIS" ] || [ -n "$CIRCLECI" ] || [ -n "$GITLAB_CI" ]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
 
 # Has to come at the end of these files:
 source ./dev_scripts/_scr_setup/setup.sh "$@"

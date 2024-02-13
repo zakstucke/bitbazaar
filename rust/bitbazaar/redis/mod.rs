@@ -66,14 +66,6 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_redis_working() -> Result<(), AnyErr> {
-        // Can enable to check logging when debugging:
-        // let sub = crate::logging::create_subscriber(vec![crate::logging::SubLayer {
-        //     filter: crate::logging::SubLayerFilter::Above(tracing::Level::TRACE),
-        //     pretty: true,
-        //     ..Default::default()
-        // }])?;
-        // sub.into_global();
-
         // Don't want to install redis in ci, just run this test locally:
         if in_ci() {
             return Ok(());
