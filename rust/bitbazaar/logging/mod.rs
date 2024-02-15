@@ -7,7 +7,7 @@ mod macros;
 mod ot_tracing_bridge;
 
 pub use clap_log_level_args::ClapLogLevelArgs;
-pub use global_log::GlobalLog;
+pub use global_log::{global_fns::*, GlobalLog};
 
 #[cfg(test)]
 mod tests {
@@ -276,7 +276,7 @@ mod tests {
             warn!("AFTER");
 
             // Use a metric:
-            let meter = log.meter("my_meter");
+            let meter = log.meter("my_meter").unwrap();
             let counter = meter.u64_counter("my_counter").init();
             counter.add(1, &[]);
         })?;

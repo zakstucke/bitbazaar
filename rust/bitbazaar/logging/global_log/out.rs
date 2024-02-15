@@ -9,7 +9,7 @@ use tracing_subscriber::prelude::*;
 use crate::errors::prelude::*;
 
 // When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
-static GLOBAL_GUARDS: Lazy<Mutex<Option<Vec<WorkerGuard>>>> = Lazy::new(Mutex::default);
+pub static GLOBAL_LOG: Lazy<Mutex<Option<GlobalLog>>> = Lazy::new(Mutex::default);
 
 /// The global logger/tracer for stdout, file and full open telemetry. Works with the tracing crates (info!, debug!, warn!, error!) and span funcs and decorators.
 ///
@@ -44,7 +44,7 @@ pub struct GlobalLog {
 
     /// Need to store these guards, when they go out of scope the logging may stop.
     /// When made global these are hoisted into a static lazy var.
-    pub(crate) guards: Vec<WorkerGuard>,
+    pub(crate) _guards: Vec<WorkerGuard>,
 
     #[cfg(feature = "opentelemetry")]
     pub(crate) otlp_providers: OtlpProviders,
@@ -79,12 +79,10 @@ impl GlobalLog {
     /// Register the logger as the global logger/tracer/metric manager, can only be done once during the lifetime of the program.
     ///
     /// If you need temporary globality, use the [`GlobalLog::as_tmp_global`] method.
-    pub fn register_global(&mut self) -> Result<(), AnyErr> {
+    pub fn register_global(mut self) -> Result<(), AnyErr> {
         if let Some(dispatch) = self.dispatch.take() {
-            // Keep hold of the guards:
-            GLOBAL_GUARDS
-                .lock()
-                .replace(std::mem::take(&mut self.guards));
+            // Make it global:
+            GLOBAL_LOG.lock().replace(self);
             dispatch.init();
             Ok(())
         } else {
@@ -93,18 +91,51 @@ impl GlobalLog {
     }
 
     #[cfg(feature = "opentelemetry")]
-    /// Returns a new [Meter] with the provided name and default configuration.
-    ///
-    /// A [Meter] should be scoped at most to a single application or crate. The
-    /// name needs to be unique so it does not collide with other names used by
-    /// an application, nor other applications.
-    ///
-    /// If the name is empty, then an implementation defined default name will
-    /// be used instead.
-    pub fn meter(&self, name: impl Into<Cow<'static, str>>) -> opentelemetry::metrics::Meter {
+    /// See [`super::global_fns::meter`]`
+    pub fn meter(
+        &self,
+        name: impl Into<Cow<'static, str>>,
+    ) -> Result<opentelemetry::metrics::Meter, AnyErr> {
         use opentelemetry::metrics::MeterProvider;
 
-        self.otlp_providers.meter_provider.meter(name)
+        Ok(self.otlp_providers.meter_provider.meter(name))
+    }
+
+    #[cfg(feature = "opentelemetry")]
+    /// See [`super::global_fns::update_span_with_http_headers`]`
+    pub fn set_span_parent_from_http_headers(
+        &self,
+        span: &tracing::Span,
+        headers: &http::HeaderMap,
+    ) -> Result<(), AnyErr> {
+        use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+        use crate::logging::global_log::http_headers::HeaderExtractor;
+
+        let ctx_extractor = HeaderExtractor(headers);
+        let ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.extract(&ctx_extractor)
+        });
+        span.set_parent(ctx);
+        Ok(())
+    }
+
+    #[cfg(feature = "opentelemetry")]
+    /// See [`super::global_fns::set_response_headers_from_ctx`]`
+    pub fn set_response_headers_from_ctx<B>(
+        &self,
+        response: &mut http::Response<B>,
+    ) -> Result<(), AnyErr> {
+        use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+        use crate::logging::global_log::http_headers::HeaderInjector;
+
+        let ctx = tracing::Span::current().context();
+        let mut injector = HeaderInjector(response.headers_mut());
+        opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.inject_context(&ctx, &mut injector);
+        });
+        Ok(())
     }
 
     /// Temporarily make the logger global, for the duration of the given closure.
@@ -118,9 +149,7 @@ impl GlobalLog {
         }
     }
 
-    /// Force through logs, traces and metrics, useful in e.g. testing.
-    ///
-    /// Note there doesn't seem to be an underlying interface to force through metrics.
+    /// See [`super::global_fns::flush`]`
     pub fn flush(&self) -> Result<(), AnyErr> {
         #[cfg(feature = "opentelemetry")]
         {
@@ -133,6 +162,25 @@ impl GlobalLog {
             self.otlp_providers
                 .meter_provider
                 .force_flush()
+                .change_context(AnyErr)?;
+        }
+        Ok(())
+    }
+
+    /// See [`super::global_fns::shutdown`]`
+    pub fn shutdown(&mut self) -> Result<(), AnyErr> {
+        #[cfg(feature = "opentelemetry")]
+        {
+            if let Some(prov) = &mut self.otlp_providers.logger_provider {
+                prov.shutdown();
+            }
+            if let Some(prov) = &self.otlp_providers.tracer_provider {
+                // Doesn't have a shutdown interface.
+                prov.force_flush();
+            }
+            self.otlp_providers
+                .meter_provider
+                .shutdown()
                 .change_context(AnyErr)?;
         }
         Ok(())

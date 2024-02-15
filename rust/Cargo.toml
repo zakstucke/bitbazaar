@@ -23,6 +23,7 @@ opentelemetry = [
   'dep:opentelemetry',
   'dep:opentelemetry-otlp',
   'dep:opentelemetry-semantic-conventions',
+  'dep:http',
 ]
 
 # Add your dependencies here
@@ -65,6 +66,7 @@ opentelemetry = { version = "0.21", default-features = false, features = [
 ], optional = true }
 opentelemetry-otlp = { version = "0.14", features = ["logs", "trace", "metrics"], optional = true }
 opentelemetry-semantic-conventions = { version = "0.13.0", optional = true }
+http = { version = "1.0", optional = true }
 
 [dev-dependencies]
 rstest = "0.18"

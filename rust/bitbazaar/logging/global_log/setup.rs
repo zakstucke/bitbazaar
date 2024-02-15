@@ -109,8 +109,15 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
             }
             #[cfg(feature = "opentelemetry")]
             super::builder::Output::Otlp(otlp) => {
+                use opentelemetry::global::set_text_map_propagator;
                 use opentelemetry_otlp::{new_exporter, new_pipeline, WithExportConfig};
-                use opentelemetry_sdk::{logs as sdklogs, resource, trace as sdktrace};
+                use opentelemetry_sdk::{
+                    logs as sdklogs,
+                    propagation::{
+                        BaggagePropagator, TextMapCompositePropagator, TraceContextPropagator,
+                    },
+                    resource, trace as sdktrace,
+                };
 
                 if !crate::misc::is_tcp_port_listening("localhost", otlp.port)? {
                     return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", otlp.port));
@@ -118,6 +125,16 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
 
                 let endpoint = format!("grpc://localhost:{}", otlp.port);
                 let get_exporter = || new_exporter().tonic().with_endpoint(&endpoint);
+
+                // Configure the global propagator to use between different services, without this step when you try and connect other services they'll strangely not work (this defaults to a no-op)
+                //
+                // Only enable to the 2 main standard propagators, the w3c trace context and baggage.
+                //
+                // https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
+                set_text_map_propagator(TextMapCompositePropagator::new(vec![
+                    Box::new(TraceContextPropagator::new()),
+                    Box::new(BaggagePropagator::new()),
+                ]));
 
                 let resource = resource::Resource::new(vec![
                     opentelemetry::KeyValue::new(
@@ -186,7 +203,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
     let dispatch: Dispatch = subscriber.into();
     Ok(GlobalLog {
         dispatch: Some(dispatch),
-        guards,
+        _guards: guards,
         #[cfg(feature = "opentelemetry")]
         otlp_providers,
     })
