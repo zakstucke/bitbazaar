@@ -139,6 +139,54 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 
 <span class="kw">use </span>once_cell::sync::Lazy;
@@ -150,7 +198,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::errors::prelude::<span class="kw-2">*</span>;
 
 <span class="comment">// When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
-</span><span class="kw">static </span>GLOBAL_GUARDS: Lazy&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;WorkerGuard&gt;&gt;&gt;&gt; = Lazy::new(Mutex::default);
+</span><span class="kw">pub static </span>GLOBAL_LOG: Lazy&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;GlobalLog&gt;&gt;&gt; = Lazy::new(Mutex::default);
 
 <span class="doccomment">/// The global logger/tracer for stdout, file and full open telemetry. Works with the tracing crates (info!, debug!, warn!, error!) and span funcs and decorators.
 ///
@@ -185,7 +233,7 @@
 
     <span class="doccomment">/// Need to store these guards, when they go out of scope the logging may stop.
     /// When made global these are hoisted into a static lazy var.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) guards: Vec&lt;WorkerGuard&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) _guards: Vec&lt;WorkerGuard&gt;,
 
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) otlp_providers: OtlpProviders,
@@ -220,12 +268,10 @@
     <span class="doccomment">/// Register the logger as the global logger/tracer/metric manager, can only be done once during the lifetime of the program.
     ///
     /// If you need temporary globality, use the [`GlobalLog::as_tmp_global`] method.
-    </span><span class="kw">pub fn </span>register_global(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">pub fn </span>register_global(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(dispatch) = <span class="self">self</span>.dispatch.take() {
-            <span class="comment">// Keep hold of the guards:
-            </span>GLOBAL_GUARDS
-                .lock()
-                .replace(std::mem::take(<span class="kw-2">&amp;mut </span><span class="self">self</span>.guards));
+            <span class="comment">// Make it global:
+            </span>GLOBAL_LOG.lock().replace(<span class="self">self</span>);
             dispatch.init();
             <span class="prelude-val">Ok</span>(())
         } <span class="kw">else </span>{
@@ -234,18 +280,51 @@
     }
 
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
-    </span><span class="doccomment">/// Returns a new [Meter] with the provided name and default configuration.
-    ///
-    /// A [Meter] should be scoped at most to a single application or crate. The
-    /// name needs to be unique so it does not collide with other names used by
-    /// an application, nor other applications.
-    ///
-    /// If the name is empty, then an implementation defined default name will
-    /// be used instead.
-    </span><span class="kw">pub fn </span>meter(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw">impl </span>Into&lt;Cow&lt;<span class="lifetime">'static</span>, str&gt;&gt;) -&gt; opentelemetry::metrics::Meter {
+    </span><span class="doccomment">/// See [`super::global_fns::meter`]`
+    </span><span class="kw">pub fn </span>meter(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        name: <span class="kw">impl </span>Into&lt;Cow&lt;<span class="lifetime">'static</span>, str&gt;&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;opentelemetry::metrics::Meter, AnyErr&gt; {
         <span class="kw">use </span>opentelemetry::metrics::MeterProvider;
 
-        <span class="self">self</span>.otlp_providers.meter_provider.meter(name)
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.otlp_providers.meter_provider.meter(name))
+    }
+
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    </span><span class="doccomment">/// See [`super::global_fns::update_span_with_http_headers`]`
+    </span><span class="kw">pub fn </span>set_span_parent_from_http_headers(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        span: <span class="kw-2">&amp;</span>tracing::Span,
+        headers: <span class="kw-2">&amp;</span>http::HeaderMap,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        <span class="kw">use </span>tracing_opentelemetry::OpenTelemetrySpanExt;
+
+        <span class="kw">use </span><span class="kw">crate</span>::logging::global_log::http_headers::HeaderExtractor;
+
+        <span class="kw">let </span>ctx_extractor = HeaderExtractor(headers);
+        <span class="kw">let </span>ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.extract(<span class="kw-2">&amp;</span>ctx_extractor)
+        });
+        span.set_parent(ctx);
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    </span><span class="doccomment">/// See [`super::global_fns::set_response_headers_from_ctx`]`
+    </span><span class="kw">pub fn </span>set_response_headers_from_ctx&lt;B&gt;(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        response: <span class="kw-2">&amp;mut </span>http::Response&lt;B&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        <span class="kw">use </span>tracing_opentelemetry::OpenTelemetrySpanExt;
+
+        <span class="kw">use </span><span class="kw">crate</span>::logging::global_log::http_headers::HeaderInjector;
+
+        <span class="kw">let </span>ctx = tracing::Span::current().context();
+        <span class="kw">let </span><span class="kw-2">mut </span>injector = HeaderInjector(response.headers_mut());
+        opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.inject_context(<span class="kw-2">&amp;</span>ctx, <span class="kw-2">&amp;mut </span>injector);
+        });
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Temporarily make the logger global, for the duration of the given closure.
@@ -259,9 +338,7 @@
         }
     }
 
-    <span class="doccomment">/// Force through logs, traces and metrics, useful in e.g. testing.
-    ///
-    /// Note there doesn't seem to be an underlying interface to force through metrics.
+    <span class="doccomment">/// See [`super::global_fns::flush`]`
     </span><span class="kw">pub fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
         </span>{
@@ -274,6 +351,25 @@
             <span class="self">self</span>.otlp_providers
                 .meter_provider
                 .force_flush()
+                .change_context(AnyErr)<span class="question-mark">?</span>;
+        }
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="doccomment">/// See [`super::global_fns::shutdown`]`
+    </span><span class="kw">pub fn </span>shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+        </span>{
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(prov) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.otlp_providers.logger_provider {
+                prov.shutdown();
+            }
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(prov) = <span class="kw-2">&amp;</span><span class="self">self</span>.otlp_providers.tracer_provider {
+                <span class="comment">// Doesn't have a shutdown interface.
+                </span>prov.force_flush();
+            }
+            <span class="self">self</span>.otlp_providers
+                .meter_provider
+                .shutdown()
                 .change_context(AnyErr)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())

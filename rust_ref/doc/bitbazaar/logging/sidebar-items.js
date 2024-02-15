@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ClapLogLevelArgs","GlobalLog"]};
+window.SIDEBAR_ITEMS = {"fn":["flush","shutdown"],"struct":["ClapLogLevelArgs","GlobalLog"]};

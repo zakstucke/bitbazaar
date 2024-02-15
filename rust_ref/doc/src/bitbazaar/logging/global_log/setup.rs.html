@@ -271,6 +271,23 @@
 <a href="#270" id="270">270</a>
 <a href="#271" id="271">271</a>
 <a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>tracing::{Dispatch, Level, Metadata, Subscriber};
 <span class="kw">use </span>tracing_subscriber::{
     filter::FilterFn, fmt::MakeWriter, prelude::<span class="kw-2">*</span>, registry::LookupSpan, Layer,
@@ -382,8 +399,15 @@
             }
             <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
             </span><span class="kw">super</span>::builder::Output::Otlp(otlp) =&gt; {
+                <span class="kw">use </span>opentelemetry::global::set_text_map_propagator;
                 <span class="kw">use </span>opentelemetry_otlp::{new_exporter, new_pipeline, WithExportConfig};
-                <span class="kw">use </span>opentelemetry_sdk::{logs <span class="kw">as </span>sdklogs, resource, trace <span class="kw">as </span>sdktrace};
+                <span class="kw">use </span>opentelemetry_sdk::{
+                    logs <span class="kw">as </span>sdklogs,
+                    propagation::{
+                        BaggagePropagator, TextMapCompositePropagator, TraceContextPropagator,
+                    },
+                    resource, trace <span class="kw">as </span>sdktrace,
+                };
 
                 <span class="kw">if </span>!<span class="kw">crate</span>::misc::is_tcp_port_listening(<span class="string">"localhost"</span>, otlp.port)<span class="question-mark">? </span>{
                     <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Can't connect to open telemetry collector on local port {}. Are you sure it's running?"</span>, otlp.port));
@@ -391,6 +415,16 @@
 
                 <span class="kw">let </span>endpoint = <span class="macro">format!</span>(<span class="string">"grpc://localhost:{}"</span>, otlp.port);
                 <span class="kw">let </span>get_exporter = || new_exporter().tonic().with_endpoint(<span class="kw-2">&amp;</span>endpoint);
+
+                <span class="comment">// Configure the global propagator to use between different services, without this step when you try and connect other services they'll strangely not work (this defaults to a no-op)
+                //
+                // Only enable to the 2 main standard propagators, the w3c trace context and baggage.
+                //
+                // https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
+                </span>set_text_map_propagator(TextMapCompositePropagator::new(<span class="macro">vec!</span>[
+                    Box::new(TraceContextPropagator::new()),
+                    Box::new(BaggagePropagator::new()),
+                ]));
 
                 <span class="kw">let </span>resource = resource::Resource::new(<span class="macro">vec!</span>[
                     opentelemetry::KeyValue::new(
@@ -459,7 +493,7 @@
     <span class="kw">let </span>dispatch: Dispatch = subscriber.into();
     <span class="prelude-val">Ok</span>(GlobalLog {
         dispatch: <span class="prelude-val">Some</span>(dispatch),
-        guards,
+        _guards: guards,
         <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
         </span>otlp_providers,
     })

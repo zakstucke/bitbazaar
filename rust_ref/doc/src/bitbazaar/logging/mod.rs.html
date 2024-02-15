@@ -486,7 +486,7 @@
 </span><span class="kw">mod </span>ot_tracing_bridge;
 
 <span class="kw">pub use </span>clap_log_level_args::ClapLogLevelArgs;
-<span class="kw">pub use </span>global_log::GlobalLog;
+<span class="kw">pub use </span>global_log::{global_fns::<span class="kw-2">*</span>, GlobalLog};
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
@@ -755,7 +755,7 @@
             <span class="macro">warn!</span>(<span class="string">"AFTER"</span>);
 
             <span class="comment">// Use a metric:
-            </span><span class="kw">let </span>meter = log.meter(<span class="string">"my_meter"</span>);
+            </span><span class="kw">let </span>meter = log.meter(<span class="string">"my_meter"</span>).unwrap();
             <span class="kw">let </span>counter = meter.u64_counter(<span class="string">"my_counter"</span>).init();
             counter.add(<span class="number">1</span>, <span class="kw-2">&amp;</span>[]);
         })<span class="question-mark">?</span>;
