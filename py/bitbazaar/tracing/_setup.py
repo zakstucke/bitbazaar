@@ -129,6 +129,7 @@ def prepare_providers(
                     otlp["port"]
                 )
             )
+
         endpoint = "localhost:{}".format(otlp["port"])
         log_provider.add_log_record_processor(
             BatchLogRecordProcessor(
