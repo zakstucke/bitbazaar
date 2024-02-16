@@ -12,9 +12,9 @@ custom_extensions = []
 commands = ["./dev_scripts/pkg.sh update_versions"]
 
 [context.static]
-PY_VERSION = { value = "0.0.5" }
-JS_VERSION = { value = "0.0.22" }
-RUST_VERSION = { value = "0.0.30" }
+PY_VERSION = { value = "0.0.6" }
+JS_VERSION = { value = "0.0.23" }
+RUST_VERSION = { value = "0.0.31" }
 PY_RUST_VERSION = { value = "0.0.3" }
 JS_ALIASES = { value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json" }
 
