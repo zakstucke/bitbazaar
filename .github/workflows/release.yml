@@ -156,6 +156,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install rust toolchain (doc builds use nightly features)
+        uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./rust -> target"
+          cache-on-failure: "true"
+          cache-all-crates: "true"
+
       - name: Build docs
         run: |
           ./dev_scripts/docs.sh build
