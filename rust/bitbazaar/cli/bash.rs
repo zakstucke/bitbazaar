@@ -12,7 +12,7 @@ use crate::prelude::*;
 ///
 /// WARNING: this opens up the possibility of dependency injection attacks, so should only be used when the command is trusted.
 /// If compiled usage is all that's needed, use something like rust_cmd_lib instead, which only provides a macro literal interface.
-/// https://github.com/rust-shell-script/rust_cmd_lib
+/// <https://github.com/rust-shell-script/rust_cmd_lib>
 ///
 /// This is a pure rust implementation and doesn't rely on bash being available to make it compatible with windows.
 /// Given that, it only implements a subset of bash features, and is not intended to be a full bash implementation.

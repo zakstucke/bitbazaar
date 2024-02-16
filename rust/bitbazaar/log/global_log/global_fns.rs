@@ -6,9 +6,9 @@ use super::{out::GLOBAL_LOG, GlobalLog};
 use crate::prelude::*;
 
 #[cfg(feature = "opentelemetry")]
-/// Returns a new [Meter] with the provided name and default configuration.
+/// Returns a new [`opentelemetry::metrics::Meter`] with the provided name and default configuration.
 ///
-/// A [Meter] should be scoped at most to a single application or crate. The
+/// A [opentelemetry::metrics::Meter] should be scoped at most to a single application or crate. The
 /// name needs to be unique so it does not collide with other names used by
 /// an application, nor other applications.
 ///

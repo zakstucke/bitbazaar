@@ -3,37 +3,47 @@
 # Stop on error:
 set -e
 
-# Starts the open telemetry collector in a docker container if not already started
-ensure_collector () {
-    # Define the name of the Docker container
-    CONTAINER_NAME="collector_bitbazaar"
+# Prep for running top-level services
+_prep () {
+    # A custom env version may have been used before, reset zetch to make sure not the case.
+    zetch
 
+    # Start open telemetry collector and openobserve in the background:
+    ./dev_scripts/run.sh collector
+    ./dev_scripts/run.sh oo
+
+}
+
+
+# Starts the open telemetry collector in the background to collect open telemetry data
+collector () {
     if [ "$(./dev_scripts/utils.sh in_ci)" = "true" ]; then
         echo "In CI, not starting open telemetry collector."
     else
-        # Check if the container is already running
-        if [ "$(docker inspect -f '{{.State.Running}}' $CONTAINER_NAME 2>/dev/null)" = "true" ]; then
-            echo "Open telemetry collector as container '$CONTAINER_NAME' already running!"
-        else
-            # Start the container
-            echo "Starting open telemetry collector as container '$CONTAINER_NAME'..."
-            # - Link the config file
-            # - Link the ./logs/ directory to /logs/ in the container
-            # - Collector listens for inputs from programs on 4317
-            # - Runs in detached mode
-            docker run --rm --name $CONTAINER_NAME \
-                -v $(pwd)/opencollector.yaml:/etc/otelcol-contrib/config.yaml \
-                -v $(pwd)/logs:/logs \
-                -p 127.0.0.1:4317:4317 \
-                -d \
-                otel/opentelemetry-collector-contrib:0.94.0
-        fi
+        prefix="otlp_col_"
+
+        # Stop any current open observer processes:
+        ./dev_scripts/process.sh stop $prefix
+
+        # Run the process:
+        ./dev_scripts/process.sh start "${prefix}bitbazaar" "otlp_collector --config $(pwd)/opencollector.yaml"
     fi
 }
 
-# Starts the openobserve server to look at dev logs/traces/metrics
+# Starts the openobserve server in the background to look at dev logs/traces/metrics
 oo () {
-    ZO_ROOT_USER_EMAIL="dev@dev.com" ZO_ROOT_USER_PASSWORD="pass" openobserve
+    if [ "$(./dev_scripts/utils.sh in_ci)" = "true" ]; then
+        echo "In CI, not starting openobserver."
+    else
+        prefix="oo_"
+
+        # Stop any current open observer processes:
+        ./dev_scripts/process.sh stop $prefix
+
+        ZO_ROOT_USER_EMAIL="dev@dev.com" ZO_ROOT_USER_PASSWORD="pass" \
+        ZO_DATA_DIR="$(pwd)/process_data/openobserve" \
+            ./dev_scripts/process.sh start "${prefix}bitbazaar" "openobserve"
+    fi
 }
 
 # Has to come at the end of these files:

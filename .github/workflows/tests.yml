@@ -97,6 +97,11 @@ jobs:
 
       - name: Install rust toolchain (doc builds use nightly features)
         uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./rust -> target"
+          cache-on-failure: "true"
+          cache-all-crates: "true"
 
       - name: Install dependencies
         run: |
@@ -141,6 +146,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           COVERAGE=${{ matrix.coverage }} ./dev_scripts/test.sh py
+
       - name: Run tests (windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -215,6 +221,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           ./dev_scripts/test.sh py_rust
+
       - name: Run tests (windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -249,6 +256,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           ./dev_scripts/test.sh rust --no-fail-fast
+
       - name: Run tests (windows)
         if: matrix.os == 'windows-latest'
         run: |

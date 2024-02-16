@@ -160,9 +160,9 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "./rust -> target"
-          cache-on-failure: "true"
-          cache-all-crates: "true"
+          workspaces: ./rust -> target
+          cache-on-failure: 'true'
+          cache-all-crates: 'true'
 
       - name: Build docs
         run: |

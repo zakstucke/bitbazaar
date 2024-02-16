@@ -19,6 +19,9 @@ PY_RUST_VERSION = { value = "0.0.3" }
 JS_ALIASES = { value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json" }
 
 [context.env]
-DEBUG = { default = true }
+DEBUG = { default = true, coerce = "bool" }
+OTLP_OO_ENDPOINT = { default = "http://localhost:5080/api/default/" }
+OTLP_OO_AUTH = { default = "Basic ZGV2QGRldi5jb206cGFzcw==" }         # Not security issue! This is just base64('dev@dev.com:pass')
 
 [context.cli]
+ROOT_DIR = { commands = ["pwd"] }

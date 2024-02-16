@@ -17,7 +17,7 @@ path = "src/lib.rs"
 colored = '2'
 tracing = "0.1"
 error-stack = "0.4"
-bitbazaar = { version = '0.0.28', features = [] }
+bitbazaar = { version = '0.0.31', features = ["opentelemetry"] }
 pyo3 = { version = '0.20.0', features = ['extension-module', 'chrono', 'generate-import-lib'] }
 parking_lot = { version = "0.12", features = ['deadlock_detection', 'serde'] }
 strum = { version = '0.25', features = ['derive'] }

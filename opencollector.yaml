@@ -3,7 +3,7 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: localhost:4317
 
 processors:
   # Prevent memory usage from exceeding 40% of the total available RAM,
@@ -19,18 +19,15 @@ processors:
     timeout: 1s
 
 exporters:
-  otlp/dev_oo:
-    endpoint: host.docker.internal:5081
+  otlphttp:
+    endpoint: http://localhost:5080/api/default/
+    compression: gzip
     headers:
-      Authorization: "Basic cm9vdEByb290LmNvbTpDUENWeFJjeU9qVUl4RWJh"
-      organization: default
+      Authorization: Basic ZGV2QGRldi5jb206cGFzcw==
       stream-name: default
-    tls:
-      insecure: true
-
   # Writes all opentelemetry logs, traces, metrics to a file, useful for testing:
   file/debug_file_writing:
-    path: ./logs/otlp.log
+    path: /Users/zak/z/code/bitbazaar/logs/otlp_telemetry_out.log
     rotation:
       max_megabytes: 10
       max_days: 3
@@ -48,17 +45,17 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters:
+        - otlphttp
         - file/debug_file_writing
-        - otlp/dev_oo
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters:
+        - otlphttp
         - file/debug_file_writing
-        - otlp/dev_oo
     metrics:  # Don't bother with memory limiting for metrics, traces and logs will be the largest consumers of memory
       receivers: [otlp]
       processors: [batch]
       exporters:
+        - otlphttp
         - file/debug_file_writing
-        - otlp/dev_oo

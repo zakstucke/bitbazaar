@@ -78,7 +78,7 @@ impl GlobalLog {
 
     /// Register the logger as the global logger/tracer/metric manager, can only be done once during the lifetime of the program.
     ///
-    /// If you need temporary globality, use the [`GlobalLog::as_tmp_global`] method.
+    /// If you need temporary globality, use the [`GlobalLog::with_tmp_global`] method.
     pub fn register_global(mut self) -> Result<(), AnyErr> {
         if let Some(dispatch) = self.dispatch.take() {
             // Make it global:
@@ -102,7 +102,7 @@ impl GlobalLog {
     }
 
     #[cfg(feature = "opentelemetry")]
-    /// See [`super::global_fns::update_span_with_http_headers`]`
+    /// See [`super::global_fns::set_span_parent_from_http_headers`]`
     pub fn set_span_parent_from_http_headers(
         &self,
         span: &tracing::Span,
