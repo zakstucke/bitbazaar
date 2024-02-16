@@ -71,7 +71,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.PY_VERSION.value ${{ inputs.py_version }}
 
-        # Js project
+          # Js project
       - name: Install Bun, no npm should be needed
         if: ${{ inputs.js_release }}
         uses: oven-sh/setup-bun@v1
@@ -87,7 +87,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.JS_VERSION.value ${{ inputs.js_version }}
 
-        # Formatting and checking uses nightly rather than stable:
+          # Formatting and checking uses nightly rather than stable:
       - uses: dtolnay/rust-toolchain@nightly
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         with:
