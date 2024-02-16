@@ -14,7 +14,7 @@ pub mod errors;
 /// Hashing utilities.
 pub mod hash;
 /// Logging utilities
-pub mod logging;
+pub mod log;
 /// Completely miscellaneous utilities
 pub mod misc;
 #[cfg(feature = "redis")]

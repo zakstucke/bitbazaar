@@ -97,7 +97,7 @@ mod tests {
     #[case::both(None, vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG1", "with_matcher DEBUG LOG2", "no_matcher DEBUG LOG2"])]
     // Matcher matches on first target, so no matcher target should ignore that log, i.e. one each:
     #[case::one_each(Some(regex::Regex::new(
-        if cfg!(windows) {r"logging\\mod.rs"} else {r"logging/mod.rs"}
+        if cfg!(windows) {r"log\\mod.rs"} else {r"log/mod.rs"}
     ).unwrap()), vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
     // Matcher failed, so both should be picked up by the one with no matcher:
     #[case::no_match(Some(regex::Regex::new(r"kdkfjdf").unwrap()), vec!["no_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
@@ -437,7 +437,7 @@ mod tests {
         // Metadata should be correctly attached:
         assert_eq!(
             logs[2].attrs.get("code.namespace").unwrap(),
-            "bitbazaar::logging::tests"
+            "bitbazaar::log::tests"
         );
 
         // Metric should show up:

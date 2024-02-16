@@ -1,5 +1,7 @@
 import logging
+import typing as tp
 
+import lazy_object_proxy
 from opentelemetry import trace
 from opentelemetry.context import Context
 from opentelemetry.sdk._logs import LoggerProvider
@@ -12,6 +14,19 @@ from bitbazaar import misc
 
 from ._file_handler import CustomRotatingFileHandler
 from ._setup import ConsoleSink, FileSink, OLTPSink, prepare_providers
+
+_LOG: "tp.Optional[GlobalLog]" = None
+
+
+def _get_global_log() -> "GlobalLog":
+    global _LOG
+    if _LOG is None:
+        raise RuntimeError("GlobalLog not yet initialized.")
+    return _LOG
+
+
+# The accessor to the global log instance.
+LOG: "GlobalLog" = lazy_object_proxy.Proxy(_get_global_log)
 
 
 class GlobalLog:
@@ -57,6 +72,10 @@ class GlobalLog:
             }
         )
         self.tracer = trace.get_tracer("GlobalLog")
+
+        # Register as the global logger:
+        global _LOG
+        _LOG = self
 
     @misc.copy_sig(logging.debug)
     def debug(self, *args, **kwargs):  # type: ignore

@@ -110,7 +110,7 @@ impl GlobalLog {
     ) -> Result<(), AnyErr> {
         use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-        use crate::logging::global_log::http_headers::HeaderExtractor;
+        use crate::log::global_log::http_headers::HeaderExtractor;
 
         let ctx_extractor = HeaderExtractor(headers);
         let ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
@@ -128,7 +128,7 @@ impl GlobalLog {
     ) -> Result<(), AnyErr> {
         use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-        use crate::logging::global_log::http_headers::HeaderInjector;
+        use crate::log::global_log::http_headers::HeaderInjector;
 
         let ctx = tracing::Span::current().context();
         let mut injector = HeaderInjector(response.headers_mut());
