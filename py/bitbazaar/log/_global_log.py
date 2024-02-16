@@ -20,7 +20,7 @@ _LOG: "tp.Optional[GlobalLog]" = None
 
 def _get_global_log() -> "GlobalLog":
     global _LOG
-    if _LOG is None:
+    if _LOG is None:  # pragma: no cover
         raise RuntimeError("GlobalLog not yet initialized.")
     return _LOG
 
