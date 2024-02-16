@@ -76,7 +76,8 @@
       "editor.formatOnSave": true,
       "editor.formatOnPaste": false,
       "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit"
+        // Ruff will auto fix issues and sort imports (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+        "source.fixAll": true
       },
       // Ruff (replaces black) formats python code (needs extension https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
       "editor.defaultFormatter": "charliermarsh.ruff"
@@ -165,7 +166,11 @@
       "**/Cargo.lock": true,
       "**/pdm.lock": true,
       "**/logs/**": true,
+<<<<<<< before updating
       "**/process_data/**": true,
+=======
+      "**/process_data/**": true,
+>>>>>>> after updating
     }
   },
   "launch": {

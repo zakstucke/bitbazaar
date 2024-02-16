@@ -20,6 +20,7 @@ _install_yaml_fmt () {
     echo "yamlfmt version $1 installed!"
 }
 
+
 _install_openobserve() {
     echo "Installing openobserve version $1..."
 
@@ -27,8 +28,8 @@ _install_openobserve() {
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
 
-    echo "Downloading openobserve version $1 for $OS-$ARCH..."
-    curl -L https://github.com/openobserve/openobserve/releases/download/v$1/openobserve-v$1-$OS-$ARCH.tar.gz -o openobserve.tar.gz -f
+    echo "Downloading openobserve version $1 for ${OS}-${ARCH}..."
+    curl -L https://github.com/openobserve/openobserve/releases/download/v$1/openobserve-v$1-${OS}-${ARCH}.tar.gz -o openobserve.tar.gz -f
     tar -xzf openobserve.tar.gz
     rm openobserve.tar.gz
     chmod +x openobserve
@@ -64,6 +65,58 @@ _ensure_openobserve() {
     fi
 }
 
+_install_otlp_collector () {
+    echo "Installing otlp_collector version $1..."
+
+    # os lowercase:
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+
+    # If ARCH == aarch64, replace with arm64:
+    if [ "${ARCH}" == "aarch64" ]; then
+        ARCH="arm64"
+    fi
+
+    echo "Downloading otlp_collector version $1 for ${OS}-${ARCH}..."
+    curl -L https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$1/otelcol-contrib_$1_${OS}_${ARCH}.tar.gz \
+        -o otlp_collector.tar.gz -f
+    tar -xzf otlp_collector.tar.gz
+    rm otlp_collector.tar.gz
+    # Comes out as otelcol-contrib:
+    mv otelcol-contrib otlp_collector
+    chmod +x otlp_collector
+    sudo mv otlp_collector /usr/local/bin
+}
+
+_ensure_otlp_collector() {
+    req_ver="$1"
+
+    if [[ -z "$req_ver" ]]; then
+        echo "otlp_collector version not provided!"
+        exit 1
+    fi
+
+    if version=$(otlp_collector --version 2>/dev/null); then
+        # Will be "otelcol-contrib version $ver", make sure starts with "otelcol-contrib version " and remove that:
+        if [[ ! "$version" =~ ^otelcol-contrib\ version\  ]]; then
+            echo "otlp_collector version not found in expected format, expected 'otelcol-contrib version x.x.x', got '$version'!"
+            exit 1
+        fi
+
+        # Strip prefix:
+        version=${version#otelcol-contrib version }
+
+        if [[ "$version" == "$req_ver" ]]; then
+            echo "otlp_collector already installed with correct version $version!"
+        else
+            echo "otlp_collector incorrect version, upgrading to $version..."
+            _install_otlp_collector $req_ver
+        fi
+    else
+        _install_otlp_collector $req_ver
+    fi
+}
+
 _install_biome () {
     echo "Installing biome version $1..."
 
@@ -71,8 +124,8 @@ _install_biome () {
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
 
-    echo "Downloading biome version $1 for $OS-$ARCH..."
-    curl -L https://github.com/biomejs/biome/releases/download/cli%2Fv$1/biome-$OS-$ARCH -o biome -f
+    echo "Downloading biome version $1 for ${OS}-${ARCH}..."
+    curl -L https://github.com/biomejs/biome/releases/download/cli%2Fv$1/biome-${OS}-${ARCH} -o biome -f
     chmod +x biome
     sudo mv biome /usr/local/bin
 }
@@ -121,6 +174,7 @@ initial_setup () {
 
     # Make sure openobserve is installed for dev open telemetry logging:
     _ensure_openobserve "0.8.0"
+    _ensure_otlp_collector "0.94.0"
 
     # Make sure biome is installed for linting and formatting various files:
     _ensure_biome "1.5.3"

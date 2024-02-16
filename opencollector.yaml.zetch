@@ -3,7 +3,7 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: localhost:4317
 
 processors:
   # Prevent memory usage from exceeding 40% of the total available RAM,
@@ -19,28 +19,17 @@ processors:
     timeout: {% if DEBUG %}1s{% else %}30s{% endif %}
 
 exporters:
-{%- if not DEBUG %}
-# TODO
-#  otlphttp:
-#    endpoint: TODO
-#    compression: gzip
-#    headers:
-#      Authorization: TODO
-#      stream-name: default
-{% endif %}
-{%- if DEBUG %}
-  otlp/dev_oo:
-      endpoint: host.docker.internal:5081
-      headers:
-        Authorization: "Basic cm9vdEByb290LmNvbTpDUENWeFJjeU9qVUl4RWJh"
-        organization: default
-        stream-name: default
-      tls:
-        insecure: true
+  otlphttp:
+    endpoint: {{ OTLP_OO_ENDPOINT }}
+    compression: gzip
+    headers:
+      Authorization: {{ OTLP_OO_AUTH }}
+      stream-name: default
 
+{%- if DEBUG %}
   # Writes all opentelemetry logs, traces, metrics to a file, useful for testing:
   file/debug_file_writing:
-    path: ./logs/otlp.log
+    path: {{ ROOT_DIR }}/logs/otlp_telemetry_out.log
     rotation:
       max_megabytes: 10
       max_days: 3
@@ -59,32 +48,23 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters:
+        - otlphttp
         {%- if DEBUG %}
         - file/debug_file_writing
-        - otlp/dev_oo
-        {%- endif %}
-        {%- if not DEBUG %}
-        - otlphttp
         {%- endif %}
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters:
+        - otlphttp
         {%- if DEBUG %}
         - file/debug_file_writing
-        - otlp/dev_oo
-        {%- endif %}
-        {%- if not DEBUG %}
-        - otlphttp
         {%- endif %}
     metrics:  # Don't bother with memory limiting for metrics, traces and logs will be the largest consumers of memory
       receivers: [otlp]
       processors: [batch]
       exporters:
+        - otlphttp
         {%- if DEBUG %}
         - file/debug_file_writing
-        - otlp/dev_oo
-        {%- endif %}
-        {%- if not DEBUG %}
-        - otlphttp
         {%- endif %}

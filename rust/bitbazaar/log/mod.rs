@@ -257,7 +257,7 @@ mod tests {
             return Ok(());
         }
 
-        let logpath = PathBuf::from("../logs/otlp.log");
+        let logpath = PathBuf::from("../logs/otlp_telemetry_out.log");
         let mut cur_str_len = 0;
         if logpath.exists() {
             cur_str_len = std::fs::read_to_string(&logpath)

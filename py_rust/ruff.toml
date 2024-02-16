@@ -1,4 +1,6 @@
 line-length = 100
+
+[lint]
 ignore-init-module-imports = true # Makes unused imports in __init__.py give message to add to __all__ rather than redundant import
 unfixable = [
   # Don't remove unused imports or variables on save, can be quite annoying when writing code:
@@ -27,7 +29,7 @@ ignore = [
   "RUF010", # Ignore converting f"{str(x)}" to f"{x!s}" simply because it's less obvious and less people know about it
 ]
 
-[per-file-ignores]
+[lint.per-file-ignores]
 "**/{tests}/**/*" = [
   # Don't need docstrings linting for tests
   "D100",
@@ -40,5 +42,5 @@ ignore = [
   "D107",
 ]
 
-[pydocstyle]
+[lint.pydocstyle]
 convention = "google"

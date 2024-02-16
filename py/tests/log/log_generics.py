@@ -144,7 +144,7 @@ class OLTPChecker(Checker):
     seek: int
 
     def __init__(self):
-        self.logpath = os.path.join("..", "logs", "otlp.log")
+        self.logpath = os.path.join("..", "logs", "otlp_telemetry_out.log")
         self.seek = 0
 
     def _get_entries(self) -> list[tp.Any]:
