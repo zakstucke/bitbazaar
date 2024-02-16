@@ -95,8 +95,8 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install rust toolchain (doc builds use nightly features)
+        uses: dtolnay/rust-toolchain@nightly
 
       - name: Install dependencies
         run: |
