@@ -15,7 +15,7 @@ js_sub_build () {
 
 # Builds the nested js site:
 rust_sub_build () {
-    rm -rf ./docs/rust_ref && cargo doc --no-deps --manifest-path ./rust/Cargo.toml --target-dir ./docs/rust_ref
+    rm -rf ./docs/rust_ref && cargo +nightly doc --no-deps --manifest-path ./rust/Cargo.toml --target-dir ./docs/rust_ref --all-features
 }
 
 build () {

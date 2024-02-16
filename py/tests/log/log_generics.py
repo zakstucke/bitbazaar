@@ -8,9 +8,9 @@ import time
 import typing as tp
 from abc import ABC, abstractmethod
 
+from bitbazaar.log import GlobalLog
+from bitbazaar.log._utils import severity_to_log_level
 from bitbazaar.testing import TmpFileManager
-from bitbazaar.tracing import GlobalLog
-from bitbazaar.tracing._utils import severity_to_log_level
 
 if tp.TYPE_CHECKING:  # pragma: no cover
     from _typeshed import StrPath

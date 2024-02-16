@@ -77,7 +77,10 @@ describe("Vite", () => {
             // Check files gone from assetsPath:
             expect(fs.readdir(`${assetsPath}`)).resolves.toEqual([]);
             // Check files in sameDomStaticPath:
-            expect(fs.readdir(sameDomStaticPath)).resolves.toEqual(["site_index.html", "sworker"]);
+            const files = await fs.readdir(sameDomStaticPath);
+            // Need to sort to prevent flakiness:
+            files.sort();
+            expect(files).toEqual(["site_index.html", "sworker"]);
             // Confirm sworker contains webmanifest:
             expect(
                 fs.readFile(`${sameDomStaticPath}/sworker/manifest.webmanifest`, "utf-8"),

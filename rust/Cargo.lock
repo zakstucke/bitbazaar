@@ -204,6 +204,7 @@ dependencies = [
  "redis",
  "regex",
  "rstest",
+ "rustc_version",
  "serde",
  "serde_json",
  "serial_test",

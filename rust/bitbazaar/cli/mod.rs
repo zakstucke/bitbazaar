@@ -18,7 +18,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::*;
-    use crate::{errors::prelude::*, logging::GlobalLog};
+    use crate::{errors::prelude::*, log::GlobalLog};
 
     #[fixture]
     fn logging() -> () {

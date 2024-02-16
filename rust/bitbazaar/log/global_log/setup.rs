@@ -164,7 +164,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                 let logging_provider = logger
                     .provider()
                     .ok_or_else(|| anyerr!("No log provider attached."))?;
-                let log_layer = crate::logging::ot_tracing_bridge::OpenTelemetryTracingBridge::new(
+                let log_layer = crate::log::ot_tracing_bridge::OpenTelemetryTracingBridge::new(
                     &logging_provider,
                 );
                 otlp_providers.logger_provider = Some(logging_provider);

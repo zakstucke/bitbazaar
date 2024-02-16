@@ -2,10 +2,10 @@ import logging
 import typing as tp
 
 import pytest
+from bitbazaar.log import GlobalLog
 from bitbazaar.misc import in_ci
-from bitbazaar.tracing import GlobalLog
 
-from .trace_generics import Checker, console_logger, file_logger, otlp_logger
+from .log_generics import Checker, console_logger, file_logger, otlp_logger
 
 ttl_cases: list[tuple[str, tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]]]] = [
     ("console", lambda log_level: console_logger(log_level, span=False, metric=False)),
@@ -23,8 +23,17 @@ if not in_ci():
     )
 
 
+def test_log_global_accessor():
+    from bitbazaar.log import LOG
+
+    GlobalLog("foo", "1.0.0")
+
+    # Make sure doesn't error and can clearly find it:
+    LOG.debug("Hello, world!")
+
+
 @pytest.mark.parametrize("desc, log_manager", ttl_cases)
-def test_tracing_level(
+def test_log_level(
     desc: str,
     log_manager: tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]],
 ):
@@ -72,7 +81,7 @@ if not in_ci():
 
 
 @pytest.mark.parametrize("desc, log_manager", tts_cases)
-def test_tracing_spans(
+def test_log_spans(
     desc: str,
     log_manager: tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]],
 ):
@@ -126,7 +135,7 @@ if not in_ci():
 
 
 @pytest.mark.parametrize("desc, log_manager", ttm_cases)
-def test_tracing_metrics(
+def test_log_metrics(
     desc: str,
     log_manager: tp.Callable[[int], tp.ContextManager[tuple[GlobalLog, Checker]]],
 ):
