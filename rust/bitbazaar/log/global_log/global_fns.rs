@@ -1,9 +1,18 @@
-use std::borrow::Cow;
-
 use parking_lot::{MappedMutexGuard, MutexGuard};
 
 use super::{out::GLOBAL_LOG, GlobalLog};
 use crate::prelude::*;
+
+/// Record an exception to the currently active span.
+/// Matches oltp spec so it shows up correctly as an exception in observers
+/// <https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/>
+///
+/// Arguments:
+/// - `message`: Information about the exception e.g. `Internal Error leading to 500 http response`.
+/// - `stacktrace`: All of the location information for the exception, (maybe also the exception itself if e.g. from `Report<T>`).
+pub fn record_exception(message: impl Into<String>, stacktrace: impl Into<String>) {
+    super::exceptions::record_exception_inner(message, stacktrace, "Err");
+}
 
 #[cfg(feature = "opentelemetry")]
 /// Returns a new [`opentelemetry::metrics::Meter`] with the provided name and default configuration.
@@ -14,7 +23,9 @@ use crate::prelude::*;
 ///
 /// If the name is empty, then an implementation defined default name will
 /// be used instead.
-pub fn meter(name: impl Into<Cow<'static, str>>) -> Result<opentelemetry::metrics::Meter, AnyErr> {
+pub fn meter(
+    name: impl Into<std::borrow::Cow<'static, str>>,
+) -> Result<opentelemetry::metrics::Meter, AnyErr> {
     get_global()?.meter(name)
 }
 

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::{Dispatch, Level};
@@ -94,7 +92,7 @@ impl GlobalLog {
     /// See [`super::global_fns::meter`]`
     pub fn meter(
         &self,
-        name: impl Into<Cow<'static, str>>,
+        name: impl Into<std::borrow::Cow<'static, str>>,
     ) -> Result<opentelemetry::metrics::Meter, AnyErr> {
         use opentelemetry::metrics::MeterProvider;
 
