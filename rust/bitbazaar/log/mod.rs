@@ -231,14 +231,20 @@ mod tests {
         })?;
 
         let out = into_vec(&LOGS);
+        let exp_panic_loc = [
+            "bitbazaar".to_string(),
+            "log".to_string(),
+            format!(
+                "mod.rs:{}:17",
+                line_preceding_panic.load(std::sync::atomic::Ordering::Relaxed) + 1
+            ),
+        ]
+        .join(if cfg!(windows) { "\\\\" } else { "/" });
         assert_eq!(
             out,
             vec![
                 "test_stack\nErr: test_exc".to_string(),
-                format!(
-                    "bitbazaar/log/mod.rs:{}:17\nPanic: test_panic",
-                    line_preceding_panic.load(std::sync::atomic::Ordering::Relaxed) + 1
-                )
+                format!("{}\nPanic: test_panic", exp_panic_loc)
             ]
         );
 
