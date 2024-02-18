@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"bitbazaar":[["impl FromArgMatches for <a class=\"struct\" href=\"bitbazaar/logging/struct.ClapLogLevelArgs.html\" title=\"struct bitbazaar::logging::ClapLogLevelArgs\">ClapLogLevelArgs</a>"]]
+"bitbazaar":[["impl FromArgMatches for <a class=\"struct\" href=\"bitbazaar/log/struct.ClapLogLevelArgs.html\" title=\"struct bitbazaar::log::ClapLogLevelArgs\">ClapLogLevelArgs</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

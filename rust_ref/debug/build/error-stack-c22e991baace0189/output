@@ -1,0 +1,2 @@
+cargo:rustc-cfg=nightly
+cargo:rustc-cfg=rust_1_65

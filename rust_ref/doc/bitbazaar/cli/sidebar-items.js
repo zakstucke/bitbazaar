@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["run_cmd"],"struct":["CmdOut"]};
+window.SIDEBAR_ITEMS = {"enum":["BashErr"],"struct":["Bash","CmdOut"]};
