@@ -1,23 +1,23 @@
 {
   "version": "0.0.10",
   "files": {
-    "docs/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "py_rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "rust/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
-    "docs/index.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
-    "CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
-    "py/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
     "js/tsconfig.zetch.json": "fb5d57b825bb3c2f6dd4254bf939f2444e52946622a7f93b91e3acb75876ebbc",
-    "docs/CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
-    "js/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "py_rust/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
+    "docs/index.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
     "CONTRIBUTING.zetch.md": "bace46dc064746b54cf472eba960d934d705c2f83120b865a4b47032ff1552c5",
+    "py_rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
     "LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "opencollector.yaml.zetch": "61ef569d5d016214672a01a5f372a87ee9a2bbb885c8f4f4e57f421d3812a312",
+    "rust/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
     "README.zetch.md": "999ec659475c35f7ebafa5b246c2f0083b4bf7e25740d70e708d17887d1f2d36",
-    "py/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
     "js/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
+    "docs/CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
     "docs/CONTRIBUTING.zetch.md": "bace46dc064746b54cf472eba960d934d705c2f83120b865a4b47032ff1552c5",
-    "opencollector.yaml.zetch": "27c7cbc36a0a6d0eb0af8bece63a6d170bfabe098f26ae0c82e5d671441418ad"
+    "rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
+    "js/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "py/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
+    "py/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
+    "py_rust/README.zetch.md": "d437e5a66fb74e7920b633f042195b89bcdec96274deace6d5919841c28a378e",
+    "docs/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b"
   }
 }

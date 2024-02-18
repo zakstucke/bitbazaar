@@ -1,3 +1,4 @@
+use colored::Colorize;
 use tracing_core::Subscriber;
 use tracing_subscriber::{
     fmt::{format::Writer, FmtContext, FormatEvent, FormatFields},
@@ -57,22 +58,53 @@ where
         if is_exception {
             let mut visitor = ExceptionEventVisitor::default();
             event.record(&mut visitor);
-            if let Some(stacktrace) = visitor.stacktrace.as_ref() {
-                writeln!(writer, "{}", clean_string(stacktrace))?;
+
+            let indent = 6;
+            writeln!(writer, "{}", "ERROR: ".red())?;
+
+            let msg = visitor.into_msg();
+            // Write each line and indent it by 7 to match the ERROR: prefix
+            for line in msg.lines() {
+                writeln!(writer, "{:indent$}{}", "", line.red())?;
             }
-            if let Some(typ) = visitor.typ.as_ref() {
-                if let Some(message) = visitor.message.as_ref() {
-                    writeln!(writer, "{}: {}", clean_string(typ), clean_string(message))?;
-                } else {
-                    writeln!(writer, "{}", clean_string(typ))?;
-                }
-            } else if let Some(message) = visitor.message.as_ref() {
-                writeln!(writer, "{}", clean_string(message))?;
-            }
+
             Ok(())
         } else {
             self.inner.format_event(ctx, writer, event)
         }
+    }
+}
+
+#[derive(Default)]
+struct ExceptionEventVisitor {
+    message: Option<String>,
+    typ: Option<String>,
+    stacktrace: Option<String>,
+}
+
+impl ExceptionEventVisitor {
+    fn into_msg(self) -> String {
+        let mut msg = String::new();
+        if let Some(stacktrace) = self.stacktrace {
+            msg.push_str(clean_string(&stacktrace));
+            msg.push('\n');
+        }
+        if let Some(typ) = self.typ {
+            if let Some(message) = self.message {
+                msg.push_str(&format!(
+                    "{}: {}\n",
+                    clean_string(&typ),
+                    clean_string(&message)
+                ));
+            } else {
+                msg.push_str(clean_string(&typ));
+                msg.push('\n');
+            }
+        } else if let Some(message) = self.message {
+            msg.push_str(clean_string(&message));
+            msg.push('\n');
+        }
+        msg
     }
 }
 
@@ -83,14 +115,18 @@ fn clean_string(s: &str) -> &str {
     s.trim_matches('"')
 }
 
-#[derive(Default)]
-struct ExceptionEventVisitor {
-    message: Option<String>,
-    typ: Option<String>,
-    stacktrace: Option<String>,
-}
-
 impl tracing::field::Visit for ExceptionEventVisitor {
+    fn record_str(&mut self, field: &tracing_core::Field, value: &str) {
+        match field.name() {
+            "exception.message" => self.message = Some(value.to_string()),
+            "exception.type" => self.typ = Some(value.to_string()),
+            "exception.stacktrace" => self.stacktrace = Some(value.to_string()),
+            _ => {}
+        }
+    }
+
+    /// NOTE: record_str() is the one that's actually used, this would escape newlines etc.
+    /// But keeping as the trait requires it and just in case for some reason one of these isn't a string.
     fn record_debug(&mut self, field: &tracing_core::Field, value: &dyn std::fmt::Debug) {
         match field.name() {
             "exception.message" => self.message = Some(format!("{:?}", value)),

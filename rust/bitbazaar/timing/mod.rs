@@ -62,12 +62,7 @@ mod tests {
 
         let elapsed = recorder.total_elapsed().unwrap();
         assert!(
-            elapsed.as_millis() >= 1,
-            "elapsed: {:?}",
-            elapsed.as_millis()
-        );
-        assert!(
-            elapsed.as_millis() < 2,
+            elapsed.as_millis() == 1 || elapsed.as_millis() == 2,
             "elapsed: {:?}",
             elapsed.as_millis()
         );
@@ -83,12 +78,7 @@ mod tests {
         });
         let elapsed = GLOBAL_TIME_RECORDER.total_elapsed().unwrap();
         assert!(
-            elapsed.as_millis() >= 1,
-            "elapsed: {:?}",
-            elapsed.as_millis()
-        );
-        assert!(
-            elapsed.as_millis() < 2,
+            elapsed.as_millis() == 1 || elapsed.as_millis() == 2,
             "elapsed: {:?}",
             elapsed.as_millis()
         );
