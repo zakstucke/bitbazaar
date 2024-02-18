@@ -239,7 +239,7 @@ mod tests {
                 line_preceding_panic.load(std::sync::atomic::Ordering::Relaxed) + 1
             ),
         ]
-        .join(if cfg!(windows) { "\\\\" } else { "/" });
+        .join(if cfg!(windows) { "\\" } else { "/" });
 
         assert_eq!(out.len(), 2, "{:?}", out);
         assert!(out[0].contains("test_stack"), "{:?}", out[0]);
