@@ -102,7 +102,44 @@
 <a href="#100" id="100">100</a>
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>tracing_core::Subscriber;
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>colored::Colorize;
+<span class="kw">use </span>tracing_core::Subscriber;
 <span class="kw">use </span>tracing_subscriber::{
     fmt::{format::Writer, FmtContext, FormatEvent, FormatFields},
     registry::LookupSpan,
@@ -161,22 +198,53 @@
         <span class="kw">if </span>is_exception {
             <span class="kw">let </span><span class="kw-2">mut </span>visitor = ExceptionEventVisitor::default();
             event.record(<span class="kw-2">&amp;mut </span>visitor);
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(stacktrace) = visitor.stacktrace.as_ref() {
-                <span class="macro">writeln!</span>(writer, <span class="string">"{}"</span>, clean_string(stacktrace))<span class="question-mark">?</span>;
+
+            <span class="kw">let </span>indent = <span class="number">6</span>;
+            <span class="macro">writeln!</span>(writer, <span class="string">"{}"</span>, <span class="string">"ERROR: "</span>.red())<span class="question-mark">?</span>;
+
+            <span class="kw">let </span>msg = visitor.into_msg();
+            <span class="comment">// Write each line and indent it by 7 to match the ERROR: prefix
+            </span><span class="kw">for </span>line <span class="kw">in </span>msg.lines() {
+                <span class="macro">writeln!</span>(writer, <span class="string">"{:indent$}{}"</span>, <span class="string">""</span>, line.red())<span class="question-mark">?</span>;
             }
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(typ) = visitor.typ.as_ref() {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(message) = visitor.message.as_ref() {
-                    <span class="macro">writeln!</span>(writer, <span class="string">"{}: {}"</span>, clean_string(typ), clean_string(message))<span class="question-mark">?</span>;
-                } <span class="kw">else </span>{
-                    <span class="macro">writeln!</span>(writer, <span class="string">"{}"</span>, clean_string(typ))<span class="question-mark">?</span>;
-                }
-            } <span class="kw">else if let </span><span class="prelude-val">Some</span>(message) = visitor.message.as_ref() {
-                <span class="macro">writeln!</span>(writer, <span class="string">"{}"</span>, clean_string(message))<span class="question-mark">?</span>;
-            }
+
             <span class="prelude-val">Ok</span>(())
         } <span class="kw">else </span>{
             <span class="self">self</span>.inner.format_event(ctx, writer, event)
         }
+    }
+}
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>ExceptionEventVisitor {
+    message: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    typ: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    stacktrace: <span class="prelude-ty">Option</span>&lt;String&gt;,
+}
+
+<span class="kw">impl </span>ExceptionEventVisitor {
+    <span class="kw">fn </span>into_msg(<span class="self">self</span>) -&gt; String {
+        <span class="kw">let </span><span class="kw-2">mut </span>msg = String::new();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(stacktrace) = <span class="self">self</span>.stacktrace {
+            msg.push_str(clean_string(<span class="kw-2">&amp;</span>stacktrace));
+            msg.push(<span class="string">'\n'</span>);
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(typ) = <span class="self">self</span>.typ {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(message) = <span class="self">self</span>.message {
+                msg.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+                    <span class="string">"{}: {}\n"</span>,
+                    clean_string(<span class="kw-2">&amp;</span>typ),
+                    clean_string(<span class="kw-2">&amp;</span>message)
+                ));
+            } <span class="kw">else </span>{
+                msg.push_str(clean_string(<span class="kw-2">&amp;</span>typ));
+                msg.push(<span class="string">'\n'</span>);
+            }
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(message) = <span class="self">self</span>.message {
+            msg.push_str(clean_string(<span class="kw-2">&amp;</span>message));
+            msg.push(<span class="string">'\n'</span>);
+        }
+        msg
     }
 }
 
@@ -187,15 +255,19 @@
     s.trim_matches(<span class="string">'"'</span>)
 }
 
-<span class="attr">#[derive(Default)]
-</span><span class="kw">struct </span>ExceptionEventVisitor {
-    message: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    typ: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    stacktrace: <span class="prelude-ty">Option</span>&lt;String&gt;,
-}
-
 <span class="kw">impl </span>tracing::field::Visit <span class="kw">for </span>ExceptionEventVisitor {
-    <span class="kw">fn </span>record_debug(<span class="kw-2">&amp;mut </span><span class="self">self</span>, field: <span class="kw-2">&amp;</span>tracing_core::Field, value: <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::fmt::Debug) {
+    <span class="kw">fn </span>record_str(<span class="kw-2">&amp;mut </span><span class="self">self</span>, field: <span class="kw-2">&amp;</span>tracing_core::Field, value: <span class="kw-2">&amp;</span>str) {
+        <span class="kw">match </span>field.name() {
+            <span class="string">"exception.message" </span>=&gt; <span class="self">self</span>.message = <span class="prelude-val">Some</span>(value.to_string()),
+            <span class="string">"exception.type" </span>=&gt; <span class="self">self</span>.typ = <span class="prelude-val">Some</span>(value.to_string()),
+            <span class="string">"exception.stacktrace" </span>=&gt; <span class="self">self</span>.stacktrace = <span class="prelude-val">Some</span>(value.to_string()),
+            <span class="kw">_ </span>=&gt; {}
+        }
+    }
+
+    <span class="doccomment">/// NOTE: record_str() is the one that's actually used, this would escape newlines etc.
+    /// But keeping as the trait requires it and just in case for some reason one of these isn't a string.
+    </span><span class="kw">fn </span>record_debug(<span class="kw-2">&amp;mut </span><span class="self">self</span>, field: <span class="kw-2">&amp;</span>tracing_core::Field, value: <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::fmt::Debug) {
         <span class="kw">match </span>field.name() {
             <span class="string">"exception.message" </span>=&gt; <span class="self">self</span>.message = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"{:?}"</span>, value)),
             <span class="string">"exception.type" </span>=&gt; <span class="self">self</span>.typ = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"{:?}"</span>, value)),

@@ -86,16 +86,6 @@
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
-<a href="#87" id="87">87</a>
-<a href="#88" id="88">88</a>
-<a href="#89" id="89">89</a>
-<a href="#90" id="90">90</a>
-<a href="#91" id="91">91</a>
-<a href="#92" id="92">92</a>
-<a href="#93" id="93">93</a>
-<a href="#94" id="94">94</a>
-<a href="#95" id="95">95</a>
-<a href="#96" id="96">96</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>macros;
 <span class="kw">mod </span>recorder;
 
@@ -160,12 +150,7 @@
 
         <span class="kw">let </span>elapsed = recorder.total_elapsed().unwrap();
         <span class="macro">assert!</span>(
-            elapsed.as_millis() &gt;= <span class="number">1</span>,
-            <span class="string">"elapsed: {:?}"</span>,
-            elapsed.as_millis()
-        );
-        <span class="macro">assert!</span>(
-            elapsed.as_millis() &lt; <span class="number">2</span>,
+            elapsed.as_millis() == <span class="number">1 </span>|| elapsed.as_millis() == <span class="number">2</span>,
             <span class="string">"elapsed: {:?}"</span>,
             elapsed.as_millis()
         );
@@ -181,12 +166,7 @@
         });
         <span class="kw">let </span>elapsed = GLOBAL_TIME_RECORDER.total_elapsed().unwrap();
         <span class="macro">assert!</span>(
-            elapsed.as_millis() &gt;= <span class="number">1</span>,
-            <span class="string">"elapsed: {:?}"</span>,
-            elapsed.as_millis()
-        );
-        <span class="macro">assert!</span>(
-            elapsed.as_millis() &lt; <span class="number">2</span>,
+            elapsed.as_millis() == <span class="number">1 </span>|| elapsed.as_millis() == <span class="number">2</span>,
             <span class="string">"elapsed: {:?}"</span>,
             elapsed.as_millis()
         );
