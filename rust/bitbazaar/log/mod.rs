@@ -11,7 +11,10 @@ pub use global_log::{global_fns::*, GlobalLog};
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::{
+        collections::{HashMap, HashSet},
+        sync::atomic::AtomicU32,
+    };
 
     use once_cell::sync::Lazy;
     use parking_lot::Mutex;
@@ -192,6 +195,52 @@ mod tests {
             );
         }
         assert_eq!(remaining.len(), 0);
+
+        Ok(())
+    }
+
+    /// - Confirm record_exception() and is recorded as an exception event on active span.
+    /// - Confirm panic() is auto recorded as an exception event on active span.
+    /// - Confirm both are recognised internally as exception events and use a custom formatter to give nice error messages.
+    #[rstest]
+    fn test_exception_recording() -> Result<(), AnyErr> {
+        static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
+        {
+            // Fn repeat usage so static needs clearing each time:
+            LOGS.lock().clear();
+        }
+
+        let log = GlobalLog::builder()
+            .custom(false, false, false, false, |log| {
+                LOGS.lock()
+                    .push(String::from_utf8_lossy(log).trim().to_string());
+            })
+            .build()?;
+
+        // Programmatically keeping line in check, atomic needed due to catch_unwind:
+        let line_preceding_panic = AtomicU32::new(0);
+        log.with_tmp_global(|| {
+            // Manual record:
+            record_exception("test_exc", "test_stack");
+
+            // Panics should be auto recorded:
+            let _ = std::panic::catch_unwind(|| {
+                line_preceding_panic.store(line!(), std::sync::atomic::Ordering::Relaxed);
+                panic!("test_panic");
+            });
+        })?;
+
+        let out = into_vec(&LOGS);
+        assert_eq!(
+            out,
+            vec![
+                "test_stack\nErr: test_exc".to_string(),
+                format!(
+                    "bitbazaar/log/mod.rs:{}:17\nPanic: test_panic",
+                    line_preceding_panic.load(std::sync::atomic::Ordering::Relaxed) + 1
+                )
+            ]
+        );
 
         Ok(())
     }

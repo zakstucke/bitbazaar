@@ -1,10 +1,8 @@
 use tracing::{Dispatch, Level, Metadata, Subscriber};
-use tracing_subscriber::{
-    filter::FilterFn, fmt::MakeWriter, prelude::*, registry::LookupSpan, Layer,
-};
+use tracing_subscriber::{filter::FilterFn, layer::SubscriberExt, registry::LookupSpan, Layer};
 
 use super::{builder::GlobalLogBuilder, GlobalLog};
-use crate::prelude::*;
+use crate::{log::global_log::event_formatter::CustEventFormatter, prelude::*};
 
 /// Need the write trait for our write function.
 impl std::io::Write for super::builder::CustomConf {
@@ -29,6 +27,13 @@ impl<'writer> tracing_subscriber::fmt::MakeWriter<'writer> for super::builder::C
 }
 
 pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, AnyErr> {
+    // Configure the program to automatically log panics as an error event on the current span:
+    super::exceptions::auto_trace_panics();
+
+    #[cfg(feature = "opentelemetry")]
+    // If opentelemetry being used, error_stacks should have color turned off, this would break text in external viewers outside terminals:
+    error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::None);
+
     let all_loc_matchers = builder
         .outputs
         .iter()
@@ -253,20 +258,41 @@ fn create_fmt_layer<S, W>(
     writer: W,
 ) -> Result<Box<dyn Layer<S> + Send + Sync + 'static>, AnyErr>
 where
-    S: Subscriber,
+    S: Subscriber + Send + Sync + 'static,
     for<'a> S: LookupSpan<'a>, // Each layer has a different type, so have to box for return
-    W: for<'writer> MakeWriter<'writer> + Send + Sync + 'static, // Allows all writers to be passed in before boxing
+    W: for<'writer> tracing_subscriber::fmt::MakeWriter<'writer> + Send + Sync + 'static, // Allows all writers to be passed in before boxing
 {
-    let base_layer = tracing_subscriber::fmt::layer()
-        .with_level(true)
-        .with_target(false)
-        .with_file(include_loc)
-        .with_line_number(include_loc)
-        .with_ansi(include_color)
-        .with_writer(writer);
+    /// README: This is all so complicated because tracing_subscriber layers all have distinct types depending on the args.
+    /// We also override the event formatter with our own that defers to the original for everything except exception events,
+    /// for exception events we try and keep like a usual stacktrace.
+    ///
+    /// The macros are all about keeping the code concise, despite the different types and repeated usage (due to lack of clone)
+
+    macro_rules! base {
+        ($layer_or_fmt:expr) => {
+            $layer_or_fmt
+                .with_level(true)
+                .with_target(false)
+                .with_file(include_loc)
+                .with_line_number(include_loc)
+                .with_ansi(include_color)
+        };
+    }
+
+    macro_rules! base_layer {
+        () => {
+            base!(tracing_subscriber::fmt::layer()).with_writer(writer)
+        };
+    }
+
+    macro_rules! base_format {
+        () => {
+            base!(tracing_subscriber::fmt::format())
+        };
+    }
 
     // Annoying have to duplicate, but pretty/compact & time both change the type and prevents adding the filter at the end before boxing:
-    if include_timestamp {
+    let layer = if include_timestamp {
         // Create the custom timer, given either stdout or a file rotated daily, no need for date in the log,
         // also no need for any more than ms precision,
         // also make it a UTC time:
@@ -277,13 +303,39 @@ where
         let timer = tracing_subscriber::fmt::time::OffsetTime::new(time_offset, timer);
 
         if pretty {
-            Ok(base_layer.pretty().with_timer(timer).boxed())
+            base_layer!()
+                .pretty()
+                .with_timer(timer.clone())
+                .event_format(CustEventFormatter::new(
+                    base_format!().pretty().with_timer(timer),
+                ))
+                .boxed()
         } else {
-            Ok(base_layer.compact().with_timer(timer).boxed())
+            base_layer!()
+                .compact()
+                .with_timer(timer.clone())
+                .event_format(CustEventFormatter::new(
+                    base_format!().compact().with_timer(timer),
+                ))
+                .boxed()
         }
     } else if pretty {
-        Ok(base_layer.pretty().without_time().boxed())
+        base_layer!()
+            .pretty()
+            .without_time()
+            .event_format(CustEventFormatter::new(
+                base_format!().pretty().without_time(),
+            ))
+            .boxed()
     } else {
-        Ok(base_layer.compact().without_time().boxed())
-    }
+        base_layer!()
+            .compact()
+            .without_time()
+            .event_format(CustEventFormatter::new(
+                base_format!().compact().without_time(),
+            ))
+            .boxed()
+    };
+
+    Ok(layer)
 }
