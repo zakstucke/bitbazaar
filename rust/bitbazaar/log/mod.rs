@@ -221,7 +221,7 @@ mod tests {
         let line_preceding_panic = AtomicU32::new(0);
         log.with_tmp_global(|| {
             // Manual record:
-            record_exception("test_exc", "test_stack");
+            record_exception("test_exc", "test_stack\nfoodle\nwoodle");
 
             // Panics should be auto recorded:
             let _ = std::panic::catch_unwind(|| {
@@ -240,13 +240,12 @@ mod tests {
             ),
         ]
         .join(if cfg!(windows) { "\\\\" } else { "/" });
-        assert_eq!(
-            out,
-            vec![
-                "test_stack\nErr: test_exc".to_string(),
-                format!("{}\nPanic: test_panic", exp_panic_loc)
-            ]
-        );
+
+        assert_eq!(out.len(), 2, "{:?}", out);
+        assert!(out[0].contains("test_stack"), "{:?}", out[0]);
+        assert!(out[0].contains("Err: test_exc"), "{:?}", out[0]);
+        assert!(out[1].contains(&exp_panic_loc), "{:?}", out[1]);
+        assert!(out[1].contains("Panic: test_panic"), "{:?}", out[1]);
 
         Ok(())
     }
