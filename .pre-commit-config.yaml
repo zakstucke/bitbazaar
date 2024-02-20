@@ -17,8 +17,11 @@ repos:
   # Toml formatting,
   # same as vscode extension: https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml
   # Configure from ./taplo.toml
-  - repo: https://github.com/ComPWA/mirrors-taplo
-    rev: v0.8.1
+  # NOTE: temporary source whilst taplo sort out their internal packaging, should switch to proper in the end, see:
+  # https://github.com/tamasfe/taplo/pull/549
+  # https://github.com/tamasfe/taplo/issues/535
+  - repo: https://github.com/redeboer/taplo-pre-commit
+    rev: v0.9.1rc1
     hooks:
       - id: taplo
         args: ["format", "--config", "./taplo.toml"]
