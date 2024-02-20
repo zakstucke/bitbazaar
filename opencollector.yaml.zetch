@@ -4,6 +4,11 @@ receivers:
     protocols:
       grpc:
         endpoint: localhost:4317
+      http:
+        endpoint: localhost:4318
+        cors:
+          allowed_origins:
+            - "*"
 
 processors:
   # Prevent memory usage from exceeding 40% of the total available RAM,

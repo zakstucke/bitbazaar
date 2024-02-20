@@ -1,3 +1,4 @@
+#[cfg(feature = "clap")]
 mod clap_log_level_args;
 #[cfg(test)]
 mod diff_file_log;
@@ -6,6 +7,7 @@ mod macros;
 #[cfg(feature = "opentelemetry")]
 mod ot_tracing_bridge;
 
+#[cfg(feature = "clap")]
 pub use clap_log_level_args::ClapLogLevelArgs;
 pub use global_log::{global_fns::*, GlobalLog};
 
@@ -37,7 +39,6 @@ mod tests {
     }
 
     #[rstest]
-    #[serial_test::serial] // Uses static, so parameterized versions can't run in parallel.
     fn test_log_formatting_basic(
         // All combinations of:
         #[values(true, false)] include_timestamp: bool,
@@ -104,7 +105,6 @@ mod tests {
     ).unwrap()), vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
     // Matcher failed, so both should be picked up by the one with no matcher:
     #[case::no_match(Some(regex::Regex::new(r"kdkfjdf").unwrap()), vec!["no_matcher DEBUG LOG1", "no_matcher DEBUG LOG2"])]
-    #[serial_test::serial] // Uses static, so parameterized versions can't run in parallel.
     fn test_log_matchers(
         #[case] loc_matcher: Option<regex::Regex>,
         #[case] expected_logs: Vec<&str>,
@@ -155,7 +155,6 @@ mod tests {
     #[case(Level::INFO, vec!["ILOG", "WLOG", "ELOG"])]
     #[case(Level::WARN, vec!["WLOG", "ELOG"])]
     #[case(Level::ERROR, vec!["ELOG"])]
-    #[serial_test::serial] // Uses static, so parameterized versions can't run in parallel.
     fn test_log_filtering(
         #[case] level_from: Level,
         #[case] expected_found: Vec<&str>,
@@ -300,8 +299,11 @@ mod tests {
 
     #[cfg(feature = "opentelemetry")]
     #[rstest]
+    // Testing both as grpc and http:
+    #[case::use_http(false)]
+    #[case::use_http(true)]
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_opentelemetry() -> Result<(), AnyErr> {
+    async fn test_opentelemetry(#[case] use_http: bool) -> Result<(), AnyErr> {
         use std::path::PathBuf;
 
         use crate::misc::in_ci;
@@ -319,10 +321,14 @@ mod tests {
                 .len();
         }
 
-        let log = GlobalLog::builder()
-            .otlp(4317, "rust-test", "0.1.0")
-            .level_from(Level::DEBUG)?
-            .build()?;
+        let mut builder = GlobalLog::builder();
+        // Testing both grpc and http:
+        if use_http {
+            builder = builder.otlp_http("http://localhost:4318", "rust-test", "0.1.0");
+        } else {
+            builder = builder.otlp_grpc(4317, "rust-test", "0.1.0");
+        }
+        let log = builder.level_from(Level::DEBUG)?.build()?;
 
         log.with_tmp_global(|| {
             debug!("BEFORE");
