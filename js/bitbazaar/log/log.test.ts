@@ -31,10 +31,21 @@ describe("Logging/Tracing", () => {
                     service_version: "1.0.0",
                 },
             });
+
             LOG.debug("DEBUG");
             LOG.info("INFO");
             LOG.warn("WARN");
             LOG.error("ERROR");
+            expect(logs).toEqual(expected_enabled);
+
+            // Empty:
+            logs.length = 0;
+
+            // All console logs should have been overridden to also use the global logger:
+            console.debug("DEBUG");
+            console.info("INFO");
+            console.warn("WARN");
+            console.error("ERROR");
             expect(logs).toEqual(expected_enabled);
         },
     );

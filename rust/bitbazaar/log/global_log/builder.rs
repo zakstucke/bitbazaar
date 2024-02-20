@@ -9,7 +9,12 @@ use crate::prelude::*;
 /// Shared that can be set for all output types
 pub struct SharedOpts {
     pub level_from: Level,
+
+    // Keeping when feature disabled to make a bit more concise in usage:
+    #[cfg(feature = "log-filter")]
     pub loc_matcher: Option<regex::Regex>,
+    #[cfg(not(feature = "log-filter"))]
+    pub loc_matcher: Option<bool>,
 }
 
 impl Default for SharedOpts {
@@ -57,8 +62,12 @@ pub struct CustomConf {
 
 #[cfg(feature = "opentelemetry")]
 pub struct OtlpConf {
+    #[cfg(feature = "opentelemetry-grpc")]
     /// The localhost port the open telemetry collector is running on and accepting grpc connections:
-    pub port: u16,
+    pub grpc_port: Option<u16>,
+    #[cfg(feature = "opentelemetry-http")]
+    /// The url string to connect via http to, e.g. "/otlp" or "localhost/otlp":
+    pub http_endpoint: Option<String>,
     /// The name of the service:
     pub service_name: String,
     /// The active version/deployment of the service:
@@ -138,20 +147,48 @@ impl GlobalLogBuilder {
     }
 
     #[cfg(feature = "opentelemetry")]
-    /// Write to an open telemetry provider. This works with the tokio runtime.
+    #[cfg(feature = "opentelemetry-grpc")]
+    /// Write to an open telemetry provider via grpc. This works with the tokio runtime.
     ///
     /// Arguments:
     /// - `port`: The localhost port the open telemetry collector is running on and accepting grpc connections:
     /// - `service_name`: The name of the service:
     /// - `service_version`: The active version/deployment of the service:
-    pub fn otlp(
+    pub fn otlp_grpc(
         mut self,
         port: u16,
         service_name: impl Into<String>,
         service_version: impl Into<String>,
     ) -> Self {
         self.outputs.push(Output::Otlp(OtlpConf {
-            port,
+            grpc_port: Some(port),
+            #[cfg(feature = "opentelemetry-http")]
+            http_endpoint: None,
+            service_name: service_name.into(),
+            service_version: service_version.into(),
+            shared: SharedOpts::default(),
+        }));
+        self
+    }
+
+    #[cfg(feature = "opentelemetry")]
+    #[cfg(feature = "opentelemetry-http")]
+    /// Write to an open telemetry provider via http. This works with wasm!
+    ///
+    /// Arguments:
+    /// - `endpoint`: The url string to connect via http to, e.g. "/otlp" or "http://localhost/otlp":
+    /// - `service_name`: The name of the service:
+    /// - `service_version`: The active version/deployment of the service:
+    pub fn otlp_http(
+        mut self,
+        endpoint: impl Into<String>,
+        service_name: impl Into<String>,
+        service_version: impl Into<String>,
+    ) -> Self {
+        self.outputs.push(Output::Otlp(OtlpConf {
+            #[cfg(feature = "opentelemetry-grpc")]
+            grpc_port: None,
+            http_endpoint: Some(endpoint.into()),
             service_name: service_name.into(),
             service_version: service_version.into(),
             shared: SharedOpts::default(),
@@ -168,6 +205,7 @@ impl GlobalLogBuilder {
         Ok(self)
     }
 
+    #[cfg(feature = "log-filter")]
     /// A regex that must be satisfied for a log to be accepted by this target.
     /// E.g. if regex is 'logging::tests' then only locations containing this will be logged by this target.
     /// Note that when None, will match all locations other than those matched by other layers with a loc_matcher.

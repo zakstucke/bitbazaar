@@ -22,5 +22,6 @@ pub mod misc;
 #[cfg(feature = "redis")]
 /// Redis utilities
 pub mod redis;
+#[cfg(feature = "timing")]
 /// Timing utilities
 pub mod timing;

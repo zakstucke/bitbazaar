@@ -45,6 +45,11 @@ interface OltpArgs {
     service_version: string; // E.g. "1.0.0"
 }
 
+type ConsoleFns = Record<
+    "log" | "debug" | "info" | "warn" | "error",
+    (message: string, ...optionalParams: any[]) => void
+>;
+
 class GlobalLog {
     loggerProvider: LoggerProvider;
     logger: Logger;
@@ -54,6 +59,9 @@ class GlobalLog {
 
     console: ConsoleArgs | null;
     oltp: OltpArgs;
+
+    /// We override global console functions to do filtering and emit to oltp, need to keep access to the inner ones:
+    orig_console_fns: ConsoleFns;
 
     /**
      * Get a new Meter instance to record metrics with.
@@ -131,22 +139,22 @@ class GlobalLog {
             switch (this.console.level_from) {
                 case "DEBUG": {
                     emit = true;
-                    emitter = console.debug;
+                    emitter = this.orig_console_fns.debug;
                     break;
                 }
                 case "INFO": {
                     emit = severityText !== "DEBUG";
-                    emitter = console.info;
+                    emitter = this.orig_console_fns.info;
                     break;
                 }
                 case "WARN": {
                     emit = severityText === "WARN" || severityText === "ERROR";
-                    emitter = console.warn;
+                    emitter = this.orig_console_fns.warn;
                     break;
                 }
                 case "ERROR": {
                     emit = severityText === "ERROR";
-                    emitter = console.error;
+                    emitter = this.orig_console_fns.error;
                     break;
                 }
             }
@@ -188,6 +196,21 @@ class GlobalLog {
         }
     }
 
+    _set_console_fns() {
+        this.orig_console_fns = {
+            log: console.log,
+            debug: console.debug,
+            info: console.info,
+            warn: console.warn,
+            error: console.error,
+        };
+        console.log = (msg, ...attrs) => this.info(msg, ...attrs);
+        console.debug = (msg, ...attrs) => this.debug(msg, ...attrs);
+        console.info = (msg, ...attrs) => this.info(msg, ...attrs);
+        console.warn = (msg, ...attrs) => this.warn(msg, ...attrs);
+        console.error = (msg, ...attrs) => this.error(msg, ...attrs);
+    }
+
     /** Create the global logger, must setup oltp (http), console can be optionally setup and will just print logs. */
     constructor({
         otlp,
@@ -198,6 +221,8 @@ class GlobalLog {
     }) {
         this.console = console ? console : null;
         this.oltp = otlp;
+        // Store original console fns and override with those in this global logger:
+        this._set_console_fns();
 
         const resource = new Resource({
             [SemanticResourceAttributes.SERVICE_NAME]: otlp.service_name,

@@ -34,6 +34,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
     // If opentelemetry being used, error_stacks should have color turned off, this would break text in external viewers outside terminals:
     error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::None);
 
+    #[cfg(feature = "log-filter")]
     let all_loc_matchers = builder
         .outputs
         .iter()
@@ -49,7 +50,10 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
         meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
     };
     let mut out_layers = vec![];
+
+    #[cfg(not(target_arch = "wasm32"))]
     let mut guards = vec![];
+
     for output in builder.outputs {
         macro_rules! add_layer {
             ($shared:expr, $layer:expr) => {
@@ -58,7 +62,9 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                     $layer
                         .with_filter(filter_layer(
                             $shared.level_from.clone(),
+                            #[cfg(feature = "log-filter")]
                             $shared.loc_matcher.clone(),
+                            #[cfg(feature = "log-filter")]
                             &all_loc_matchers,
                         )?)
                         .boxed(),
@@ -68,13 +74,32 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
 
         match output {
             super::builder::Output::Stdout(stdout) => {
-                let (writer, _guard) = tracing_appender::non_blocking(std::io::stdout());
-                guards.push(_guard);
+                // When not web, normal std out and non-blocking:
+                #[cfg(not(target_arch = "wasm32"))]
+                let writer = {
+                    let (writer, _guard) = tracing_appender::non_blocking(std::io::stdout());
+                    guards.push(_guard);
+                    writer
+                };
+
+                // When web, custom console writer, non-blocking doesn't seem to be supported on web (raises runtime):
+                #[cfg(target_arch = "wasm32")]
+                let writer = {
+                    use tracing_subscriber_wasm::MakeConsoleWriter;
+                    MakeConsoleWriter::default()
+                };
+
                 add_layer!(
                     stdout.shared,
                     create_fmt_layer(stdout.pretty, false, stdout.include_loc, true, writer,)?
                 );
             }
+            // File obvs can't be written in wasm, excluding to keep tracing_appender out of build etc.
+            #[cfg(target_arch = "wasm32")]
+            super::builder::Output::File(_) => {
+                return Err(anyerr!("File logging not supported in wasm."));
+            }
+            #[cfg(not(target_arch = "wasm32"))]
             super::builder::Output::File(file) => {
                 // Throw if dir is an existing file:
                 if file.dir.is_file() {
@@ -124,81 +149,117 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                     resource, trace as sdktrace,
                 };
 
-                if !crate::misc::is_tcp_port_listening("localhost", otlp.port)? {
-                    return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", otlp.port));
+                // Theoretically both features could be enabled, so create an array to be able to double initiate two layers (both grpc and http)
+                // makes compiler happy and isn't hacky!
+                let mut exporters: Vec<(
+                    opentelemetry_otlp::LogExporterBuilder,
+                    opentelemetry_otlp::SpanExporterBuilder,
+                    opentelemetry_otlp::MetricsExporterBuilder,
+                )> = vec![];
+
+                #[cfg(feature = "opentelemetry-grpc")]
+                #[allow(unused_variables)]
+                if let Some(port) = otlp.grpc_port {
+                    if !crate::misc::is_tcp_port_listening("localhost", port)? {
+                        return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", port));
+                    }
+                    let endpoint = format!("grpc://localhost:{}", port);
+                    let get_exporter = || new_exporter().tonic().with_endpoint(&endpoint);
+                    exporters.push((
+                        get_exporter().into(),
+                        get_exporter().into(),
+                        get_exporter().into(),
+                    ));
+                };
+
+                #[cfg(feature = "opentelemetry-http")]
+                if let Some(endpoint) = otlp.http_endpoint {
+                    let get_exporter = || new_exporter().http().with_endpoint(&endpoint);
+                    exporters.push((
+                        get_exporter().into(),
+                        get_exporter().into(),
+                        get_exporter().into(),
+                    ));
+                };
+
+                for (log_exporter, trace_exporter, metric_exporter) in exporters {
+                    // Configure the global propagator to use between different services, without this step when you try and connect other services they'll strangely not work (this defaults to a no-op)
+                    //
+                    // Only enable to the 2 main standard propagators, the w3c trace context and baggage.
+                    //
+                    // https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
+                    set_text_map_propagator(TextMapCompositePropagator::new(vec![
+                        Box::new(TraceContextPropagator::new()),
+                        Box::new(BaggagePropagator::new()),
+                    ]));
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    let svc_instance_id = hostname::get()
+                        .change_context(AnyErr)?
+                        .to_string_lossy()
+                        .to_string();
+                    #[cfg(target_arch = "wasm32")]
+                    // TODO: (not much point atm as wasm http doesn't work): maybe something legitimate for web?
+                    let svc_instance_id = "wasm".to_string();
+
+                    let resource = resource::Resource::new(vec![
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_NAME,
+                            otlp.service_name.clone(),
+                        ),
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
+                            otlp.service_version.clone(),
+                        ),
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_INSTANCE_ID,
+                            svc_instance_id,
+                        ),
+                    ]);
+
+                    // Different layers are needed for the logger, tracer and meter:
+                    let logger = new_pipeline()
+                        .logging()
+                        .with_log_config(sdklogs::Config::default().with_resource(resource.clone()))
+                        .with_exporter(log_exporter)
+                        .install_batch(opentelemetry_sdk::runtime::Tokio)
+                        .change_context(AnyErr)?;
+                    let logging_provider = logger
+                        .provider()
+                        .ok_or_else(|| anyerr!("No logger provider attached."))?;
+                    let log_layer = crate::log::ot_tracing_bridge::OpenTelemetryTracingBridge::new(
+                        &logging_provider,
+                    );
+                    otlp_providers.logger_provider = Some(logging_provider.clone());
+                    add_layer!(otlp.shared, log_layer);
+
+                    let tracer = new_pipeline()
+                        .tracing()
+                        .with_trace_config(
+                            sdktrace::Config::default().with_resource(resource.clone()),
+                        )
+                        .with_exporter(trace_exporter)
+                        .install_batch(opentelemetry_sdk::runtime::Tokio)
+                        .change_context(AnyErr)?;
+                    let tracing_provider = tracer
+                        .provider()
+                        .ok_or_else(|| anyerr!("No tracing provider attached."))?;
+                    let trace_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+                    otlp_providers.tracer_provider = Some(tracing_provider);
+                    add_layer!(otlp.shared, trace_layer);
+
+                    let meter_provider = new_pipeline()
+                        .metrics(opentelemetry_sdk::runtime::Tokio)
+                        .with_resource(resource.clone())
+                        .with_exporter(metric_exporter)
+                        .build()
+                        .change_context(AnyErr)?;
+                    let metric_layer: tracing_opentelemetry::MetricsLayer<
+                        tracing_subscriber::Registry,
+                    > = tracing_opentelemetry::MetricsLayer::new(meter_provider.clone());
+                    otlp_providers.meter_provider = meter_provider;
+                    add_layer!(otlp.shared, metric_layer);
                 }
-
-                let endpoint = format!("grpc://localhost:{}", otlp.port);
-                let get_exporter = || new_exporter().tonic().with_endpoint(&endpoint);
-
-                // Configure the global propagator to use between different services, without this step when you try and connect other services they'll strangely not work (this defaults to a no-op)
-                //
-                // Only enable to the 2 main standard propagators, the w3c trace context and baggage.
-                //
-                // https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
-                set_text_map_propagator(TextMapCompositePropagator::new(vec![
-                    Box::new(TraceContextPropagator::new()),
-                    Box::new(BaggagePropagator::new()),
-                ]));
-
-                let resource = resource::Resource::new(vec![
-                    opentelemetry::KeyValue::new(
-                        opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-                        otlp.service_name,
-                    ),
-                    opentelemetry::KeyValue::new(
-                        opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
-                        otlp.service_version,
-                    ),
-                    opentelemetry::KeyValue::new(
-                        opentelemetry_semantic_conventions::resource::SERVICE_INSTANCE_ID,
-                        hostname::get()
-                            .change_context(AnyErr)?
-                            .to_string_lossy()
-                            .to_string(),
-                    ),
-                ]);
-
-                // Different layers are needed for the logger, tracer and meter:
-                let logger = new_pipeline()
-                    .logging()
-                    .with_log_config(sdklogs::Config::default().with_resource(resource.clone()))
-                    .with_exporter(get_exporter())
-                    .install_batch(opentelemetry_sdk::runtime::Tokio)
-                    .change_context(AnyErr)?;
-                let logging_provider = logger
-                    .provider()
-                    .ok_or_else(|| anyerr!("No log provider attached."))?;
-                let log_layer = crate::log::ot_tracing_bridge::OpenTelemetryTracingBridge::new(
-                    &logging_provider,
-                );
-                otlp_providers.logger_provider = Some(logging_provider);
-                add_layer!(otlp.shared, log_layer);
-
-                let tracer = new_pipeline()
-                    .tracing()
-                    .with_trace_config(sdktrace::Config::default().with_resource(resource.clone()))
-                    .with_exporter(get_exporter())
-                    .install_batch(opentelemetry_sdk::runtime::Tokio)
-                    .change_context(AnyErr)?;
-                let tracing_provider = tracer
-                    .provider()
-                    .ok_or_else(|| anyerr!("No tracing provider attached."))?;
-                let trace_layer = tracing_opentelemetry::layer().with_tracer(tracer);
-                otlp_providers.tracer_provider = Some(tracing_provider);
-                add_layer!(otlp.shared, trace_layer);
-
-                let meter_provider = new_pipeline()
-                    .metrics(opentelemetry_sdk::runtime::Tokio)
-                    .with_resource(resource.clone())
-                    .with_exporter(get_exporter())
-                    .build()
-                    .change_context(AnyErr)?;
-                let metric_layer: tracing_opentelemetry::MetricsLayer<
-                    tracing_subscriber::Registry,
-                > = tracing_opentelemetry::MetricsLayer::new(meter_provider.clone());
-                otlp_providers.meter_provider = meter_provider;
-                add_layer!(otlp.shared, metric_layer);
             }
         };
     }
@@ -208,6 +269,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
     let dispatch: Dispatch = subscriber.into();
     Ok(GlobalLog {
         dispatch: Some(dispatch),
+        #[cfg(not(target_arch = "wasm32"))]
         _guards: guards,
         #[cfg(feature = "opentelemetry")]
         otlp_providers,
@@ -216,9 +278,10 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
 
 fn filter_layer(
     level_from: Level,
-    loc_matcher: Option<regex::Regex>,
-    all_loc_matchers: &[regex::Regex],
+    #[cfg(feature = "log-filter")] loc_matcher: Option<regex::Regex>,
+    #[cfg(feature = "log-filter")] all_loc_matchers: &[regex::Regex],
 ) -> Result<FilterFn<impl Fn(&Metadata<'_>) -> bool>, AnyErr> {
+    #[cfg(feature = "log-filter")]
     // Needs to be a vec to pass through to the filter fn:
     let all_loc_matchers = all_loc_matchers.to_vec();
 
@@ -228,6 +291,7 @@ fn filter_layer(
             return false;
         }
 
+        #[cfg(feature = "log-filter")]
         // Check loc matching:
         if let Some(file_info) = metadata.file() {
             // Skip log if there's a custom location matcher present that doesn't match the file string:

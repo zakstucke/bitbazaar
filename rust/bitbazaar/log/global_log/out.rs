@@ -1,12 +1,10 @@
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::{Dispatch, Level};
-use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::prelude::*;
 
 use crate::errors::prelude::*;
 
-// When registering globally, hoist the guards out into here, to allow the CreatedSubscriber to go out of scope but keep the guards permanently.
 pub static GLOBAL_LOG: Lazy<Mutex<Option<GlobalLog>>> = Lazy::new(Mutex::default);
 
 /// The global logger/tracer for stdout, file and full open telemetry. Works with the tracing crates (info!, debug!, warn!, error!) and span funcs and decorators.
@@ -40,9 +38,11 @@ pub struct GlobalLog {
     /// Tracing dispatcher, needed to make the global logger.
     pub(crate) dispatch: Option<Dispatch>,
 
+    // tracing_appender not included in wasm:
+    #[cfg(not(target_arch = "wasm32"))]
     /// Need to store these guards, when they go out of scope the logging may stop.
     /// When made global these are hoisted into a static lazy var.
-    pub(crate) _guards: Vec<WorkerGuard>,
+    pub(crate) _guards: Vec<tracing_appender::non_blocking::WorkerGuard>,
 
     #[cfg(feature = "opentelemetry")]
     pub(crate) otlp_providers: OtlpProviders,

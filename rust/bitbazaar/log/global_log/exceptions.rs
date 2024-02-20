@@ -14,12 +14,25 @@ pub fn record_exception_inner(
 }
 
 /// Setup the program to automatically log panics as an error event on the current span.
+/// Internally makes sure it only runs once.
 pub fn auto_trace_panics() {
-    let prev_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |panic_info| {
-        panic_hook(panic_info);
-        prev_hook(panic_info);
-    }));
+    use std::sync::Once;
+    static SET_HOOK: Once = Once::new();
+    SET_HOOK.call_once(|| {
+        // If wasm, know the default browser panic hook is dogshite, so just replace so it doesn't show:
+        #[cfg(target_arch = "wasm32")]
+        {
+            std::panic::set_hook(Box::new(panic_hook));
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let prev_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(move |panic_info| {
+                panic_hook(panic_info);
+                prev_hook(panic_info);
+            }));
+        }
+    });
 }
 
 fn panic_hook(panic_info: &std::panic::PanicInfo) {

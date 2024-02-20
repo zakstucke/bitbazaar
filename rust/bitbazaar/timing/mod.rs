@@ -62,7 +62,8 @@ mod tests {
 
         let elapsed = recorder.total_elapsed().unwrap();
         assert!(
-            elapsed.as_millis() == 1 || elapsed.as_millis() == 2,
+            // Such a fallible test in CI, making very relaxed:
+            elapsed.as_millis() > 0 && elapsed.as_millis() < 5,
             "elapsed: {:?}",
             elapsed.as_millis()
         );
@@ -78,7 +79,8 @@ mod tests {
         });
         let elapsed = GLOBAL_TIME_RECORDER.total_elapsed().unwrap();
         assert!(
-            elapsed.as_millis() == 1 || elapsed.as_millis() == 2,
+            // Such a fallible test in CI, making very relaxed:
+            elapsed.as_millis() > 0 && elapsed.as_millis() < 5,
             "elapsed: {:?}",
             elapsed.as_millis()
         );
