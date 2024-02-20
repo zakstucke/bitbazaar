@@ -14,7 +14,7 @@ pub fn record_exception(message: impl Into<String>, stacktrace: impl Into<String
     super::exceptions::record_exception_inner(message, stacktrace, "Err");
 }
 
-#[cfg(feature = "opentelemetry")]
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 /// Returns a new [`opentelemetry::metrics::Meter`] with the provided name and default configuration.
 ///
 /// A [opentelemetry::metrics::Meter] should be scoped at most to a single application or crate. The
@@ -29,7 +29,7 @@ pub fn meter(
     get_global()?.meter(name)
 }
 
-#[cfg(feature = "opentelemetry")]
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 /// Connect this program's span to the trace that is represented by the provided HTTP headers.
 /// E.g. connect an axum handler's trace/span to the nginx trace/span.
 pub fn set_span_parent_from_http_headers(
@@ -39,7 +39,7 @@ pub fn set_span_parent_from_http_headers(
     get_global()?.set_span_parent_from_http_headers(span, headers)
 }
 
-#[cfg(feature = "opentelemetry")]
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 /// Set the response headers from the current span context. So downstream services can continue the current trace.
 pub fn set_response_headers_from_ctx<B>(response: &mut http::Response<B>) -> Result<(), AnyErr> {
     get_global()?.set_response_headers_from_ctx(response)

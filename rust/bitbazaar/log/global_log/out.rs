@@ -44,11 +44,11 @@ pub struct GlobalLog {
     /// When made global these are hoisted into a static lazy var.
     pub(crate) _guards: Vec<tracing_appender::non_blocking::WorkerGuard>,
 
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
     pub(crate) otlp_providers: OtlpProviders,
 }
 
-#[cfg(feature = "opentelemetry")]
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 pub struct OtlpProviders {
     pub logger_provider: Option<opentelemetry_sdk::logs::LoggerProvider>,
     pub tracer_provider: Option<opentelemetry_sdk::trace::TracerProvider>,
@@ -88,7 +88,7 @@ impl GlobalLog {
         }
     }
 
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
     /// See [`super::global_fns::meter`]`
     pub fn meter(
         &self,
@@ -99,7 +99,7 @@ impl GlobalLog {
         Ok(self.otlp_providers.meter_provider.meter(name))
     }
 
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
     /// See [`super::global_fns::set_span_parent_from_http_headers`]`
     pub fn set_span_parent_from_http_headers(
         &self,
@@ -118,7 +118,7 @@ impl GlobalLog {
         Ok(())
     }
 
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
     /// See [`super::global_fns::set_response_headers_from_ctx`]`
     pub fn set_response_headers_from_ctx<B>(
         &self,
@@ -149,7 +149,7 @@ impl GlobalLog {
 
     /// See [`super::global_fns::flush`]`
     pub fn flush(&self) -> Result<(), AnyErr> {
-        #[cfg(feature = "opentelemetry")]
+        #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
         {
             if let Some(prov) = &self.otlp_providers.logger_provider {
                 prov.force_flush();
@@ -167,7 +167,7 @@ impl GlobalLog {
 
     /// See [`super::global_fns::shutdown`]`
     pub fn shutdown(&mut self) -> Result<(), AnyErr> {
-        #[cfg(feature = "opentelemetry")]
+        #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
         {
             if let Some(prov) = &mut self.otlp_providers.logger_provider {
                 prov.shutdown();

@@ -25,7 +25,7 @@ clap = ["dep:clap"]
 timing = ['dep:comfy-table', 'dep:chrono']
 cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'dep:chrono', 'dep:strum']
 redis = ['dep:deadpool-redis', 'dep:redis', 'dep:sha1_smol', 'dep:serde_json']
-opentelemetry = [
+opentelemetry-grpc = [
   'dep:tracing-log',
   'dep:opentelemetry-appender-tracing',
   'dep:opentelemetry_sdk',
@@ -34,10 +34,18 @@ opentelemetry = [
   'dep:opentelemetry-otlp',
   'dep:opentelemetry-semantic-conventions',
   'dep:http',
+  'opentelemetry-otlp/grpc-tonic',
 ]
-opentelemetry-grpc = ['opentelemetry', 'opentelemetry-otlp/grpc-tonic']
-opentelemetry-http = [
-  'opentelemetry',
+opentelemetry-http = [ # In general there's no point with this currently, made for wasm but otlp can't be used on wasm yet (tonic)
+  'dep:tracing-log',
+  'dep:opentelemetry-appender-tracing',
+  'dep:opentelemetry_sdk',
+  'dep:tracing-opentelemetry',
+  'dep:opentelemetry',
+  'dep:opentelemetry-otlp',
+  'dep:opentelemetry-semantic-conventions',
+  'dep:http',
+  'opentelemetry-otlp/grpc-tonic',          # Stupid needed but it currently is due to otlp internals
   'opentelemetry-otlp/http-proto',
   'opentelemetry-otlp/reqwest-client',
 ]
@@ -78,7 +86,7 @@ deadpool-redis = { version = "0.14", features = ["rt_tokio_1"], optional = true 
 redis = { version = "0.24", default-features = false, features = ["aio", "json"], optional = true }
 sha1_smol = { version = "1.0", optional = true }
 
-# FEAT: opentelemetry:
+# FEAT: opentelemetry-(grpc|http):
 tracing-log = { version = "0.2", optional = true } # Only needed whilst we're using ot_tracing_bridge.rs
 http = { version = "1.0", optional = true }
 tracing-opentelemetry = { version = "0.22", optional = true }
@@ -107,6 +115,8 @@ portpicker = '0.1.1'
 tempfile = '3.8'
 tokio = { version = '1.35', features = ["rt-multi-thread", "macros"] }
 uuid = { version = "1.6", features = ["v4"] }
+regex = "1"
+serde_json = "1"
 
 [profile.profiler]
 inherits = "release" # Adds on top of the default release profile

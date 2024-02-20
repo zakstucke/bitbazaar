@@ -30,7 +30,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
     // Configure the program to automatically log panics as an error event on the current span:
     super::exceptions::auto_trace_panics();
 
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
     // If opentelemetry being used, error_stacks should have color turned off, this would break text in external viewers outside terminals:
     error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::None);
 
@@ -41,13 +41,14 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
         .filter_map(|output| output.shared_opts().loc_matcher.clone())
         .collect::<Vec<_>>();
 
-    #[cfg(feature = "opentelemetry")]
-    use super::out::OtlpProviders;
-    #[cfg(feature = "opentelemetry")]
-    let mut otlp_providers = OtlpProviders {
-        logger_provider: None,
-        tracer_provider: None,
-        meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
+    let mut otlp_providers = {
+        use super::out::OtlpProviders;
+        OtlpProviders {
+            logger_provider: None,
+            tracer_provider: None,
+            meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
+        }
     };
     let mut out_layers = vec![];
 
@@ -148,10 +149,10 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                     )?
                 );
             }
-            #[cfg(feature = "opentelemetry")]
+            #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
             super::builder::Output::Otlp(otlp) => {
                 use opentelemetry::global::set_text_map_propagator;
-                use opentelemetry_otlp::{new_exporter, new_pipeline, WithExportConfig};
+                use opentelemetry_otlp::new_pipeline;
                 use opentelemetry_sdk::{
                     logs as sdklogs,
                     propagation::{
@@ -160,6 +161,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                     resource, trace as sdktrace,
                 };
 
+                #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
                 // Theoretically both features could be enabled, so create an array to be able to double initiate two layers (both grpc and http)
                 // makes compiler happy and isn't hacky!
                 let mut exporters: Vec<(
@@ -171,6 +173,8 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                 #[cfg(feature = "opentelemetry-grpc")]
                 #[allow(unused_variables)]
                 if let Some(port) = otlp.grpc_port {
+                    use opentelemetry_otlp::{new_exporter, WithExportConfig};
+
                     if !crate::misc::is_tcp_port_listening("localhost", port)? {
                         return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", port));
                     }
@@ -185,6 +189,8 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
 
                 #[cfg(feature = "opentelemetry-http")]
                 if let Some(endpoint) = otlp.http_endpoint {
+                    use opentelemetry_otlp::{new_exporter, WithExportConfig};
+
                     let get_exporter = || new_exporter().http().with_endpoint(&endpoint);
                     exporters.push((
                         get_exporter().into(),
@@ -282,7 +288,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
         dispatch: Some(dispatch),
         #[cfg(not(target_arch = "wasm32"))]
         _guards: guards,
-        #[cfg(feature = "opentelemetry")]
+        #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
         otlp_providers,
     })
 }

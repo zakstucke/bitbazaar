@@ -4,12 +4,12 @@ mod clap_log_level_args;
 mod diff_file_log;
 mod global_log;
 mod macros;
-#[cfg(feature = "opentelemetry")]
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 mod ot_tracing_bridge;
 
 #[cfg(feature = "clap")]
 pub use clap_log_level_args::ClapLogLevelArgs;
-pub use global_log::{global_fns::*, GlobalLog};
+pub use global_log::{global_fns::*, GlobalLog, GlobalLogBuilder};
 
 #[cfg(test)]
 mod tests {
@@ -96,6 +96,7 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(feature = "log-filter")]
     #[rstest]
     // No matchers on either targets, so picked up by both targets:
     #[case::both(None, vec!["with_matcher DEBUG LOG1", "no_matcher DEBUG LOG1", "with_matcher DEBUG LOG2", "no_matcher DEBUG LOG2"])]
@@ -297,13 +298,26 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(feature = "opentelemetry-grpc")]
     #[rstest]
-    // Testing both as grpc and http:
-    #[case::use_http(false)]
-    #[case::use_http(true)]
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_opentelemetry(#[case] use_http: bool) -> Result<(), AnyErr> {
+    async fn test_otlp_grpc() -> Result<(), AnyErr> {
+        _inner_test_opentelemetry(GlobalLog::builder().otlp_grpc(4317, "rust-test", "0.1.0")).await
+    }
+
+    #[cfg(feature = "opentelemetry-http")]
+    #[rstest]
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_otlp_http() -> Result<(), AnyErr> {
+        _inner_test_opentelemetry(GlobalLog::builder().otlp_http(
+            "http://localhost:4318",
+            "rust-test",
+            "0.1.0",
+        ))
+        .await
+    }
+
+    async fn _inner_test_opentelemetry(builder: GlobalLogBuilder) -> Result<(), AnyErr> {
         use std::path::PathBuf;
 
         use crate::misc::in_ci;
@@ -321,13 +335,6 @@ mod tests {
                 .len();
         }
 
-        let mut builder = GlobalLog::builder();
-        // Testing both grpc and http:
-        if use_http {
-            builder = builder.otlp_http("http://localhost:4318", "rust-test", "0.1.0");
-        } else {
-            builder = builder.otlp_grpc(4317, "rust-test", "0.1.0");
-        }
         let log = builder.level_from(Level::DEBUG)?.build()?;
 
         log.with_tmp_global(|| {
