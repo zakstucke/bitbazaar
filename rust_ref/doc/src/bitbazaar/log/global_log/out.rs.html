@@ -232,11 +232,11 @@
     /// When made global these are hoisted into a static lazy var.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) _guards: Vec&lt;tracing_appender::non_blocking::WorkerGuard&gt;,
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) otlp_providers: OtlpProviders,
 }
 
-<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+<span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="kw">pub struct </span>OtlpProviders {
     <span class="kw">pub </span>logger_provider: <span class="prelude-ty">Option</span>&lt;opentelemetry_sdk::logs::LoggerProvider&gt;,
     <span class="kw">pub </span>tracer_provider: <span class="prelude-ty">Option</span>&lt;opentelemetry_sdk::trace::TracerProvider&gt;,
@@ -276,7 +276,7 @@
         }
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span><span class="doccomment">/// See [`super::global_fns::meter`]`
     </span><span class="kw">pub fn </span>meter(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -287,7 +287,7 @@
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.otlp_providers.meter_provider.meter(name))
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span><span class="doccomment">/// See [`super::global_fns::set_span_parent_from_http_headers`]`
     </span><span class="kw">pub fn </span>set_span_parent_from_http_headers(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -306,7 +306,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span><span class="doccomment">/// See [`super::global_fns::set_response_headers_from_ctx`]`
     </span><span class="kw">pub fn </span>set_response_headers_from_ctx&lt;B&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
@@ -337,7 +337,7 @@
 
     <span class="doccomment">/// See [`super::global_fns::flush`]`
     </span><span class="kw">pub fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
-        <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+        <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
         </span>{
             <span class="kw">if let </span><span class="prelude-val">Some</span>(prov) = <span class="kw-2">&amp;</span><span class="self">self</span>.otlp_providers.logger_provider {
                 prov.force_flush();
@@ -355,7 +355,7 @@
 
     <span class="doccomment">/// See [`super::global_fns::shutdown`]`
     </span><span class="kw">pub fn </span>shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
-        <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+        <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
         </span>{
             <span class="kw">if let </span><span class="prelude-val">Some</span>(prov) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.otlp_providers.logger_provider {
                 prov.shutdown();

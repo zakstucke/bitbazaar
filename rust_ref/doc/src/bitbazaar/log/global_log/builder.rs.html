@@ -254,7 +254,6 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>tracing::Level;
@@ -317,7 +316,7 @@
     <span class="kw">pub </span>shared: SharedOpts,
 }
 
-<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+<span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="kw">pub struct </span>OtlpConf {
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
     </span><span class="doccomment">/// The localhost port the open telemetry collector is running on and accepting grpc connections:
@@ -335,7 +334,7 @@
 <span class="doccomment">/// The global log builder. See the [`GlobalLog`] struct for more information.
 </span><span class="attr">#[derive(Default)]
 </span><span class="kw">pub struct </span>GlobalLogBuilder {
-    <span class="kw">pub </span>outputs: Vec&lt;Output&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) outputs: Vec&lt;Output&gt;,
 }
 
 <span class="kw">impl </span>GlobalLogBuilder {
@@ -403,8 +402,7 @@
         <span class="self">self
     </span>}
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
-    #[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
     </span><span class="doccomment">/// Write to an open telemetry provider via grpc. This works with the tokio runtime.
     ///
     /// Arguments:
@@ -428,8 +426,7 @@
         <span class="self">self
     </span>}
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
-    #[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
     </span><span class="doccomment">/// Write to an open telemetry provider via http. This works with wasm!
     ///
     /// Arguments:
@@ -480,7 +477,7 @@
                 Output::Stdout(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
                 Output::File(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
                 Output::Custom(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
-                <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+                <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
                 </span>Output::Otlp(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
             })
         } <span class="kw">else </span>{
@@ -495,17 +492,18 @@
     Stdout(StdoutConf),
     File(FileConf),
     Custom(CustomConf),
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span>Otlp(OtlpConf),
 }
 
 <span class="kw">impl </span>Output {
-    <span class="kw">pub fn </span>shared_opts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>SharedOpts {
+    <span class="attr">#[allow(dead_code)]
+    </span><span class="kw">pub fn </span>shared_opts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>SharedOpts {
         <span class="kw">match </span><span class="self">self </span>{
             Output::Stdout(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
             Output::File(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
             Output::Custom(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
-            <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+            <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
             </span>Output::Otlp(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
         }
     }

@@ -416,6 +416,12 @@
 <a href="#414" id="414">414</a>
 <a href="#415" id="415">415</a>
 <a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>tracing::{Dispatch, Level, Metadata, Subscriber};
 <span class="kw">use </span>tracing_subscriber::{filter::FilterFn, layer::SubscriberExt, registry::LookupSpan, Layer};
 
@@ -448,7 +454,7 @@
     <span class="comment">// Configure the program to automatically log panics as an error event on the current span:
     </span><span class="kw">super</span>::exceptions::auto_trace_panics();
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span><span class="comment">// If opentelemetry being used, error_stacks should have color turned off, this would break text in external viewers outside terminals:
     </span>error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::None);
 
@@ -459,13 +465,14 @@
         .filter_map(|output| output.shared_opts().loc_matcher.clone())
         .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
-    </span><span class="kw">use </span><span class="kw">super</span>::out::OtlpProviders;
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
-    </span><span class="kw">let </span><span class="kw-2">mut </span>otlp_providers = OtlpProviders {
-        logger_provider: <span class="prelude-val">None</span>,
-        tracer_provider: <span class="prelude-val">None</span>,
-        meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
+    <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
+    </span><span class="kw">let </span><span class="kw-2">mut </span>otlp_providers = {
+        <span class="kw">use </span><span class="kw">super</span>::out::OtlpProviders;
+        OtlpProviders {
+            logger_provider: <span class="prelude-val">None</span>,
+            tracer_provider: <span class="prelude-val">None</span>,
+            meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
+        }
     };
     <span class="kw">let </span><span class="kw-2">mut </span>out_layers = <span class="macro">vec!</span>[];
 
@@ -566,10 +573,10 @@
                     )<span class="question-mark">?
                 </span>);
             }
-            <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+            <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
             </span><span class="kw">super</span>::builder::Output::Otlp(otlp) =&gt; {
                 <span class="kw">use </span>opentelemetry::global::set_text_map_propagator;
-                <span class="kw">use </span>opentelemetry_otlp::{new_exporter, new_pipeline, WithExportConfig};
+                <span class="kw">use </span>opentelemetry_otlp::new_pipeline;
                 <span class="kw">use </span>opentelemetry_sdk::{
                     logs <span class="kw">as </span>sdklogs,
                     propagation::{
@@ -578,7 +585,8 @@
                     resource, trace <span class="kw">as </span>sdktrace,
                 };
 
-                <span class="comment">// Theoretically both features could be enabled, so create an array to be able to double initiate two layers (both grpc and http)
+                <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
+                </span><span class="comment">// Theoretically both features could be enabled, so create an array to be able to double initiate two layers (both grpc and http)
                 // makes compiler happy and isn't hacky!
                 </span><span class="kw">let </span><span class="kw-2">mut </span>exporters: Vec&lt;(
                     opentelemetry_otlp::LogExporterBuilder,
@@ -589,6 +597,8 @@
                 <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
                 #[allow(unused_variables)]
                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(port) = otlp.grpc_port {
+                    <span class="kw">use </span>opentelemetry_otlp::{new_exporter, WithExportConfig};
+
                     <span class="kw">if </span>!<span class="kw">crate</span>::misc::is_tcp_port_listening(<span class="string">"localhost"</span>, port)<span class="question-mark">? </span>{
                         <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Can't connect to open telemetry collector on local port {}. Are you sure it's running?"</span>, port));
                     }
@@ -603,6 +613,8 @@
 
                 <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(endpoint) = otlp.http_endpoint {
+                    <span class="kw">use </span>opentelemetry_otlp::{new_exporter, WithExportConfig};
+
                     <span class="kw">let </span>get_exporter = || new_exporter().http().with_endpoint(<span class="kw-2">&amp;</span>endpoint);
                     exporters.push((
                         get_exporter().into(),
@@ -700,7 +712,7 @@
         dispatch: <span class="prelude-val">Some</span>(dispatch),
         <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
         </span>_guards: guards,
-        <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+        <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
         </span>otlp_providers,
     })
 }

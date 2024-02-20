@@ -81,7 +81,7 @@
     <span class="kw">super</span>::exceptions::record_exception_inner(message, stacktrace, <span class="string">"Err"</span>);
 }
 
-<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+<span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="doccomment">/// Returns a new [`opentelemetry::metrics::Meter`] with the provided name and default configuration.
 ///
 /// A [opentelemetry::metrics::Meter] should be scoped at most to a single application or crate. The
@@ -96,7 +96,7 @@
     get_global()<span class="question-mark">?</span>.meter(name)
 }
 
-<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+<span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="doccomment">/// Connect this program's span to the trace that is represented by the provided HTTP headers.
 /// E.g. connect an axum handler's trace/span to the nginx trace/span.
 </span><span class="kw">pub fn </span>set_span_parent_from_http_headers(
@@ -106,7 +106,7 @@
     get_global()<span class="question-mark">?</span>.set_span_parent_from_http_headers(span, headers)
 }
 
-<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+<span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="doccomment">/// Set the response headers from the current span context. So downstream services can continue the current trace.
 </span><span class="kw">pub fn </span>set_response_headers_from_ctx&lt;B&gt;(response: <span class="kw-2">&amp;mut </span>http::Response&lt;B&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
     get_global()<span class="question-mark">?</span>.set_response_headers_from_ctx(response)

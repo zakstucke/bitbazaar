@@ -538,18 +538,25 @@
 <a href="#536" id="536">536</a>
 <a href="#537" id="537">537</a>
 <a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
 </pre></div><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">"clap"</span>)]
 </span><span class="kw">mod </span>clap_log_level_args;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>diff_file_log;
 <span class="kw">mod </span>global_log;
 <span class="kw">mod </span>macros;
-<span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+<span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="kw">mod </span>ot_tracing_bridge;
 
 <span class="attr">#[cfg(feature = <span class="string">"clap"</span>)]
 </span><span class="kw">pub use </span>clap_log_level_args::ClapLogLevelArgs;
-<span class="kw">pub use </span>global_log::{global_fns::<span class="kw-2">*</span>, GlobalLog};
+<span class="kw">pub use </span>global_log::{global_fns::<span class="kw-2">*</span>, GlobalLog, GlobalLogBuilder};
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
@@ -636,7 +643,8 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attr">#[rstest]
+    <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
+    #[rstest]
     </span><span class="comment">// No matchers on either targets, so picked up by both targets:
     </span><span class="attr">#[case::both(<span class="prelude-val">None</span>, <span class="macro">vec!</span>[<span class="string">"with_matcher DEBUG LOG1"</span>, <span class="string">"no_matcher DEBUG LOG1"</span>, <span class="string">"with_matcher DEBUG LOG2"</span>, <span class="string">"no_matcher DEBUG LOG2"</span>]</span>)]
     <span class="comment">// Matcher matches on first target, so no matcher target should ignore that log, i.e. one each:
@@ -837,13 +845,26 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
     #[rstest]
-    </span><span class="comment">// Testing both as grpc and http:
-    </span><span class="attr">#[case::use_http(<span class="bool-val">false</span>)]
-    #[case::use_http(<span class="bool-val">true</span>)]
     #[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-    </span><span class="kw">async fn </span>test_opentelemetry(<span class="attr">#[case] </span>use_http: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">async fn </span>test_otlp_grpc() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        _inner_test_opentelemetry(GlobalLog::builder().otlp_grpc(<span class="number">4317</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>)).<span class="kw">await
+    </span>}
+
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
+    #[rstest]
+    #[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
+    </span><span class="kw">async fn </span>test_otlp_http() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        _inner_test_opentelemetry(GlobalLog::builder().otlp_http(
+            <span class="string">"http://localhost:4318"</span>,
+            <span class="string">"rust-test"</span>,
+            <span class="string">"0.1.0"</span>,
+        ))
+        .<span class="kw">await
+    </span>}
+
+    <span class="kw">async fn </span>_inner_test_opentelemetry(builder: GlobalLogBuilder) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">use </span>std::path::PathBuf;
 
         <span class="kw">use </span><span class="kw">crate</span>::misc::in_ci;
@@ -861,13 +882,6 @@
                 </span>.len();
         }
 
-        <span class="kw">let </span><span class="kw-2">mut </span>builder = GlobalLog::builder();
-        <span class="comment">// Testing both grpc and http:
-        </span><span class="kw">if </span>use_http {
-            builder = builder.otlp_http(<span class="string">"http://localhost:4318"</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>);
-        } <span class="kw">else </span>{
-            builder = builder.otlp_grpc(<span class="number">4317</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>);
-        }
         <span class="kw">let </span>log = builder.level_from(Level::DEBUG)<span class="question-mark">?</span>.build()<span class="question-mark">?</span>;
 
         log.with_tmp_global(|| {
