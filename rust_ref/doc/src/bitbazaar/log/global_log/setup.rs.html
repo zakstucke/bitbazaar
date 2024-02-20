@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/log/global_log/setup.rs`."><title>setup.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (6672c16af 2024-02-17)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/log/global_log/setup.rs`."><title>setup.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (3246e7951 2024-02-19)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-c37d3936c59ababd.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -341,6 +341,70 @@
 <a href="#339" id="339">339</a>
 <a href="#340" id="340">340</a>
 <a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>tracing::{Dispatch, Level, Metadata, Subscriber};
 <span class="kw">use </span>tracing_subscriber::{filter::FilterFn, layer::SubscriberExt, registry::LookupSpan, Layer};
 
@@ -377,7 +441,8 @@
     </span><span class="comment">// If opentelemetry being used, error_stacks should have color turned off, this would break text in external viewers outside terminals:
     </span>error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::None);
 
-    <span class="kw">let </span>all_loc_matchers = builder
+    <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
+    </span><span class="kw">let </span>all_loc_matchers = builder
         .outputs
         .iter()
         .filter_map(|output| output.shared_opts().loc_matcher.clone())
@@ -392,7 +457,10 @@
         meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
     };
     <span class="kw">let </span><span class="kw-2">mut </span>out_layers = <span class="macro">vec!</span>[];
-    <span class="kw">let </span><span class="kw-2">mut </span>guards = <span class="macro">vec!</span>[];
+
+    <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+    </span><span class="kw">let </span><span class="kw-2">mut </span>guards = <span class="macro">vec!</span>[];
+
     <span class="kw">for </span>output <span class="kw">in </span>builder.outputs {
         <span class="macro">macro_rules! </span>add_layer {
             (<span class="macro-nonterminal">$shared</span>:expr, <span class="macro-nonterminal">$layer</span>:expr) =&gt; {
@@ -401,8 +469,10 @@
                     <span class="macro-nonterminal">$layer
                         </span>.with_filter(filter_layer(
                             <span class="macro-nonterminal">$shared</span>.level_from.clone(),
-                            <span class="macro-nonterminal">$shared</span>.loc_matcher.clone(),
-                            <span class="kw-2">&amp;</span>all_loc_matchers,
+                            <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
+                            </span><span class="macro-nonterminal">$shared</span>.loc_matcher.clone(),
+                            <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
+                            </span><span class="kw-2">&amp;</span>all_loc_matchers,
                         )<span class="question-mark">?</span>)
                         .boxed(),
                 );
@@ -411,14 +481,33 @@
 
         <span class="kw">match </span>output {
             <span class="kw">super</span>::builder::Output::Stdout(stdout) =&gt; {
-                <span class="kw">let </span>(writer, _guard) = tracing_appender::non_blocking(std::io::stdout());
-                guards.push(_guard);
+                <span class="comment">// When not web, normal std out and non-blocking:
+                </span><span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+                </span><span class="kw">let </span>writer = {
+                    <span class="kw">let </span>(writer, _guard) = tracing_appender::non_blocking(std::io::stdout());
+                    guards.push(_guard);
+                    writer
+                };
+
+                <span class="comment">// When web, custom console writer, non-blocking doesn't seem to be supported on web (raises runtime):
+                </span><span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
+                </span><span class="kw">let </span>writer = {
+                    <span class="kw">use </span>tracing_subscriber_wasm::MakeConsoleWriter;
+                    MakeConsoleWriter::default()
+                };
+
                 <span class="macro">add_layer!</span>(
                     stdout.shared,
                     create_fmt_layer(stdout.pretty, <span class="bool-val">false</span>, stdout.include_loc, <span class="bool-val">true</span>, writer,)<span class="question-mark">?
                 </span>);
             }
-            <span class="kw">super</span>::builder::Output::File(file) =&gt; {
+            <span class="comment">// File obvs can't be written in wasm, excluding to keep tracing_appender out of build etc.
+            </span><span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
+            </span><span class="kw">super</span>::builder::Output::File(<span class="kw">_</span>) =&gt; {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"File logging not supported in wasm."</span>));
+            }
+            <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+            </span><span class="kw">super</span>::builder::Output::File(file) =&gt; {
                 <span class="comment">// Throw if dir is an existing file:
                 </span><span class="kw">if </span>file.dir.is_file() {
                     <span class="macro">bail!</span>(<span class="macro">report!</span>(AnyErr).attach_printable(<span class="macro">format!</span>(
@@ -467,81 +556,117 @@
                     resource, trace <span class="kw">as </span>sdktrace,
                 };
 
-                <span class="kw">if </span>!<span class="kw">crate</span>::misc::is_tcp_port_listening(<span class="string">"localhost"</span>, otlp.port)<span class="question-mark">? </span>{
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Can't connect to open telemetry collector on local port {}. Are you sure it's running?"</span>, otlp.port));
+                <span class="comment">// Theoretically both features could be enabled, so create an array to be able to double initiate two layers (both grpc and http)
+                // makes compiler happy and isn't hacky!
+                </span><span class="kw">let </span><span class="kw-2">mut </span>exporters: Vec&lt;(
+                    opentelemetry_otlp::LogExporterBuilder,
+                    opentelemetry_otlp::SpanExporterBuilder,
+                    opentelemetry_otlp::MetricsExporterBuilder,
+                )&gt; = <span class="macro">vec!</span>[];
+
+                <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
+                #[allow(unused_variables)]
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(port) = otlp.grpc_port {
+                    <span class="kw">if </span>!<span class="kw">crate</span>::misc::is_tcp_port_listening(<span class="string">"localhost"</span>, port)<span class="question-mark">? </span>{
+                        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Can't connect to open telemetry collector on local port {}. Are you sure it's running?"</span>, port));
+                    }
+                    <span class="kw">let </span>endpoint = <span class="macro">format!</span>(<span class="string">"grpc://localhost:{}"</span>, port);
+                    <span class="kw">let </span>get_exporter = || new_exporter().tonic().with_endpoint(<span class="kw-2">&amp;</span>endpoint);
+                    exporters.push((
+                        get_exporter().into(),
+                        get_exporter().into(),
+                        get_exporter().into(),
+                    ));
+                };
+
+                <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(endpoint) = otlp.http_endpoint {
+                    <span class="kw">let </span>get_exporter = || new_exporter().http().with_endpoint(<span class="kw-2">&amp;</span>endpoint);
+                    exporters.push((
+                        get_exporter().into(),
+                        get_exporter().into(),
+                        get_exporter().into(),
+                    ));
+                };
+
+                <span class="kw">for </span>(log_exporter, trace_exporter, metric_exporter) <span class="kw">in </span>exporters {
+                    <span class="comment">// Configure the global propagator to use between different services, without this step when you try and connect other services they'll strangely not work (this defaults to a no-op)
+                    //
+                    // Only enable to the 2 main standard propagators, the w3c trace context and baggage.
+                    //
+                    // https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
+                    </span>set_text_map_propagator(TextMapCompositePropagator::new(<span class="macro">vec!</span>[
+                        Box::new(TraceContextPropagator::new()),
+                        Box::new(BaggagePropagator::new()),
+                    ]));
+
+                    <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+                    </span><span class="kw">let </span>svc_instance_id = hostname::get()
+                        .change_context(AnyErr)<span class="question-mark">?
+                        </span>.to_string_lossy()
+                        .to_string();
+                    <span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
+                    </span><span class="comment">// TODO: (not much point atm as wasm http doesn't work): maybe something legitimate for web?
+                    </span><span class="kw">let </span>svc_instance_id = <span class="string">"wasm"</span>.to_string();
+
+                    <span class="kw">let </span>resource = resource::Resource::new(<span class="macro">vec!</span>[
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_NAME,
+                            otlp.service_name.clone(),
+                        ),
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
+                            otlp.service_version.clone(),
+                        ),
+                        opentelemetry::KeyValue::new(
+                            opentelemetry_semantic_conventions::resource::SERVICE_INSTANCE_ID,
+                            svc_instance_id,
+                        ),
+                    ]);
+
+                    <span class="comment">// Different layers are needed for the logger, tracer and meter:
+                    </span><span class="kw">let </span>logger = new_pipeline()
+                        .logging()
+                        .with_log_config(sdklogs::Config::default().with_resource(resource.clone()))
+                        .with_exporter(log_exporter)
+                        .install_batch(opentelemetry_sdk::runtime::Tokio)
+                        .change_context(AnyErr)<span class="question-mark">?</span>;
+                    <span class="kw">let </span>logging_provider = logger
+                        .provider()
+                        .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">"No logger provider attached."</span>))<span class="question-mark">?</span>;
+                    <span class="kw">let </span>log_layer = <span class="kw">crate</span>::log::ot_tracing_bridge::OpenTelemetryTracingBridge::new(
+                        <span class="kw-2">&amp;</span>logging_provider,
+                    );
+                    otlp_providers.logger_provider = <span class="prelude-val">Some</span>(logging_provider.clone());
+                    <span class="macro">add_layer!</span>(otlp.shared, log_layer);
+
+                    <span class="kw">let </span>tracer = new_pipeline()
+                        .tracing()
+                        .with_trace_config(
+                            sdktrace::Config::default().with_resource(resource.clone()),
+                        )
+                        .with_exporter(trace_exporter)
+                        .install_batch(opentelemetry_sdk::runtime::Tokio)
+                        .change_context(AnyErr)<span class="question-mark">?</span>;
+                    <span class="kw">let </span>tracing_provider = tracer
+                        .provider()
+                        .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">"No tracing provider attached."</span>))<span class="question-mark">?</span>;
+                    <span class="kw">let </span>trace_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+                    otlp_providers.tracer_provider = <span class="prelude-val">Some</span>(tracing_provider);
+                    <span class="macro">add_layer!</span>(otlp.shared, trace_layer);
+
+                    <span class="kw">let </span>meter_provider = new_pipeline()
+                        .metrics(opentelemetry_sdk::runtime::Tokio)
+                        .with_resource(resource.clone())
+                        .with_exporter(metric_exporter)
+                        .build()
+                        .change_context(AnyErr)<span class="question-mark">?</span>;
+                    <span class="kw">let </span>metric_layer: tracing_opentelemetry::MetricsLayer&lt;
+                        tracing_subscriber::Registry,
+                    &gt; = tracing_opentelemetry::MetricsLayer::new(meter_provider.clone());
+                    otlp_providers.meter_provider = meter_provider;
+                    <span class="macro">add_layer!</span>(otlp.shared, metric_layer);
                 }
-
-                <span class="kw">let </span>endpoint = <span class="macro">format!</span>(<span class="string">"grpc://localhost:{}"</span>, otlp.port);
-                <span class="kw">let </span>get_exporter = || new_exporter().tonic().with_endpoint(<span class="kw-2">&amp;</span>endpoint);
-
-                <span class="comment">// Configure the global propagator to use between different services, without this step when you try and connect other services they'll strangely not work (this defaults to a no-op)
-                //
-                // Only enable to the 2 main standard propagators, the w3c trace context and baggage.
-                //
-                // https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
-                </span>set_text_map_propagator(TextMapCompositePropagator::new(<span class="macro">vec!</span>[
-                    Box::new(TraceContextPropagator::new()),
-                    Box::new(BaggagePropagator::new()),
-                ]));
-
-                <span class="kw">let </span>resource = resource::Resource::new(<span class="macro">vec!</span>[
-                    opentelemetry::KeyValue::new(
-                        opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-                        otlp.service_name,
-                    ),
-                    opentelemetry::KeyValue::new(
-                        opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
-                        otlp.service_version,
-                    ),
-                    opentelemetry::KeyValue::new(
-                        opentelemetry_semantic_conventions::resource::SERVICE_INSTANCE_ID,
-                        hostname::get()
-                            .change_context(AnyErr)<span class="question-mark">?
-                            </span>.to_string_lossy()
-                            .to_string(),
-                    ),
-                ]);
-
-                <span class="comment">// Different layers are needed for the logger, tracer and meter:
-                </span><span class="kw">let </span>logger = new_pipeline()
-                    .logging()
-                    .with_log_config(sdklogs::Config::default().with_resource(resource.clone()))
-                    .with_exporter(get_exporter())
-                    .install_batch(opentelemetry_sdk::runtime::Tokio)
-                    .change_context(AnyErr)<span class="question-mark">?</span>;
-                <span class="kw">let </span>logging_provider = logger
-                    .provider()
-                    .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">"No log provider attached."</span>))<span class="question-mark">?</span>;
-                <span class="kw">let </span>log_layer = <span class="kw">crate</span>::log::ot_tracing_bridge::OpenTelemetryTracingBridge::new(
-                    <span class="kw-2">&amp;</span>logging_provider,
-                );
-                otlp_providers.logger_provider = <span class="prelude-val">Some</span>(logging_provider);
-                <span class="macro">add_layer!</span>(otlp.shared, log_layer);
-
-                <span class="kw">let </span>tracer = new_pipeline()
-                    .tracing()
-                    .with_trace_config(sdktrace::Config::default().with_resource(resource.clone()))
-                    .with_exporter(get_exporter())
-                    .install_batch(opentelemetry_sdk::runtime::Tokio)
-                    .change_context(AnyErr)<span class="question-mark">?</span>;
-                <span class="kw">let </span>tracing_provider = tracer
-                    .provider()
-                    .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">"No tracing provider attached."</span>))<span class="question-mark">?</span>;
-                <span class="kw">let </span>trace_layer = tracing_opentelemetry::layer().with_tracer(tracer);
-                otlp_providers.tracer_provider = <span class="prelude-val">Some</span>(tracing_provider);
-                <span class="macro">add_layer!</span>(otlp.shared, trace_layer);
-
-                <span class="kw">let </span>meter_provider = new_pipeline()
-                    .metrics(opentelemetry_sdk::runtime::Tokio)
-                    .with_resource(resource.clone())
-                    .with_exporter(get_exporter())
-                    .build()
-                    .change_context(AnyErr)<span class="question-mark">?</span>;
-                <span class="kw">let </span>metric_layer: tracing_opentelemetry::MetricsLayer&lt;
-                    tracing_subscriber::Registry,
-                &gt; = tracing_opentelemetry::MetricsLayer::new(meter_provider.clone());
-                otlp_providers.meter_provider = meter_provider;
-                <span class="macro">add_layer!</span>(otlp.shared, metric_layer);
             }
         };
     }
@@ -551,7 +676,8 @@
     <span class="kw">let </span>dispatch: Dispatch = subscriber.into();
     <span class="prelude-val">Ok</span>(GlobalLog {
         dispatch: <span class="prelude-val">Some</span>(dispatch),
-        _guards: guards,
+        <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+        </span>_guards: guards,
         <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
         </span>otlp_providers,
     })
@@ -559,10 +685,11 @@
 
 <span class="kw">fn </span>filter_layer(
     level_from: Level,
-    loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
-    all_loc_matchers: <span class="kw-2">&amp;</span>[regex::Regex],
+    <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)] </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
+    <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)] </span>all_loc_matchers: <span class="kw-2">&amp;</span>[regex::Regex],
 ) -&gt; <span class="prelude-ty">Result</span>&lt;FilterFn&lt;<span class="kw">impl </span>Fn(<span class="kw-2">&amp;</span>Metadata&lt;<span class="lifetime">'_</span>&gt;) -&gt; bool&gt;, AnyErr&gt; {
-    <span class="comment">// Needs to be a vec to pass through to the filter fn:
+    <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
+    </span><span class="comment">// Needs to be a vec to pass through to the filter fn:
     </span><span class="kw">let </span>all_loc_matchers = all_loc_matchers.to_vec();
 
     <span class="prelude-val">Ok</span>(FilterFn::new(<span class="kw">move </span>|metadata| {
@@ -571,7 +698,8 @@
             <span class="kw">return </span><span class="bool-val">false</span>;
         }
 
-        <span class="comment">// Check loc matching:
+        <span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
+        </span><span class="comment">// Check loc matching:
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(file_info) = metadata.file() {
             <span class="comment">// Skip log if there's a custom location matcher present that doesn't match the file string:
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(loc_matcher) = <span class="kw-2">&amp;</span>loc_matcher {

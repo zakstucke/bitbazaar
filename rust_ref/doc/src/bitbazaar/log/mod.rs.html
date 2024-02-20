@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/log/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (6672c16af 2024-02-17)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/log/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (3246e7951 2024-02-19)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c37d3936c59ababd.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -532,7 +532,14 @@
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
 <a href="#532" id="532">532</a>
-</pre></div><pre class="rust"><code><span class="kw">mod </span>clap_log_level_args;
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+</pre></div><pre class="rust"><code><span class="attr">#[cfg(feature = <span class="string">"clap"</span>)]
+</span><span class="kw">mod </span>clap_log_level_args;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>diff_file_log;
 <span class="kw">mod </span>global_log;
@@ -540,7 +547,8 @@
 <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
 </span><span class="kw">mod </span>ot_tracing_bridge;
 
-<span class="kw">pub use </span>clap_log_level_args::ClapLogLevelArgs;
+<span class="attr">#[cfg(feature = <span class="string">"clap"</span>)]
+</span><span class="kw">pub use </span>clap_log_level_args::ClapLogLevelArgs;
 <span class="kw">pub use </span>global_log::{global_fns::<span class="kw-2">*</span>, GlobalLog};
 
 <span class="attr">#[cfg(test)]
@@ -571,7 +579,6 @@
     }
 
     <span class="attr">#[rstest]
-    #[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can't run in parallel.
     </span><span class="kw">fn </span>test_log_formatting_basic(
         <span class="comment">// All combinations of:
         </span><span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_timestamp: bool,
@@ -638,8 +645,7 @@
     ).unwrap()), <span class="macro">vec!</span>[<span class="string">"with_matcher DEBUG LOG1"</span>, <span class="string">"no_matcher DEBUG LOG2"</span>]</span>)]
     <span class="comment">// Matcher failed, so both should be picked up by the one with no matcher:
     </span><span class="attr">#[case::no_match(<span class="prelude-val">Some</span>(regex::Regex::new(<span class="string">r"kdkfjdf"</span>).unwrap()), <span class="macro">vec!</span>[<span class="string">"no_matcher DEBUG LOG1"</span>, <span class="string">"no_matcher DEBUG LOG2"</span>]</span>)]
-    <span class="attr">#[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can't run in parallel.
-    </span><span class="kw">fn </span>test_log_matchers(
+    <span class="kw">fn </span>test_log_matchers(
         <span class="attr">#[case] </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
         <span class="attr">#[case] </span>expected_logs: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
@@ -689,8 +695,7 @@
     <span class="attr">#[case(Level::INFO, <span class="macro">vec!</span>[<span class="string">"ILOG"</span>, <span class="string">"WLOG"</span>, <span class="string">"ELOG"</span>]</span>)]
     <span class="attr">#[case(Level::WARN, <span class="macro">vec!</span>[<span class="string">"WLOG"</span>, <span class="string">"ELOG"</span>]</span>)]
     <span class="attr">#[case(Level::ERROR, <span class="macro">vec!</span>[<span class="string">"ELOG"</span>]</span>)]
-    <span class="attr">#[serial_test::serial] </span><span class="comment">// Uses static, so parameterized versions can't run in parallel.
-    </span><span class="kw">fn </span>test_log_filtering(
+    <span class="kw">fn </span>test_log_filtering(
         <span class="attr">#[case] </span>level_from: Level,
         <span class="attr">#[case] </span>expected_found: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
@@ -834,8 +839,11 @@
 
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry"</span>)]
     #[rstest]
+    </span><span class="comment">// Testing both as grpc and http:
+    </span><span class="attr">#[case::use_http(<span class="bool-val">false</span>)]
+    #[case::use_http(<span class="bool-val">true</span>)]
     #[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-    </span><span class="kw">async fn </span>test_opentelemetry() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">async fn </span>test_opentelemetry(<span class="attr">#[case] </span>use_http: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
         <span class="kw">use </span>std::path::PathBuf;
 
         <span class="kw">use </span><span class="kw">crate</span>::misc::in_ci;
@@ -853,10 +861,14 @@
                 </span>.len();
         }
 
-        <span class="kw">let </span>log = GlobalLog::builder()
-            .otlp(<span class="number">4317</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>)
-            .level_from(Level::DEBUG)<span class="question-mark">?
-            </span>.build()<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = GlobalLog::builder();
+        <span class="comment">// Testing both grpc and http:
+        </span><span class="kw">if </span>use_http {
+            builder = builder.otlp_http(<span class="string">"http://localhost:4318"</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>);
+        } <span class="kw">else </span>{
+            builder = builder.otlp_grpc(<span class="number">4317</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>);
+        }
+        <span class="kw">let </span>log = builder.level_from(Level::DEBUG)<span class="question-mark">?</span>.build()<span class="question-mark">?</span>;
 
         log.with_tmp_global(|| {
             <span class="macro">debug!</span>(<span class="string">"BEFORE"</span>);
