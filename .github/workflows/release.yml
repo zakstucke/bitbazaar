@@ -21,7 +21,7 @@ on:
         default: false
       js_version:
         description: JS Version
-        default: 0.0.24
+        default: 0.0.25
       py_rust_release:
         description: Rust-backed Python Release
         type: boolean
