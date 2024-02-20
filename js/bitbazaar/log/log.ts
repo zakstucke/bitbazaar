@@ -163,7 +163,11 @@ class GlobalLog {
                 if (this.console.custom_out) {
                     emitter = this.console.custom_out;
                 }
-                emitter(message, attributes);
+                if (attributes !== undefined) {
+                    emitter(message, attributes);
+                } else {
+                    emitter(message);
+                }
             }
         }
 

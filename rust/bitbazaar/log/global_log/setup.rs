@@ -74,25 +74,36 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
 
         match output {
             super::builder::Output::Stdout(stdout) => {
-                // When not web, normal std out and non-blocking:
+                // When not web, normal std out, color and non-blocking:
                 #[cfg(not(target_arch = "wasm32"))]
-                let writer = {
+                {
                     let (writer, _guard) = tracing_appender::non_blocking(std::io::stdout());
                     guards.push(_guard);
-                    writer
+                    add_layer!(
+                        stdout.shared,
+                        create_fmt_layer(stdout.pretty, false, stdout.include_loc, true, writer)?
+                    );
                 };
 
-                // When web, custom console writer, non-blocking doesn't seem to be supported on web (raises runtime):
+                // When web:
+                // - custom console writer
+                // - no color: current practice is js logging, which will be hooking into this console logger, so color would ruin otlp output
+                // - non-blocking as doesn't seem to be supported on web (raises runtime):
                 #[cfg(target_arch = "wasm32")]
-                let writer = {
+                {
                     use tracing_subscriber_wasm::MakeConsoleWriter;
-                    MakeConsoleWriter::default()
-                };
 
-                add_layer!(
-                    stdout.shared,
-                    create_fmt_layer(stdout.pretty, false, stdout.include_loc, true, writer,)?
-                );
+                    add_layer!(
+                        stdout.shared,
+                        create_fmt_layer(
+                            stdout.pretty,
+                            false,
+                            stdout.include_loc,
+                            false,
+                            MakeConsoleWriter::default()
+                        )?
+                    );
+                };
             }
             // File obvs can't be written in wasm, excluding to keep tracing_appender out of build etc.
             #[cfg(target_arch = "wasm32")]
