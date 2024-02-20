@@ -8,7 +8,7 @@ license = "MIT"
 
 [lib]
 name = "bitbazaar"
-crate-type = ["lib", "cdylib"]
+crate-type = ["lib", "cdylib"] # cdylib allows things like wasm to compile
 path = "bitbazaar/lib.rs"
 
 [build-dependencies]

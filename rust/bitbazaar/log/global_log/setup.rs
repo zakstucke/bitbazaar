@@ -50,7 +50,10 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
         meter_provider: opentelemetry_sdk::metrics::MeterProvider::default(),
     };
     let mut out_layers = vec![];
+
+    #[cfg(not(target_arch = "wasm32"))]
     let mut guards = vec![];
+
     for output in builder.outputs {
         macro_rules! add_layer {
             ($shared:expr, $layer:expr) => {
@@ -93,7 +96,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
             }
             // File obvs can't be written in wasm, excluding to keep tracing_appender out of build etc.
             #[cfg(target_arch = "wasm32")]
-            super::builder::Output::File(file) => {
+            super::builder::Output::File(_) => {
                 return Err(anyerr!("File logging not supported in wasm."));
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -266,6 +269,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
     let dispatch: Dispatch = subscriber.into();
     Ok(GlobalLog {
         dispatch: Some(dispatch),
+        #[cfg(not(target_arch = "wasm32"))]
         _guards: guards,
         #[cfg(feature = "opentelemetry")]
         otlp_providers,
