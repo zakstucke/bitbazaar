@@ -405,6 +405,17 @@
 <a href="#403" id="403">403</a>
 <a href="#404" id="404">404</a>
 <a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>tracing::{Dispatch, Level, Metadata, Subscriber};
 <span class="kw">use </span>tracing_subscriber::{filter::FilterFn, layer::SubscriberExt, registry::LookupSpan, Layer};
 
@@ -481,25 +492,36 @@
 
         <span class="kw">match </span>output {
             <span class="kw">super</span>::builder::Output::Stdout(stdout) =&gt; {
-                <span class="comment">// When not web, normal std out and non-blocking:
+                <span class="comment">// When not web, normal std out, color and non-blocking:
                 </span><span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
-                </span><span class="kw">let </span>writer = {
+                </span>{
                     <span class="kw">let </span>(writer, _guard) = tracing_appender::non_blocking(std::io::stdout());
                     guards.push(_guard);
-                    writer
+                    <span class="macro">add_layer!</span>(
+                        stdout.shared,
+                        create_fmt_layer(stdout.pretty, <span class="bool-val">false</span>, stdout.include_loc, <span class="bool-val">true</span>, writer)<span class="question-mark">?
+                    </span>);
                 };
 
-                <span class="comment">// When web, custom console writer, non-blocking doesn't seem to be supported on web (raises runtime):
+                <span class="comment">// When web:
+                // - custom console writer
+                // - no color: current practice is js logging, which will be hooking into this console logger, so color would ruin otlp output
+                // - non-blocking as doesn't seem to be supported on web (raises runtime):
                 </span><span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
-                </span><span class="kw">let </span>writer = {
+                </span>{
                     <span class="kw">use </span>tracing_subscriber_wasm::MakeConsoleWriter;
-                    MakeConsoleWriter::default()
-                };
 
-                <span class="macro">add_layer!</span>(
-                    stdout.shared,
-                    create_fmt_layer(stdout.pretty, <span class="bool-val">false</span>, stdout.include_loc, <span class="bool-val">true</span>, writer,)<span class="question-mark">?
-                </span>);
+                    <span class="macro">add_layer!</span>(
+                        stdout.shared,
+                        create_fmt_layer(
+                            stdout.pretty,
+                            <span class="bool-val">false</span>,
+                            stdout.include_loc,
+                            <span class="bool-val">false</span>,
+                            MakeConsoleWriter::default()
+                        )<span class="question-mark">?
+                    </span>);
+                };
             }
             <span class="comment">// File obvs can't be written in wasm, excluding to keep tracing_appender out of build etc.
             </span><span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
