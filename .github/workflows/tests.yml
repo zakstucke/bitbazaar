@@ -66,6 +66,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt, clippy
+      - name: "Install cargo-hack, used for feature checking in pre-commit."
+        uses: taiki-e/install-action@cargo-hack
 
       - name: Run QA
         run: |

@@ -60,7 +60,7 @@ pub struct CustomConf {
     pub shared: SharedOpts,
 }
 
-#[cfg(feature = "opentelemetry")]
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 pub struct OtlpConf {
     #[cfg(feature = "opentelemetry-grpc")]
     /// The localhost port the open telemetry collector is running on and accepting grpc connections:
@@ -78,7 +78,7 @@ pub struct OtlpConf {
 /// The global log builder. See the [`GlobalLog`] struct for more information.
 #[derive(Default)]
 pub struct GlobalLogBuilder {
-    pub outputs: Vec<Output>,
+    pub(crate) outputs: Vec<Output>,
 }
 
 impl GlobalLogBuilder {
@@ -146,7 +146,6 @@ impl GlobalLogBuilder {
         self
     }
 
-    #[cfg(feature = "opentelemetry")]
     #[cfg(feature = "opentelemetry-grpc")]
     /// Write to an open telemetry provider via grpc. This works with the tokio runtime.
     ///
@@ -171,7 +170,6 @@ impl GlobalLogBuilder {
         self
     }
 
-    #[cfg(feature = "opentelemetry")]
     #[cfg(feature = "opentelemetry-http")]
     /// Write to an open telemetry provider via http. This works with wasm!
     ///
@@ -223,7 +221,7 @@ impl GlobalLogBuilder {
                 Output::Stdout(conf) => &mut conf.shared,
                 Output::File(conf) => &mut conf.shared,
                 Output::Custom(conf) => &mut conf.shared,
-                #[cfg(feature = "opentelemetry")]
+                #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
                 Output::Otlp(conf) => &mut conf.shared,
             })
         } else {
@@ -238,17 +236,18 @@ pub enum Output {
     Stdout(StdoutConf),
     File(FileConf),
     Custom(CustomConf),
-    #[cfg(feature = "opentelemetry")]
+    #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
     Otlp(OtlpConf),
 }
 
 impl Output {
+    #[allow(dead_code)]
     pub fn shared_opts(&self) -> &SharedOpts {
         match self {
             Output::Stdout(conf) => &conf.shared,
             Output::File(conf) => &conf.shared,
             Output::Custom(conf) => &conf.shared,
-            #[cfg(feature = "opentelemetry")]
+            #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
             Output::Otlp(conf) => &conf.shared,
         }
     }
