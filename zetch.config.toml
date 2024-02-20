@@ -13,8 +13,8 @@ commands = ["./dev_scripts/pkg.sh update_versions"]
 
 [context.static]
 PY_VERSION = { value = "0.0.6" }
-JS_VERSION = { value = "0.0.25" }
-RUST_VERSION = { value = "0.0.34" }
+JS_VERSION = { value = "0.0.26" }
+RUST_VERSION = { value = "0.0.35" }
 PY_RUST_VERSION = { value = "0.0.3" }
 JS_ALIASES = { value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json" }
 
