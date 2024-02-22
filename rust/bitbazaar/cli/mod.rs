@@ -298,4 +298,42 @@ mod tests {
         assert_eq!(res.stdout.trim(), format!("bar qux"));
         Ok(())
     }
+
+    // Confirm when both when doesn't error but not all commands run AND when Bash errors the final command that was attempted is accessible and printable.
+    #[rstest]
+    fn test_error_source_attached(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+        let err_cmd = "ab||][/?cd";
+
+        // Confirm that when bash itself fails (i.e. invalid syntax), the source is attached to the error:
+        let res = Bash::new()
+            .cmd("echo foo")
+            .cmd(err_cmd)
+            .cmd("echo bar")
+            .run();
+        assert!(res.is_err());
+        let fmted = format!("{:?}", res.as_ref().unwrap_err());
+        assert!(
+            fmted.contains(format!("{} <-- exited with code:", err_cmd).as_str()),
+            "{}",
+            fmted
+        );
+
+        // Confirm cmd out is attached and the source could be inferred from there:
+        let e = res.unwrap_err();
+        let cmd_out = e.current_context().cmd_out();
+        assert_eq!(cmd_out.attempted_commands.len(), 2);
+        assert_eq!(cmd_out.attempted_commands[1], err_cmd);
+
+        // Now confirm when it's a valid set of commands, but one just fails, also accessible:
+        let cmd_out = Bash::new()
+            .cmd("echo foo")
+            .cmd("echo bar && false")
+            .cmd("echo bar")
+            .run()
+            .unwrap();
+        assert_eq!(cmd_out.attempted_commands.len(), 2);
+        assert_eq!(cmd_out.attempted_commands[1], "echo bar && false");
+
+        Ok(())
+    }
 }

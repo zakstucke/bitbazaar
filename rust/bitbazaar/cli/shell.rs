@@ -1,11 +1,6 @@
-use std::{
-    collections::HashMap,
-    mem,
-    path::{Path, PathBuf},
-    str,
-};
+use std::{collections::HashMap, mem, path::PathBuf, str};
 
-use conch_parser::ast;
+use conch_parser::{ast, lexer::Lexer, parse::DefaultParser};
 use normpath::PathExt;
 
 use super::{errs::ShellErr, runner::PipeRunner, CmdOut};
@@ -26,6 +21,9 @@ pub struct Shell {
     pub stdout: String,
     pub stderr: String,
     pub set_e: bool,
+    // Each executed command string supplied will be added here. Will be here even if the command fails.
+    // Only commands that weren't tried due to previous problems will be missing.
+    pub attempted_command_strings: Vec<String>,
 }
 
 impl From<Shell> for CmdOut {
@@ -36,23 +34,21 @@ impl From<Shell> for CmdOut {
                 stdout: val.stdout.replace("\r\n", "\n"),
                 stderr: val.stderr.replace("\r\n", "\n"),
                 code: val.code,
+                attempted_commands: val.attempted_command_strings,
             }
         } else {
             CmdOut {
                 stdout: val.stdout,
                 stderr: val.stderr,
                 code: val.code,
+                attempted_commands: val.attempted_command_strings,
             }
         }
     }
 }
 
 impl Shell {
-    pub fn exec(
-        root_dir: Option<&Path>,
-        env: HashMap<String, String>,
-        cmds: Vec<ast::TopLevelCommand<String>>,
-    ) -> Result<CmdOut, ShellErr> {
+    pub fn new(env: HashMap<String, String>, root_dir: Option<PathBuf>) -> Result<Self, ShellErr> {
         let mut shell = Self {
             root_dir: None,
             vars: env,
@@ -61,24 +57,15 @@ impl Shell {
             stderr: String::new(),
             // By default have set -e enabled to break if a line errors:
             set_e: true,
+            attempted_command_strings: Vec::new(),
         };
 
-        if let Some(parent_root_dir) = root_dir {
-            // Set root dir:
-            shell.chdir(parent_root_dir.to_path_buf())?;
+        // Chdir() does some normalisation logic, so using that rather than just setting to shell above directly:
+        if let Some(root_dir) = root_dir {
+            shell.chdir(root_dir)?;
         }
 
-        if let Err(e) = shell.run_top_cmds(cmds) {
-            match e.current_context() {
-                // Exits shouldn't propagate outside a shell, the handler will have already set the proper code to the shell.
-                ShellErr::Exit => {}
-                _ => {
-                    return Err(e);
-                }
-            }
-        }
-
-        Ok(shell.into())
+        Ok(shell)
     }
 
     pub fn active_dir(&self) -> Result<PathBuf, ShellErr> {
@@ -99,6 +86,53 @@ impl Shell {
                 .into_path_buf(),
         );
         Ok(())
+    }
+
+    pub fn execute_command_strings(&mut self, commands: Vec<String>) -> Result<(), ShellErr> {
+        // Whilst all commands could be given to the parser together (newline separated),
+        // and run internally by the shell in a single function call,
+        // that mean's the source command string that causes an issues would be lost
+        // (e.g. an actual ShellErr OR a non zero exit code stopping further commands from running)
+        for cmd_source in commands {
+            // Add the command before hitting anything that could fail:
+            self.attempted_command_strings.push(cmd_source.clone());
+
+            let lex = Lexer::new(cmd_source.chars());
+            let parser = DefaultParser::new(lex);
+
+            let parsed_top_cmds = parser
+                .into_iter()
+                .collect::<core::result::Result<Vec<_>, _>>()
+                .change_context(ShellErr::BashSyntaxError)?;
+
+            // Run the command:
+            if let Err(e) = self.run_top_cmds(parsed_top_cmds) {
+                match e.current_context() {
+                    // Exits shouldn't propagate outside a shell, the handler will have already set the proper code to the shell.
+                    ShellErr::Exit => {}
+                    _ => {
+                        return Err(e);
+                    }
+                }
+            }
+
+            if !self.should_continue() {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns false when the code isn't 0 and set -e is enabled.
+    fn should_continue(&self) -> bool {
+        // Don't continue if set -e is enabled and the last command failed:
+        #[allow(clippy::needless_bool)]
+        if self.code != 0 && self.set_e {
+            false
+        } else {
+            true
+        }
     }
 
     fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> Result<(), ShellErr> {
@@ -136,8 +170,7 @@ impl Shell {
                 }
             }
 
-            // Don't continue if set -e is enabled and the last command failed:
-            if self.code != 0 && self.set_e {
+            if !self.should_continue() {
                 break;
             }
         }
@@ -179,11 +212,9 @@ impl Shell {
                 // E.g. (echo foo && echo bar)
                 match &compound.kind {
                     ast::CompoundCommandKind::Subshell(sub_cmds) => {
-                        let out = Shell::exec(
-                            self.root_dir.as_deref(),
-                            self.vars.clone(),
-                            sub_cmds.clone(),
-                        )?;
+                        let mut shell = Shell::new(self.vars.clone(), self.root_dir.clone())?;
+                        shell.run_top_cmds(sub_cmds.clone())?;
+                        let out: CmdOut = shell.into();
 
                         // Add the stderr to the current shell:
                         self.stderr.push_str(&out.stderr);
@@ -422,7 +453,9 @@ impl Shell {
                 // - stderr prints to console so in our case it should be added to the root stderr
                 // - It runs in its own shell, so shell vars aren't shared
                 debug!("Running nested command: {:?}", cmds);
-                let out = Shell::exec(self.root_dir.as_deref(), self.vars.clone(), cmds.clone())?;
+                let mut shell = Shell::new(self.vars.clone(), self.root_dir.clone())?;
+                shell.run_top_cmds(cmds.clone())?;
+                let out: CmdOut = shell.into();
 
                 // Add the stderr to the outer stderr, the stdout return to the caller:
                 self.stderr.push_str(&out.stderr);

@@ -92,7 +92,8 @@ jobs:
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         with:
           components: rustfmt, clippy
-      - name: Install cargo-hack, used for feature checking in pre-commit.
+
+      - name: "Install cargo-hack, used for feature checking in pre-commit."
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         uses: taiki-e/install-action@cargo-hack
 
