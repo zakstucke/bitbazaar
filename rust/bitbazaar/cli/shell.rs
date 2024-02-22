@@ -122,7 +122,7 @@ impl Shell {
     pub fn push_stdout(&mut self, stdout: &str) {
         #[cfg(windows)]
         // Need to clean on windows:
-        self.stdout.push_str(stdout.replace("\r\n", "\n"));
+        self.stdout.push_str(&stdout.replace("\r\n", "\n"));
 
         #[cfg(not(windows))]
         self.stdout.push_str(stdout);
@@ -131,7 +131,7 @@ impl Shell {
     pub fn push_stderr(&mut self, stderr: &str) {
         #[cfg(windows)]
         // Need to clean on windows:
-        self.stderr.push_str(stderr.replace("\r\n", "\n"));
+        self.stderr.push_str(&stderr.replace("\r\n", "\n"));
 
         #[cfg(not(windows))]
         self.stderr.push_str(stderr);
