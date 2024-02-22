@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/cli/shell.rs`."><title>shell.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (3246e7951 2024-02-19)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c37d3936c59ababd.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/cli/shell.rs`."><title>shell.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (3406ada96 2024-02-21)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c37d3936c59ababd.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -524,14 +524,42 @@
 <a href="#522" id="522">522</a>
 <a href="#523" id="523">523</a>
 <a href="#524" id="524">524</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{
-    collections::HashMap,
-    mem,
-    path::{Path, PathBuf},
-    str,
-};
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, mem, path::PathBuf, str};
 
-<span class="kw">use </span>conch_parser::ast;
+<span class="kw">use </span>conch_parser::{ast, lexer::Lexer, parse::DefaultParser};
 <span class="kw">use </span>normpath::PathExt;
 
 <span class="kw">use super</span>::{errs::ShellErr, runner::PipeRunner, CmdOut};
@@ -552,6 +580,9 @@
     </span><span class="kw">pub </span>stdout: String,
     <span class="kw">pub </span>stderr: String,
     <span class="kw">pub </span>set_e: bool,
+    <span class="comment">// Each executed command string supplied will be added here. Will be here even if the command fails.
+    // Only commands that weren't tried due to previous problems will be missing.
+    </span><span class="kw">pub </span>attempted_command_strings: Vec&lt;String&gt;,
 }
 
 <span class="kw">impl </span>From&lt;Shell&gt; <span class="kw">for </span>CmdOut {
@@ -562,23 +593,21 @@
                 stdout: val.stdout.replace(<span class="string">"\r\n"</span>, <span class="string">"\n"</span>),
                 stderr: val.stderr.replace(<span class="string">"\r\n"</span>, <span class="string">"\n"</span>),
                 code: val.code,
+                attempted_commands: val.attempted_command_strings,
             }
         } <span class="kw">else </span>{
             CmdOut {
                 stdout: val.stdout,
                 stderr: val.stderr,
                 code: val.code,
+                attempted_commands: val.attempted_command_strings,
             }
         }
     }
 }
 
 <span class="kw">impl </span>Shell {
-    <span class="kw">pub fn </span>exec(
-        root_dir: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Path&gt;,
-        env: HashMap&lt;String, String&gt;,
-        cmds: Vec&lt;ast::TopLevelCommand&lt;String&gt;&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, ShellErr&gt; {
+    <span class="kw">pub fn </span>new(env: HashMap&lt;String, String&gt;, root_dir: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ShellErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>shell = <span class="self">Self </span>{
             root_dir: <span class="prelude-val">None</span>,
             vars: env,
@@ -587,24 +616,15 @@
             stderr: String::new(),
             <span class="comment">// By default have set -e enabled to break if a line errors:
             </span>set_e: <span class="bool-val">true</span>,
+            attempted_command_strings: Vec::new(),
         };
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(parent_root_dir) = root_dir {
-            <span class="comment">// Set root dir:
-            </span>shell.chdir(parent_root_dir.to_path_buf())<span class="question-mark">?</span>;
+        <span class="comment">// Chdir() does some normalisation logic, so using that rather than just setting to shell above directly:
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(root_dir) = root_dir {
+            shell.chdir(root_dir)<span class="question-mark">?</span>;
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = shell.run_top_cmds(cmds) {
-            <span class="kw">match </span>e.current_context() {
-                <span class="comment">// Exits shouldn't propagate outside a shell, the handler will have already set the proper code to the shell.
-                </span>ShellErr::Exit =&gt; {}
-                <span class="kw">_ </span>=&gt; {
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(e);
-                }
-            }
-        }
-
-        <span class="prelude-val">Ok</span>(shell.into())
+        <span class="prelude-val">Ok</span>(shell)
     }
 
     <span class="kw">pub fn </span>active_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PathBuf, ShellErr&gt; {
@@ -625,6 +645,53 @@
                 </span>.into_path_buf(),
         );
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">pub fn </span>execute_command_strings(<span class="kw-2">&amp;mut </span><span class="self">self</span>, commands: Vec&lt;String&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+        <span class="comment">// Whilst all commands could be given to the parser together (newline separated),
+        // and run internally by the shell in a single function call,
+        // that mean's the source command string that causes an issues would be lost
+        // (e.g. an actual ShellErr OR a non zero exit code stopping further commands from running)
+        </span><span class="kw">for </span>cmd_source <span class="kw">in </span>commands {
+            <span class="comment">// Add the command before hitting anything that could fail:
+            </span><span class="self">self</span>.attempted_command_strings.push(cmd_source.clone());
+
+            <span class="kw">let </span>lex = Lexer::new(cmd_source.chars());
+            <span class="kw">let </span>parser = DefaultParser::new(lex);
+
+            <span class="kw">let </span>parsed_top_cmds = parser
+                .into_iter()
+                .collect::&lt;core::result::Result&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()
+                .change_context(ShellErr::BashSyntaxError)<span class="question-mark">?</span>;
+
+            <span class="comment">// Run the command:
+            </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.run_top_cmds(parsed_top_cmds) {
+                <span class="kw">match </span>e.current_context() {
+                    <span class="comment">// Exits shouldn't propagate outside a shell, the handler will have already set the proper code to the shell.
+                    </span>ShellErr::Exit =&gt; {}
+                    <span class="kw">_ </span>=&gt; {
+                        <span class="kw">return </span><span class="prelude-val">Err</span>(e);
+                    }
+                }
+            }
+
+            <span class="kw">if </span>!<span class="self">self</span>.should_continue() {
+                <span class="kw">break</span>;
+            }
+        }
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="doccomment">/// Returns false when the code isn't 0 and set -e is enabled.
+    </span><span class="kw">fn </span>should_continue(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="comment">// Don't continue if set -e is enabled and the last command failed:
+        </span><span class="attr">#[allow(clippy::needless_bool)]
+        </span><span class="kw">if </span><span class="self">self</span>.code != <span class="number">0 </span>&amp;&amp; <span class="self">self</span>.set_e {
+            <span class="bool-val">false
+        </span>} <span class="kw">else </span>{
+            <span class="bool-val">true
+        </span>}
     }
 
     <span class="kw">fn </span>run_top_cmds(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cmds: Vec&lt;ast::TopLevelCommand&lt;String&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
@@ -662,8 +729,7 @@
                 }
             }
 
-            <span class="comment">// Don't continue if set -e is enabled and the last command failed:
-            </span><span class="kw">if </span><span class="self">self</span>.code != <span class="number">0 </span>&amp;&amp; <span class="self">self</span>.set_e {
+            <span class="kw">if </span>!<span class="self">self</span>.should_continue() {
                 <span class="kw">break</span>;
             }
         }
@@ -705,11 +771,9 @@
                 <span class="comment">// E.g. (echo foo &amp;&amp; echo bar)
                 </span><span class="kw">match </span><span class="kw-2">&amp;</span>compound.kind {
                     ast::CompoundCommandKind::Subshell(sub_cmds) =&gt; {
-                        <span class="kw">let </span>out = Shell::exec(
-                            <span class="self">self</span>.root_dir.as_deref(),
-                            <span class="self">self</span>.vars.clone(),
-                            sub_cmds.clone(),
-                        )<span class="question-mark">?</span>;
+                        <span class="kw">let </span><span class="kw-2">mut </span>shell = Shell::new(<span class="self">self</span>.vars.clone(), <span class="self">self</span>.root_dir.clone())<span class="question-mark">?</span>;
+                        shell.run_top_cmds(sub_cmds.clone())<span class="question-mark">?</span>;
+                        <span class="kw">let </span>out: CmdOut = shell.into();
 
                         <span class="comment">// Add the stderr to the current shell:
                         </span><span class="self">self</span>.stderr.push_str(<span class="kw-2">&amp;</span>out.stderr);
@@ -948,7 +1012,9 @@
                 // - stderr prints to console so in our case it should be added to the root stderr
                 // - It runs in its own shell, so shell vars aren't shared
                 </span><span class="macro">debug!</span>(<span class="string">"Running nested command: {:?}"</span>, cmds);
-                <span class="kw">let </span>out = Shell::exec(<span class="self">self</span>.root_dir.as_deref(), <span class="self">self</span>.vars.clone(), cmds.clone())<span class="question-mark">?</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>shell = Shell::new(<span class="self">self</span>.vars.clone(), <span class="self">self</span>.root_dir.clone())<span class="question-mark">?</span>;
+                shell.run_top_cmds(cmds.clone())<span class="question-mark">?</span>;
+                <span class="kw">let </span>out: CmdOut = shell.into();
 
                 <span class="comment">// Add the stderr to the outer stderr, the stdout return to the caller:
                 </span><span class="self">self</span>.stderr.push_str(<span class="kw-2">&amp;</span>out.stderr);

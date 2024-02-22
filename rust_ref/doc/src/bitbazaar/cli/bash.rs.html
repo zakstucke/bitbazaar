@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/cli/bash.rs`."><title>bash.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (3246e7951 2024-02-19)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c37d3936c59ababd.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/cli/bash.rs`."><title>bash.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0-nightly (3406ada96 2024-02-21)" data-channel="nightly" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c37d3936c59ababd.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -130,13 +130,10 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
-<a href="#131" id="131">131</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-
-<span class="kw">use </span>conch_parser::{lexer::Lexer, parse::DefaultParser};
 
 <span class="kw">use super</span>::{errs::ShellErr, shell::Shell, BashErr, CmdOut};
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
@@ -194,9 +191,9 @@
         }
     }
 
-    <span class="doccomment">/// Add a new command to the bash script.
+    <span class="doccomment">/// Add a new piece of logic to the bash script. E.g. a line of bash.
     ///
-    /// Multiple added commands will be treated as e.g. lines in a bash script.
+    /// Multiple commands added to a [`Bash`] instance will be treated as newline separated.
     </span><span class="kw">pub fn </span>cmd(<span class="self">self</span>, cmd: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>cmds = <span class="self">self</span>.cmds;
         cmds.push(cmd.into());
@@ -232,34 +229,35 @@
     <span class="doccomment">/// Execute the current contents of the bash script.
     </span><span class="kw">pub fn </span>run(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BashErr&gt; {
         <span class="kw">if </span><span class="self">self</span>.cmds.is_empty() {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(CmdOut {
-                stdout: <span class="string">""</span>.to_string(),
-                stderr: <span class="string">""</span>.to_string(),
-                code: <span class="number">0</span>,
-            });
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(CmdOut::empty());
         }
 
-        <span class="kw">let </span>cmd_str = <span class="self">self</span>.cmds.join(<span class="string">"\n"</span>);
-        <span class="kw">let </span>lex = Lexer::new(cmd_str.chars());
-        <span class="kw">let </span>parser = DefaultParser::new(lex);
+        <span class="kw">let </span><span class="kw-2">mut </span>shell = Shell::new(<span class="self">self</span>.env_vars, <span class="self">self</span>.root_dir)
+            .map_err(|e| shell_to_bash_err(CmdOut::empty(), e))<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>top_cmds = parser
-            .into_iter()
-            .collect::&lt;core::result::Result&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()
-            .change_context(BashErr::BashSyntaxError)<span class="question-mark">?</span>;
-
-        <span class="kw">match </span>Shell::exec(<span class="self">self</span>.root_dir.as_deref(), <span class="self">self</span>.env_vars, top_cmds) {
-            <span class="prelude-val">Ok</span>(cmd_out) =&gt; <span class="prelude-val">Ok</span>(cmd_out),
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">match </span>e.current_context() {
-                ShellErr::Exit =&gt; <span class="prelude-val">Err</span>(e.change_context(BashErr::InternalError).attach_printable(
-                    <span class="string">"Exit's should be handled and transformed internally in Shell::exec."</span>,
-                )),
-                ShellErr::InternalError =&gt; <span class="prelude-val">Err</span>(e.change_context(BashErr::InternalError)),
-                ShellErr::BashFeatureUnsupported =&gt; {
-                    <span class="prelude-val">Err</span>(e.change_context(BashErr::BashFeatureUnsupported))
-                }
-            },
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = shell.execute_command_strings(<span class="self">self</span>.cmds) {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(shell_to_bash_err(shell.into(), e));
         }
+
+        <span class="prelude-val">Ok</span>(shell.into())
+    }
+}
+
+<span class="kw">fn </span>shell_to_bash_err(
+    <span class="kw-2">mut </span>cmd_out: CmdOut,
+    e: error_stack::Report&lt;ShellErr&gt;,
+) -&gt; error_stack::Report&lt;BashErr&gt; {
+    <span class="comment">// Doesn't really make sense, but set the exit code to 1 if 0, as technically the command errored even though it was the runner itself that errored and the command might not have been attempted.
+    </span><span class="kw">if </span>cmd_out.code == <span class="number">0 </span>{
+        cmd_out.code = <span class="number">1</span>;
+    }
+    <span class="kw">match </span>e.current_context() {
+        ShellErr::Exit =&gt; e.change_context(BashErr::InternalError(cmd_out)).attach_printable(
+            <span class="string">"Shouldn't occur, shell exit errors should have been managed internally, not an external error."</span>,
+        ),
+        ShellErr::InternalError =&gt; e.change_context(BashErr::InternalError(cmd_out)),
+        ShellErr::BashFeatureUnsupported =&gt; e.change_context(BashErr::BashFeatureUnsupported(cmd_out)),
+        ShellErr::BashSyntaxError =&gt; e.change_context(BashErr::BashSyntaxError(cmd_out)),
     }
 }
 </code></pre></div></section></main></body></html>
