@@ -117,6 +117,7 @@ tokio = { version = '1.35', features = ["rt-multi-thread", "macros"] }
 uuid = { version = "1.6", features = ["v4"] }
 regex = "1"
 serde_json = "1"
+futures = "0.3"
 
 [profile.profiler]
 inherits = "release" # Adds on top of the default release profile

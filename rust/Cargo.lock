@@ -204,6 +204,7 @@ dependencies = [
  "conch-parser",
  "deadpool-redis",
  "error-stack",
+ "futures",
  "homedir",
  "hostname",
  "http 1.0.0",

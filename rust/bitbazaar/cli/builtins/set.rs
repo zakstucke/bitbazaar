@@ -9,19 +9,11 @@ pub fn set(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
         match arg.as_str() {
             "+e" => {
                 shell.set_e = false;
-                return Ok(CmdOut {
-                    stdout: "".to_string(),
-                    stderr: "".to_string(),
-                    code: 0,
-                });
+                return Ok(CmdOut::empty());
             }
             "-e" => {
                 shell.set_e = true;
-                return Ok(CmdOut {
-                    stdout: "".to_string(),
-                    stderr: "".to_string(),
-                    code: 0,
-                });
+                return Ok(CmdOut::empty());
             }
             _ => {}
         }

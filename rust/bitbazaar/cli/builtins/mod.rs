@@ -24,6 +24,7 @@ macro_rules! bad_call {
             stdout: "".to_string(),
             stderr: format!($($arg)*),
             code: 1,
+            attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
         })
     };
 }
@@ -50,5 +51,6 @@ fn std_err_echo(_shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinEr
         stdout: "".to_string(),
         stderr: args.join(" "),
         code: 0,
+        attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
     })
 }

@@ -82,11 +82,7 @@ pub fn cd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
         .chdir(target_path)
         .change_context(BuiltinErr::InternalError)?;
 
-    Ok(CmdOut {
-        stdout: "".to_string(),
-        stderr: "".to_string(),
-        code: 0,
-    })
+    Ok(CmdOut::empty())
 }
 
 // Should be tested quite well in cli/mod.rs and other builtin tests.

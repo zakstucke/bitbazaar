@@ -3,8 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use conch_parser::{lexer::Lexer, parse::DefaultParser};
-
 use super::{errs::ShellErr, shell::Shell, BashErr, CmdOut};
 use crate::prelude::*;
 
@@ -61,9 +59,9 @@ impl Bash {
         }
     }
 
-    /// Add a new command to the bash script.
+    /// Add a new piece of logic to the bash script. E.g. a line of bash.
     ///
-    /// Multiple added commands will be treated as e.g. lines in a bash script.
+    /// Multiple commands added to a [`Bash`] instance will be treated as newline separated.
     pub fn cmd(self, cmd: impl Into<String>) -> Self {
         let mut cmds = self.cmds;
         cmds.push(cmd.into());
@@ -99,33 +97,34 @@ impl Bash {
     /// Execute the current contents of the bash script.
     pub fn run(self) -> Result<CmdOut, BashErr> {
         if self.cmds.is_empty() {
-            return Ok(CmdOut {
-                stdout: "".to_string(),
-                stderr: "".to_string(),
-                code: 0,
-            });
+            return Ok(CmdOut::empty());
         }
 
-        let cmd_str = self.cmds.join("\n");
-        let lex = Lexer::new(cmd_str.chars());
-        let parser = DefaultParser::new(lex);
+        let mut shell = Shell::new(self.env_vars, self.root_dir)
+            .map_err(|e| shell_to_bash_err(CmdOut::empty(), e))?;
 
-        let top_cmds = parser
-            .into_iter()
-            .collect::<core::result::Result<Vec<_>, _>>()
-            .change_context(BashErr::BashSyntaxError)?;
-
-        match Shell::exec(self.root_dir.as_deref(), self.env_vars, top_cmds) {
-            Ok(cmd_out) => Ok(cmd_out),
-            Err(e) => match e.current_context() {
-                ShellErr::Exit => Err(e.change_context(BashErr::InternalError).attach_printable(
-                    "Exit's should be handled and transformed internally in Shell::exec.",
-                )),
-                ShellErr::InternalError => Err(e.change_context(BashErr::InternalError)),
-                ShellErr::BashFeatureUnsupported => {
-                    Err(e.change_context(BashErr::BashFeatureUnsupported))
-                }
-            },
+        if let Err(e) = shell.execute_command_strings(self.cmds) {
+            return Err(shell_to_bash_err(shell.into(), e));
         }
+
+        Ok(shell.into())
+    }
+}
+
+fn shell_to_bash_err(
+    mut cmd_out: CmdOut,
+    e: error_stack::Report<ShellErr>,
+) -> error_stack::Report<BashErr> {
+    // Doesn't really make sense, but set the exit code to 1 if 0, as technically the command errored even though it was the runner itself that errored and the command might not have been attempted.
+    if cmd_out.code == 0 {
+        cmd_out.code = 1;
+    }
+    match e.current_context() {
+        ShellErr::Exit => e.change_context(BashErr::InternalError(cmd_out)).attach_printable(
+            "Shouldn't occur, shell exit errors should have been managed internally, not an external error.",
+        ),
+        ShellErr::InternalError => e.change_context(BashErr::InternalError(cmd_out)),
+        ShellErr::BashFeatureUnsupported => e.change_context(BashErr::BashFeatureUnsupported(cmd_out)),
+        ShellErr::BashSyntaxError => e.change_context(BashErr::BashSyntaxError(cmd_out)),
     }
 }

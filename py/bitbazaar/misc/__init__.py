@@ -1,7 +1,8 @@
 """Miscellaneous utility functions for BitBazaar."""
 
+from ._std_capture import StdCapture
 
-__all__ = ["copy_sig"]
+__all__ = ["copy_sig", "StdCapture"]
 
 import os
 import socket

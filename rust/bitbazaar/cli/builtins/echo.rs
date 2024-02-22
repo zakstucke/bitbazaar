@@ -38,6 +38,7 @@ pub fn echo(_shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
         stdout,
         stderr: "".to_string(),
         code: 0,
+        attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
     })
 }
 
