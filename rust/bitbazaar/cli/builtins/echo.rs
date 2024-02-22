@@ -1,10 +1,10 @@
 use crate::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::*,
 };
 
 /// https://www.gnu.org/software/bash/manual/bash.html#index-echo
-pub fn echo(_shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
+pub fn echo(_shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
     let mut newline = true;
 
     let mut stdout = String::new();
@@ -34,12 +34,7 @@ pub fn echo(_shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
         stdout.push('\n');
     }
 
-    Ok(CmdOut {
-        stdout,
-        stderr: "".to_string(),
-        code: 0,
-        attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
-    })
+    Ok(CmdResult::new("", 0, stdout, "").into())
 }
 
 #[cfg(test)]

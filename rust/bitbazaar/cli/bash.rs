@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::{errs::ShellErr, shell::Shell, BashErr, CmdOut};
+use super::{errs::ShellErr, shell::Shell, BashErr, BashOut};
 use crate::prelude::*;
 
 /// Execute an arbitrary bash script.
@@ -95,13 +95,13 @@ impl Bash {
     }
 
     /// Execute the current contents of the bash script.
-    pub fn run(self) -> Result<CmdOut, BashErr> {
+    pub fn run(self) -> Result<BashOut, BashErr> {
         if self.cmds.is_empty() {
-            return Ok(CmdOut::empty());
+            return Ok(BashOut::empty());
         }
 
         let mut shell = Shell::new(self.env_vars, self.root_dir)
-            .map_err(|e| shell_to_bash_err(CmdOut::empty(), e))?;
+            .map_err(|e| shell_to_bash_err(BashOut::empty(), e))?;
 
         if let Err(e) = shell.execute_command_strings(self.cmds) {
             return Err(shell_to_bash_err(shell.into(), e));
@@ -112,19 +112,19 @@ impl Bash {
 }
 
 fn shell_to_bash_err(
-    mut cmd_out: CmdOut,
+    mut bash_out: BashOut,
     e: error_stack::Report<ShellErr>,
 ) -> error_stack::Report<BashErr> {
     // Doesn't really make sense, but set the exit code to 1 if 0, as technically the command errored even though it was the runner itself that errored and the command might not have been attempted.
-    if cmd_out.code == 0 {
-        cmd_out.code = 1;
+    if bash_out.code() == 0 {
+        bash_out.override_code(1);
     }
     match e.current_context() {
-        ShellErr::Exit => e.change_context(BashErr::InternalError(cmd_out)).attach_printable(
+        ShellErr::Exit => e.change_context(BashErr::InternalError(bash_out)).attach_printable(
             "Shouldn't occur, shell exit errors should have been managed internally, not an external error.",
         ),
-        ShellErr::InternalError => e.change_context(BashErr::InternalError(cmd_out)),
-        ShellErr::BashFeatureUnsupported => e.change_context(BashErr::BashFeatureUnsupported(cmd_out)),
-        ShellErr::BashSyntaxError => e.change_context(BashErr::BashSyntaxError(cmd_out)),
+        ShellErr::InternalError => e.change_context(BashErr::InternalError(bash_out)),
+        ShellErr::BashFeatureUnsupported => e.change_context(BashErr::BashFeatureUnsupported(bash_out)),
+        ShellErr::BashSyntaxError => e.change_context(BashErr::BashSyntaxError(bash_out)),
     }
 }

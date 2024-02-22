@@ -1,10 +1,10 @@
 use crate::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::*,
 };
 
 /// https://www.gnu.org/software/bash/manual/bash.html#index-pwd
-pub fn pwd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
+pub fn pwd(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
     if !args.is_empty() {
         return Err(
             err!(BuiltinErr::Unsupported).attach_printable("pwd: options are not supported")
@@ -19,12 +19,7 @@ pub fn pwd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
         );
     };
 
-    Ok(CmdOut {
-        stdout: format!("{}\n", pwd),
-        stderr: "".to_string(),
-        code: 0,
-        attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
-    })
+    Ok(CmdResult::new("", 0, format!("{}\n", pwd), "").into())
 }
 
 #[cfg(test)]
@@ -42,9 +37,9 @@ mod tests {
 
         // Default root should be the current dir (and absolute not relative):
         let out = Bash::new().cmd("pwd").run().unwrap();
-        assert_eq!(out.code, 0);
+        assert_eq!(out.code(), 0);
         assert_eq!(
-            out.stdout,
+            out.stdout(),
             format!("{}\n", cur_dir.as_os_str().to_string_lossy())
         );
 
@@ -54,9 +49,9 @@ mod tests {
             .cmd("pwd")
             .run()
             .unwrap();
-        assert_eq!(out.code, 0);
+        assert_eq!(out.code(), 0);
         assert_eq!(
-            out.stdout,
+            out.stdout(),
             format!("{}\n", cur_dir.as_os_str().to_string_lossy())
         );
     }

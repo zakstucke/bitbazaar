@@ -8,24 +8,19 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 
-use super::{errs::BuiltinErr, shell::Shell, CmdOut};
+use super::{errs::BuiltinErr, shell::Shell, BashOut};
 use crate::prelude::*;
 
 /// A builtin function, implemented internally, might implement for reasons:
 /// - Performance
 /// - Needs to implement the pseudo rust shell
 /// - Windows compatibility - all implement builtins conform to linux/mac/bash expected usage.
-pub type Builtin = fn(&mut Shell, &[String]) -> Result<CmdOut, BuiltinErr>;
+pub type Builtin = fn(&mut Shell, &[String]) -> Result<BashOut, BuiltinErr>;
 
-/// Helper for creating CmdOut with an error code and writing to stderr.
+/// Helper for creating BashOut with an error code and writing to stderr.
 macro_rules! bad_call {
     ($($arg:tt)*) => {
-        return Ok(CmdOut {
-            stdout: "".to_string(),
-            stderr: format!($($arg)*),
-            code: 1,
-            attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
-        })
+        return Ok(CmdResult::new("", 1, "", format!($($arg)*)).into())
     };
 }
 
@@ -46,11 +41,8 @@ pub static BUILTINS: Lazy<HashMap<&'static str, Builtin>> = Lazy::new(|| {
 });
 
 #[cfg(test)]
-fn std_err_echo(_shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
-    Ok(CmdOut {
-        stdout: "".to_string(),
-        stderr: args.join(" "),
-        code: 0,
-        attempted_commands: vec![], // This is a top level attribute, in theory should have a different struct for internal.
-    })
+fn std_err_echo(_shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+    use super::CmdResult;
+
+    Ok(CmdResult::new("", 0, "", args.join(" ")).into())
 }

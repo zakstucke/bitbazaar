@@ -1,19 +1,19 @@
 use crate::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut},
     prelude::*,
 };
 
 /// https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
-pub fn set(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
+pub fn set(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
     if let Some(arg) = args.first() {
         match arg.as_str() {
             "+e" => {
                 shell.set_e = false;
-                return Ok(CmdOut::empty());
+                return Ok(BashOut::empty());
             }
             "-e" => {
                 shell.set_e = true;
-                return Ok(CmdOut::empty());
+                return Ok(BashOut::empty());
             }
             _ => {}
         }

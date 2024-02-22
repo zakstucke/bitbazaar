@@ -8,16 +8,16 @@ use conch_parser::ast::{self, TopLevelWord};
 
 use super::{
     errs::ShellErr,
-    runner::{ConcreteOutput, RunnerCmdOut},
+    runner::{ConcreteOutput, RunnerBashOut},
     shell::Shell,
 };
 use crate::prelude::*;
 
 pub fn handle_redirect(
     shell: &mut Shell,
-    last_out: Option<&mut RunnerCmdOut>,
+    last_out: Option<&mut RunnerBashOut>,
     redirect: ast::DefaultRedirect,
-) -> Result<RunnerCmdOut, ShellErr> {
+) -> Result<RunnerBashOut, ShellErr> {
     Ok(match redirect {
         ast::Redirect::Write(fd, name) => {
             let dest = Target::new(shell, name)?.set_write();
@@ -153,17 +153,17 @@ enum Data {
 }
 
 impl Data {
-    fn new(last: Option<&mut RunnerCmdOut>, fd: Option<u16>) -> Result<Self, ShellErr> {
+    fn new(last: Option<&mut RunnerBashOut>, fd: Option<u16>) -> Result<Self, ShellErr> {
         let fd = fd.unwrap_or(1);
 
         Ok(match fd {
             1 => {
                 if let Some(last) = last {
                     match last {
-                        RunnerCmdOut::Concrete(conc) => {
+                        RunnerBashOut::Concrete(conc) => {
                             Self::String(conc.stdout.take().unwrap_or_default())
                         }
-                        RunnerCmdOut::Pending(child) => {
+                        RunnerBashOut::Pending(child) => {
                             if let Some(h) = child.stdout.take() {
                                 Self::StdoutHandle(h)
                             } else {
@@ -178,10 +178,10 @@ impl Data {
             2 => {
                 if let Some(last) = last {
                     match last {
-                        RunnerCmdOut::Concrete(conc) => {
+                        RunnerBashOut::Concrete(conc) => {
                             Self::String(conc.stderr.take().unwrap_or_default())
                         }
-                        RunnerCmdOut::Pending(child) => {
+                        RunnerBashOut::Pending(child) => {
                             if let Some(h) = child.stderr.take() {
                                 Self::StderrHandle(h)
                             } else {
@@ -204,7 +204,7 @@ impl Data {
         })
     }
 
-    fn submit(self, shell: &Shell, dest: Target) -> Result<RunnerCmdOut, ShellErr> {
+    fn submit(self, shell: &Shell, dest: Target) -> Result<RunnerBashOut, ShellErr> {
         let mut conc = ConcreteOutput::default();
 
         match dest.variant {
@@ -269,7 +269,7 @@ impl Data {
             TargetVariant::Null => {}
         }
 
-        Ok(RunnerCmdOut::Concrete(conc))
+        Ok(RunnerBashOut::Concrete(conc))
     }
 
     fn write(self, mut writer: impl Write) -> Result<(), ShellErr> {

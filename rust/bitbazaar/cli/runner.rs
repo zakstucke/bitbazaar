@@ -11,10 +11,11 @@ use super::{
     errs::{BuiltinErr, ShellErr},
     redirect::handle_redirect,
     shell::Shell,
-    CmdOut,
+    BashOut,
 };
 use crate::prelude::*;
 
+#[derive(Debug)]
 pub enum VariCommand {
     /// A builtin command implemented directly in rust, alongside the arguments to pass.
     Builtin(String, Builtin, Vec<String>),
@@ -29,17 +30,17 @@ pub struct PipeRunner {
     pub negate: bool,
     commands: Vec<VariCommand>,
     // These are the individual outputs of the commands, in various formats, previous will be modified/partially consumed depending on later commands.
-    outputs: Vec<RunnerCmdOut>,
+    outputs: Vec<RunnerBashOut>,
 }
 
-pub enum RunnerCmdOut {
+pub enum RunnerBashOut {
     Concrete(ConcreteOutput),
     Pending(process::Child),
 }
 
-impl Default for RunnerCmdOut {
+impl Default for RunnerBashOut {
     fn default() -> Self {
-        RunnerCmdOut::Concrete(ConcreteOutput::default())
+        RunnerBashOut::Concrete(ConcreteOutput::default())
     }
 }
 
@@ -50,35 +51,35 @@ pub struct ConcreteOutput {
     pub code: Option<i32>,
 }
 
-impl RunnerCmdOut {
+impl RunnerBashOut {
     fn into_shell(self, shell: &mut Shell) -> Result<(), ShellErr> {
         match self {
-            RunnerCmdOut::Concrete(conc) => {
+            RunnerBashOut::Concrete(conc) => {
                 if let Some(stdout) = conc.stdout {
-                    shell.stdout.push_str(&stdout);
+                    shell.push_stdout(&stdout);
                 }
 
                 if let Some(stderr) = conc.stderr {
-                    shell.stderr.push_str(&stderr);
+                    shell.push_stderr(&stderr);
                 }
 
                 if let Some(code) = conc.code {
-                    shell.code = code;
+                    shell.set_code(code);
                 }
             }
             // This is probably the last command:
-            RunnerCmdOut::Pending(child) => {
+            RunnerBashOut::Pending(child) => {
                 let output = child
                     .wait_with_output()
                     .change_context(ShellErr::InternalError)?;
 
-                shell.stdout.push_str(
+                shell.push_stdout(
                     str::from_utf8(&output.stdout).change_context(ShellErr::InternalError)?,
                 );
-                shell.stderr.push_str(
+                shell.push_stderr(
                     str::from_utf8(&output.stderr).change_context(ShellErr::InternalError)?,
                 );
-                shell.code = output.status.code().unwrap_or(1);
+                shell.set_code(output.status.code().unwrap_or(1));
             }
         }
 
@@ -86,12 +87,12 @@ impl RunnerCmdOut {
     }
 }
 
-impl From<CmdOut> for RunnerCmdOut {
-    fn from(cmd_out: CmdOut) -> Self {
-        RunnerCmdOut::Concrete(ConcreteOutput {
-            stdout: Some(cmd_out.stdout),
-            stderr: Some(cmd_out.stderr),
-            code: Some(cmd_out.code),
+impl From<BashOut> for RunnerBashOut {
+    fn from(bash_out: BashOut) -> Self {
+        RunnerBashOut::Concrete(ConcreteOutput {
+            stdout: Some(bash_out.stdout()),
+            stderr: Some(bash_out.stderr()),
+            code: Some(bash_out.code()),
         })
     }
 }
@@ -136,10 +137,10 @@ impl PipeRunner {
     pub fn run(mut self, shell: &mut Shell) -> Result<(), ShellErr> {
         for command in self.commands.into_iter() {
             let last_out = self.outputs.last_mut();
-            let next_out: RunnerCmdOut = match command {
+            let next_out: RunnerBashOut = match command {
                 VariCommand::Redirect(redirect) => handle_redirect(shell, last_out, redirect)?,
                 VariCommand::Builtin(name, builtin, args) => match builtin(shell, &args) {
-                    Ok(cmd_out) => cmd_out.into(),
+                    Ok(bash_out) => bash_out.into(),
                     Err(mut e) => {
                         e = e.attach_printable(format!("Command: '{}' args: '{:?}'", name, args));
                         match e.current_context() {
@@ -153,7 +154,7 @@ impl PipeRunner {
                         }
                     }
                 },
-                VariCommand::PipedStdout(stdout) => RunnerCmdOut::Concrete(ConcreteOutput {
+                VariCommand::PipedStdout(stdout) => RunnerBashOut::Concrete(ConcreteOutput {
                     stdout: Some(stdout),
                     stderr: None,
                     code: None,
@@ -170,7 +171,7 @@ impl PipeRunner {
                     if let Some(last_out) = last_out {
                         match last_out {
                             // Might contain stdout, in which case take it and use as stdin:
-                            RunnerCmdOut::Concrete(conc) => {
+                            RunnerBashOut::Concrete(conc) => {
                                 if let Some(stdout) = conc.stdout.take() {
                                     str_stdin = Some(stdout);
                                     command.stdin(Stdio::piped());
@@ -178,7 +179,7 @@ impl PipeRunner {
                             }
 
                             // Child process, pipe its handle through to the next command, keeping track of the stderr:
-                            RunnerCmdOut::Pending(child) => {
+                            RunnerBashOut::Pending(child) => {
                                 if let Some(stdout) = child.stdout.take() {
                                     command.stdin(stdout);
                                 }
@@ -204,12 +205,12 @@ impl PipeRunner {
                                     .change_context(ShellErr::InternalError)?;
                             }
 
-                            RunnerCmdOut::Pending(child)
+                            RunnerBashOut::Pending(child)
                         }
                         Err(e) => {
                             // Command might error straight away, in which case convert the err to stderr.
                             // this gives more or less parity with bash:
-                            RunnerCmdOut::Concrete(ConcreteOutput {
+                            RunnerBashOut::Concrete(ConcreteOutput {
                                 // If the spawn errored, something went wrong, so set the code:
                                 code: Some(e.raw_os_error().unwrap_or(1)),
                                 stdout: None,
@@ -240,7 +241,7 @@ impl PipeRunner {
 
         // Negate the code if needed:
         if self.negate {
-            shell.code = if shell.code == 0 { 1 } else { 0 };
+            shell.set_code(if shell.code() == 0 { 1 } else { 0 });
         }
 
         Ok(())

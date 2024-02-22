@@ -4,12 +4,12 @@ use normpath::PathExt;
 
 use super::bad_call;
 use crate::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::*,
 };
 
 /// https://www.gnu.org/software/bash/manual/bash.html#index-cd
-pub fn cd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
+pub fn cd(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
     macro_rules! hd {
         () => {
             if let Ok(hd) = shell.home_dir() {
@@ -82,7 +82,7 @@ pub fn cd(shell: &mut Shell, args: &[String]) -> Result<CmdOut, BuiltinErr> {
         .chdir(target_path)
         .change_context(BuiltinErr::InternalError)?;
 
-    Ok(CmdOut::empty())
+    Ok(BashOut::empty())
 }
 
 // Should be tested quite well in cli/mod.rs and other builtin tests.
