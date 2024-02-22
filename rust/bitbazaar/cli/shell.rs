@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem, path::PathBuf, str};
 use conch_parser::{ast, lexer::Lexer, parse::DefaultParser};
 use normpath::PathExt;
 
-use super::{errs::ShellErr, runner::PipeRunner, CmdOut};
+use super::{errs::ShellErr, runner::PipeRunner, BashOut, CmdResult};
 use crate::prelude::*;
 
 #[derive(Debug)]
@@ -13,51 +13,49 @@ struct WordConcatState<'a> {
 }
 
 pub struct Shell {
+    // Finalised output that won't be piped to another command and should be returned to the caller:
+    // This is only populated at the top level with the public execute_command_strings() method.
+    pub cmd_results: Vec<CmdResult>,
     root_dir: Option<PathBuf>,
     /// Extra params/env vars added to this shell
     pub vars: HashMap<String, String>,
-    pub code: i32,
-    // Finalised output that won't be piped to another command and should be returned to the caller:
-    pub stdout: String,
-    pub stderr: String,
     pub set_e: bool,
     // Each executed command string supplied will be added here. Will be here even if the command fails.
     // Only commands that weren't tried due to previous problems will be missing.
     pub attempted_command_strings: Vec<String>,
+
+    // Current in process results, at the top level these will be added to cmd_results.
+    stdout: String,
+    stderr: String,
+    code: i32,
 }
 
-impl From<Shell> for CmdOut {
+impl From<Shell> for BashOut {
     fn from(val: Shell) -> Self {
-        if cfg!(windows) {
-            // Remove carriage returns from newlines in windows:
-            CmdOut {
-                stdout: val.stdout.replace("\r\n", "\n"),
-                stderr: val.stderr.replace("\r\n", "\n"),
-                code: val.code,
-                attempted_commands: val.attempted_command_strings,
-            }
-        } else {
-            CmdOut {
-                stdout: val.stdout,
-                stderr: val.stderr,
-                code: val.code,
-                attempted_commands: val.attempted_command_strings,
-            }
+        let mut results = val.cmd_results;
+        // For the subshells, these don't use cmd_results and theirs will all be in the buffers:
+        if !val.stdout.is_empty()
+            || !val.stderr.is_empty()
+            || (Some(val.code) != results.last().map(|r| r.code))
+        {
+            results.push(CmdResult::new("", val.code, val.stdout, val.stderr));
         }
+        BashOut::new(results)
     }
 }
 
 impl Shell {
     pub fn new(env: HashMap<String, String>, root_dir: Option<PathBuf>) -> Result<Self, ShellErr> {
         let mut shell = Self {
+            cmd_results: Vec::new(),
             root_dir: None,
             vars: env,
-            code: 0,
-            stdout: String::new(),
-            stderr: String::new(),
             // By default have set -e enabled to break if a line errors:
             set_e: true,
             attempted_command_strings: Vec::new(),
+            stdout: String::new(),
+            stderr: String::new(),
+            code: 0,
         };
 
         // Chdir() does some normalisation logic, so using that rather than just setting to shell above directly:
@@ -66,6 +64,85 @@ impl Shell {
         }
 
         Ok(shell)
+    }
+
+    pub fn execute_command_strings(&mut self, commands: Vec<String>) -> Result<(), ShellErr> {
+        // Whilst all commands could be given to the parser together (newline separated),
+        // and run internally by the shell in a single function call,
+        // that mean's the source command string that causes an issues would be lost
+        // (e.g. an actual ShellErr OR a non zero exit code stopping further commands from running)
+        for cmd_source in commands {
+            // Add the result object before anything else:
+            self.cmd_results.push(CmdResult::new(
+                cmd_source.clone(),
+                self.code,
+                "".to_string(),
+                "".to_string(),
+            ));
+
+            // Add the command before hitting anything that could fail:
+            self.attempted_command_strings.push(cmd_source.clone());
+
+            let lex = Lexer::new(cmd_source.chars());
+            let parser = DefaultParser::new(lex);
+
+            let parsed_top_cmds = parser
+                .into_iter()
+                .collect::<core::result::Result<Vec<_>, _>>()
+                .change_context(ShellErr::BashSyntaxError)?;
+
+            // Run the command:
+            let result = self.run_top_cmds(parsed_top_cmds);
+            // Extract the stdout, stderr and code from the shell and add it to the new result, no matter what happened:
+            let cmd_result = self.cmd_results.last_mut().unwrap();
+            cmd_result.code = self.code;
+            cmd_result.stdout = std::mem::take(&mut self.stdout);
+            cmd_result.stderr = std::mem::take(&mut self.stderr);
+
+            // Handle actual shell errors (not code errors, problems parsing etc)
+            if let Err(e) = result {
+                match e.current_context() {
+                    // Exits shouldn't propagate outside a shell, the handler will have already set the proper code to the shell.
+                    ShellErr::Exit => {}
+                    _ => {
+                        return Err(e);
+                    }
+                }
+            }
+
+            // Might need to stop based on the code:
+            if !self.should_continue() {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn push_stdout(&mut self, stdout: &str) {
+        #[cfg(windows)]
+        // Need to clean on windows:
+        self.stdout.push_str(stdout.replace("\r\n", "\n"));
+
+        #[cfg(not(windows))]
+        self.stdout.push_str(stdout);
+    }
+
+    pub fn push_stderr(&mut self, stderr: &str) {
+        #[cfg(windows)]
+        // Need to clean on windows:
+        self.stderr.push_str(stderr.replace("\r\n", "\n"));
+
+        #[cfg(not(windows))]
+        self.stderr.push_str(stderr);
+    }
+
+    pub fn set_code(&mut self, code: i32) {
+        self.code = code;
+    }
+
+    pub fn code(&self) -> i32 {
+        self.code
     }
 
     pub fn active_dir(&self) -> Result<PathBuf, ShellErr> {
@@ -88,47 +165,11 @@ impl Shell {
         Ok(())
     }
 
-    pub fn execute_command_strings(&mut self, commands: Vec<String>) -> Result<(), ShellErr> {
-        // Whilst all commands could be given to the parser together (newline separated),
-        // and run internally by the shell in a single function call,
-        // that mean's the source command string that causes an issues would be lost
-        // (e.g. an actual ShellErr OR a non zero exit code stopping further commands from running)
-        for cmd_source in commands {
-            // Add the command before hitting anything that could fail:
-            self.attempted_command_strings.push(cmd_source.clone());
-
-            let lex = Lexer::new(cmd_source.chars());
-            let parser = DefaultParser::new(lex);
-
-            let parsed_top_cmds = parser
-                .into_iter()
-                .collect::<core::result::Result<Vec<_>, _>>()
-                .change_context(ShellErr::BashSyntaxError)?;
-
-            // Run the command:
-            if let Err(e) = self.run_top_cmds(parsed_top_cmds) {
-                match e.current_context() {
-                    // Exits shouldn't propagate outside a shell, the handler will have already set the proper code to the shell.
-                    ShellErr::Exit => {}
-                    _ => {
-                        return Err(e);
-                    }
-                }
-            }
-
-            if !self.should_continue() {
-                break;
-            }
-        }
-
-        Ok(())
-    }
-
     /// Returns false when the code isn't 0 and set -e is enabled.
     fn should_continue(&self) -> bool {
         // Don't continue if set -e is enabled and the last command failed:
         #[allow(clippy::needless_bool)]
-        if self.code != 0 && self.set_e {
+        if self.code() != 0 && self.set_e {
             false
         } else {
             true
@@ -155,13 +196,13 @@ impl Shell {
                         match chain_cmd {
                             ast::AndOr::And(cmd) => {
                                 // Only run if the last succeeded:
-                                if self.code == 0 {
+                                if self.code() == 0 {
                                     self.run_listable_command(cmd)?;
                                 }
                             }
                             ast::AndOr::Or(cmd) => {
                                 // Only run if the last didn't succeed:
-                                if self.code != 0 {
+                                if self.code() != 0 {
                                     self.run_listable_command(cmd)?;
                                 }
                             }
@@ -214,13 +255,13 @@ impl Shell {
                     ast::CompoundCommandKind::Subshell(sub_cmds) => {
                         let mut shell = Shell::new(self.vars.clone(), self.root_dir.clone())?;
                         shell.run_top_cmds(sub_cmds.clone())?;
-                        let out: CmdOut = shell.into();
+                        let out: BashOut = shell.into();
 
                         // Add the stderr to the current shell:
-                        self.stderr.push_str(&out.stderr);
+                        self.push_stderr(&out.stderr());
 
                         // Add the pre-computed stdout to be used as stdin to the next command in the outer runner:
-                        pipe_runner.add_piped_stdout(out.stdout);
+                        pipe_runner.add_piped_stdout(out.stdout());
                     }
                     ast::CompoundCommandKind::Brace(_) => {
                         return Err(unsup(
@@ -455,11 +496,11 @@ impl Shell {
                 debug!("Running nested command: {:?}", cmds);
                 let mut shell = Shell::new(self.vars.clone(), self.root_dir.clone())?;
                 shell.run_top_cmds(cmds.clone())?;
-                let out: CmdOut = shell.into();
+                let out: BashOut = shell.into();
 
                 // Add the stderr to the outer stderr, the stdout return to the caller:
-                self.stderr.push_str(&out.stderr);
-                Ok(out.stdout.trim_end().to_string())
+                self.push_stderr(&out.stderr());
+                Ok(out.stdout().trim_end().to_string())
             },
             ast::ParameterSubstitution::Alternative(..) => {
                 Err(unsup("If the parameter is NOT null or unset, a provided word will be used, e.g. '${param:+[word]}'. The boolean indicates the presence of a ':', and that if the parameter has a null value, that situation should be treated as if the parameter is unset."))

@@ -1,13 +1,13 @@
 mod bash;
+mod bash_out;
 mod builtins;
-mod cmd_out;
 mod errs;
 mod redirect;
 mod runner;
 mod shell;
 
 pub use bash::Bash;
-pub use cmd_out::CmdOut;
+pub use bash_out::{BashOut, CmdResult};
 pub use errs::BashErr;
 
 #[cfg(test)]
@@ -205,14 +205,14 @@ mod tests {
 
         let res = Bash::new().cmd(cmd_str).run().change_context(AnyErr)?;
 
-        assert_eq!(res.code, code, "{}: {}", res.code, res.std_all());
+        assert_eq!(res.code(), code, "{}: {}", res.code(), res.std_all());
+        assert_eq!(res.std_all().trim(), exp_std_all.into());
         if let Some(exp_stdout) = exp_stdout {
-            assert_eq!(res.stdout.trim(), exp_stdout, "{}", res.std_all());
+            assert_eq!(res.stdout().trim(), exp_stdout, "{}", res.std_all());
         }
         if let Some(exp_sterr) = exp_sterr {
-            assert_eq!(res.stderr.trim(), exp_sterr, "{}", res.std_all());
+            assert_eq!(res.stderr().trim(), exp_sterr, "{}", res.std_all());
         }
-        assert_eq!(res.std_all().trim(), exp_std_all.into());
         Ok(())
     }
 
@@ -239,7 +239,7 @@ mod tests {
         }
         let res = bash.run().change_context(AnyErr)?;
 
-        assert_eq!(res.code, code, "{}: {}", res.code, res.std_all());
+        assert_eq!(res.code(), code, "{}: {}", res.code(), res.std_all());
         assert_eq!(res.std_all().trim(), exp_std_all.into());
         Ok(())
     }
@@ -273,9 +273,9 @@ mod tests {
             .run()
             .change_context(AnyErr)?;
 
-        assert_eq!(res.code, 0, "{}: {}", res.code, res.std_all());
+        assert_eq!(res.code(), 0, "{}: {}", res.code(), res.std_all());
         assert_eq!(
-            res.stdout.trim(),
+            res.stdout().trim(),
             format!(
                 "{}\n{}\nsubfile!topfile!",
                 temp_dir_pb.display(),
@@ -294,8 +294,8 @@ mod tests {
             .cmd("echo $FOO $(echo $BAZ)")
             .run()
             .change_context(AnyErr)?;
-        assert_eq!(res.code, 0, "{}: {}", res.code, res.std_all());
-        assert_eq!(res.stdout.trim(), format!("bar qux"));
+        assert_eq!(res.code(), 0, "{}: {}", res.code(), res.std_all());
+        assert_eq!(res.stdout().trim(), format!("bar qux"));
         Ok(())
     }
 
@@ -320,19 +320,19 @@ mod tests {
 
         // Confirm cmd out is attached and the source could be inferred from there:
         let e = res.unwrap_err();
-        let cmd_out = e.current_context().cmd_out();
-        assert_eq!(cmd_out.attempted_commands.len(), 2);
-        assert_eq!(cmd_out.attempted_commands[1], err_cmd);
+        let bash_out = e.current_context().bash_out();
+        assert_eq!(bash_out.command_results.len(), 2);
+        assert_eq!(bash_out.command_results[1].command, err_cmd);
 
         // Now confirm when it's a valid set of commands, but one just fails, also accessible:
-        let cmd_out = Bash::new()
+        let bash_out = Bash::new()
             .cmd("echo foo")
             .cmd("echo bar && false")
             .cmd("echo bar")
             .run()
             .unwrap();
-        assert_eq!(cmd_out.attempted_commands.len(), 2);
-        assert_eq!(cmd_out.attempted_commands[1], "echo bar && false");
+        assert_eq!(bash_out.command_results.len(), 2);
+        assert_eq!(bash_out.command_results[1].command, "echo bar && false");
 
         Ok(())
     }

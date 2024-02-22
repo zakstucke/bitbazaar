@@ -1,25 +1,25 @@
-use super::CmdOut;
+use super::BashOut;
 
 /// User facing error type for Bash functionality.
 #[derive(Debug)]
 pub enum BashErr {
     /// BashSyntaxError
-    BashSyntaxError(CmdOut),
+    BashSyntaxError(BashOut),
 
     /// BashFeatureUnsupported
-    BashFeatureUnsupported(CmdOut),
+    BashFeatureUnsupported(BashOut),
 
     /// InternalError
-    InternalError(CmdOut),
+    InternalError(BashOut),
 }
 
 impl BashErr {
-    /// Get the CmdOut from the error.
-    pub fn cmd_out(&self) -> &CmdOut {
+    /// Get the BashOut from the error.
+    pub fn bash_out(&self) -> &BashOut {
         match self {
-            BashErr::BashSyntaxError(cmd_out) => cmd_out,
-            BashErr::BashFeatureUnsupported(cmd_out) => cmd_out,
-            BashErr::InternalError(cmd_out) => cmd_out,
+            BashErr::BashSyntaxError(bash_out) => bash_out,
+            BashErr::BashFeatureUnsupported(bash_out) => bash_out,
+            BashErr::InternalError(bash_out) => bash_out,
         }
     }
 }
@@ -27,13 +27,13 @@ impl BashErr {
 impl std::fmt::Display for BashErr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BashErr::BashSyntaxError(cmd_out) => write!(f, "BashSyntaxError: couldn't parse bash script.\n{}", cmd_out.fmt_attempted_commands()),
-            BashErr::BashFeatureUnsupported(cmd_out) => {
-                write!(f, "BashFeatureUnsupported: feature in script is valid bash, but unsupported.\n{}", cmd_out.fmt_attempted_commands())
+            BashErr::BashSyntaxError(bash_out) => write!(f, "BashSyntaxError: couldn't parse bash script.\n{}", bash_out.fmt_attempted_commands()),
+            BashErr::BashFeatureUnsupported(bash_out) => {
+                write!(f, "BashFeatureUnsupported: feature in script is valid bash, but unsupported.\n{}", bash_out.fmt_attempted_commands())
             }
-            BashErr::InternalError(cmd_out) => write!(
+            BashErr::InternalError(bash_out) => write!(
                 f,
-                "InternalError: this shouldn't occur, open an issue at https://github.com/zakstucke/bitbazaar/issues\n{}", cmd_out.fmt_attempted_commands()
+                "InternalError: this shouldn't occur, open an issue at https://github.com/zakstucke/bitbazaar/issues\n{}", bash_out.fmt_attempted_commands()
             ),
         }
     }
