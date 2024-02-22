@@ -340,15 +340,15 @@
 <a href="#338" id="338">338</a>
 <a href="#339" id="339">339</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>bash;
+<span class="kw">mod </span>bash_out;
 <span class="kw">mod </span>builtins;
-<span class="kw">mod </span>cmd_out;
 <span class="kw">mod </span>errs;
 <span class="kw">mod </span>redirect;
 <span class="kw">mod </span>runner;
 <span class="kw">mod </span>shell;
 
 <span class="kw">pub use </span>bash::Bash;
-<span class="kw">pub use </span>cmd_out::CmdOut;
+<span class="kw">pub use </span>bash_out::{BashOut, CmdResult};
 <span class="kw">pub use </span>errs::BashErr;
 
 <span class="attr">#[cfg(test)]
@@ -546,14 +546,14 @@
 
         <span class="kw">let </span>res = Bash::new().cmd(cmd_str).run().change_context(AnyErr)<span class="question-mark">?</span>;
 
-        <span class="macro">assert_eq!</span>(res.code, code, <span class="string">"{}: {}"</span>, res.code, res.std_all());
+        <span class="macro">assert_eq!</span>(res.code(), code, <span class="string">"{}: {}"</span>, res.code(), res.std_all());
+        <span class="macro">assert_eq!</span>(res.std_all().trim(), exp_std_all.into());
         <span class="kw">if let </span><span class="prelude-val">Some</span>(exp_stdout) = exp_stdout {
-            <span class="macro">assert_eq!</span>(res.stdout.trim(), exp_stdout, <span class="string">"{}"</span>, res.std_all());
+            <span class="macro">assert_eq!</span>(res.stdout().trim(), exp_stdout, <span class="string">"{}"</span>, res.std_all());
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(exp_sterr) = exp_sterr {
-            <span class="macro">assert_eq!</span>(res.stderr.trim(), exp_sterr, <span class="string">"{}"</span>, res.std_all());
+            <span class="macro">assert_eq!</span>(res.stderr().trim(), exp_sterr, <span class="string">"{}"</span>, res.std_all());
         }
-        <span class="macro">assert_eq!</span>(res.std_all().trim(), exp_std_all.into());
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -580,7 +580,7 @@
         }
         <span class="kw">let </span>res = bash.run().change_context(AnyErr)<span class="question-mark">?</span>;
 
-        <span class="macro">assert_eq!</span>(res.code, code, <span class="string">"{}: {}"</span>, res.code, res.std_all());
+        <span class="macro">assert_eq!</span>(res.code(), code, <span class="string">"{}: {}"</span>, res.code(), res.std_all());
         <span class="macro">assert_eq!</span>(res.std_all().trim(), exp_std_all.into());
         <span class="prelude-val">Ok</span>(())
     }
@@ -614,9 +614,9 @@
             .run()
             .change_context(AnyErr)<span class="question-mark">?</span>;
 
-        <span class="macro">assert_eq!</span>(res.code, <span class="number">0</span>, <span class="string">"{}: {}"</span>, res.code, res.std_all());
+        <span class="macro">assert_eq!</span>(res.code(), <span class="number">0</span>, <span class="string">"{}: {}"</span>, res.code(), res.std_all());
         <span class="macro">assert_eq!</span>(
-            res.stdout.trim(),
+            res.stdout().trim(),
             <span class="macro">format!</span>(
                 <span class="string">"{}\n{}\nsubfile!topfile!"</span>,
                 temp_dir_pb.display(),
@@ -635,8 +635,8 @@
             .cmd(<span class="string">"echo $FOO $(echo $BAZ)"</span>)
             .run()
             .change_context(AnyErr)<span class="question-mark">?</span>;
-        <span class="macro">assert_eq!</span>(res.code, <span class="number">0</span>, <span class="string">"{}: {}"</span>, res.code, res.std_all());
-        <span class="macro">assert_eq!</span>(res.stdout.trim(), <span class="macro">format!</span>(<span class="string">"bar qux"</span>));
+        <span class="macro">assert_eq!</span>(res.code(), <span class="number">0</span>, <span class="string">"{}: {}"</span>, res.code(), res.std_all());
+        <span class="macro">assert_eq!</span>(res.stdout().trim(), <span class="macro">format!</span>(<span class="string">"bar qux"</span>));
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -661,19 +661,19 @@
 
         <span class="comment">// Confirm cmd out is attached and the source could be inferred from there:
         </span><span class="kw">let </span>e = res.unwrap_err();
-        <span class="kw">let </span>cmd_out = e.current_context().cmd_out();
-        <span class="macro">assert_eq!</span>(cmd_out.attempted_commands.len(), <span class="number">2</span>);
-        <span class="macro">assert_eq!</span>(cmd_out.attempted_commands[<span class="number">1</span>], err_cmd);
+        <span class="kw">let </span>bash_out = e.current_context().bash_out();
+        <span class="macro">assert_eq!</span>(bash_out.command_results.len(), <span class="number">2</span>);
+        <span class="macro">assert_eq!</span>(bash_out.command_results[<span class="number">1</span>].command, err_cmd);
 
         <span class="comment">// Now confirm when it's a valid set of commands, but one just fails, also accessible:
-        </span><span class="kw">let </span>cmd_out = Bash::new()
+        </span><span class="kw">let </span>bash_out = Bash::new()
             .cmd(<span class="string">"echo foo"</span>)
             .cmd(<span class="string">"echo bar &amp;&amp; false"</span>)
             .cmd(<span class="string">"echo bar"</span>)
             .run()
             .unwrap();
-        <span class="macro">assert_eq!</span>(cmd_out.attempted_commands.len(), <span class="number">2</span>);
-        <span class="macro">assert_eq!</span>(cmd_out.attempted_commands[<span class="number">1</span>], <span class="string">"echo bar &amp;&amp; false"</span>);
+        <span class="macro">assert_eq!</span>(bash_out.command_results.len(), <span class="number">2</span>);
+        <span class="macro">assert_eq!</span>(bash_out.command_results[<span class="number">1</span>].command, <span class="string">"echo bar &amp;&amp; false"</span>);
 
         <span class="prelude-val">Ok</span>(())
     }

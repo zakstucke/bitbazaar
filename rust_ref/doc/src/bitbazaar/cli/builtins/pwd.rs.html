@@ -58,18 +58,13 @@
 <a href="#56" id="56">56</a>
 <a href="#57" id="57">57</a>
 <a href="#58" id="58">58</a>
-<a href="#59" id="59">59</a>
-<a href="#60" id="60">60</a>
-<a href="#61" id="61">61</a>
-<a href="#62" id="62">62</a>
-<a href="#63" id="63">63</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::<span class="kw-2">*</span>,
 };
 
 <span class="doccomment">/// https://www.gnu.org/software/bash/manual/bash.html#index-pwd
-</span><span class="kw">pub fn </span>pwd(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BuiltinErr&gt; {
+</span><span class="kw">pub fn </span>pwd(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
     <span class="kw">if </span>!args.is_empty() {
         <span class="kw">return </span><span class="prelude-val">Err</span>(
             <span class="macro">err!</span>(BuiltinErr::Unsupported).attach_printable(<span class="string">"pwd: options are not supported"</span>)
@@ -84,12 +79,7 @@
         );
     };
 
-    <span class="prelude-val">Ok</span>(CmdOut {
-        stdout: <span class="macro">format!</span>(<span class="string">"{}\n"</span>, pwd),
-        stderr: <span class="string">""</span>.to_string(),
-        code: <span class="number">0</span>,
-        attempted_commands: <span class="macro">vec!</span>[], <span class="comment">// This is a top level attribute, in theory should have a different struct for internal.
-    </span>})
+    <span class="prelude-val">Ok</span>(CmdResult::new(<span class="string">""</span>, <span class="number">0</span>, <span class="macro">format!</span>(<span class="string">"{}\n"</span>, pwd), <span class="string">""</span>).into())
 }
 
 <span class="attr">#[cfg(test)]
@@ -107,9 +97,9 @@
 
         <span class="comment">// Default root should be the current dir (and absolute not relative):
         </span><span class="kw">let </span>out = Bash::new().cmd(<span class="string">"pwd"</span>).run().unwrap();
-        <span class="macro">assert_eq!</span>(out.code, <span class="number">0</span>);
+        <span class="macro">assert_eq!</span>(out.code(), <span class="number">0</span>);
         <span class="macro">assert_eq!</span>(
-            out.stdout,
+            out.stdout(),
             <span class="macro">format!</span>(<span class="string">"{}\n"</span>, cur_dir.as_os_str().to_string_lossy())
         );
 
@@ -119,9 +109,9 @@
             .cmd(<span class="string">"pwd"</span>)
             .run()
             .unwrap();
-        <span class="macro">assert_eq!</span>(out.code, <span class="number">0</span>);
+        <span class="macro">assert_eq!</span>(out.code(), <span class="number">0</span>);
         <span class="macro">assert_eq!</span>(
-            out.stdout,
+            out.stdout(),
             <span class="macro">format!</span>(<span class="string">"{}\n"</span>, cur_dir.as_os_str().to_string_lossy())
         );
     }

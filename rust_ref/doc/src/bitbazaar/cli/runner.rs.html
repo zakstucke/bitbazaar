@@ -248,6 +248,7 @@
 <a href="#246" id="246">246</a>
 <a href="#247" id="247">247</a>
 <a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     io::Write,
     process::{<span class="self">self</span>, Stdio},
@@ -261,11 +262,12 @@
     errs::{BuiltinErr, ShellErr},
     redirect::handle_redirect,
     shell::Shell,
-    CmdOut,
+    BashOut,
 };
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 
-<span class="kw">pub enum </span>VariCommand {
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub enum </span>VariCommand {
     <span class="doccomment">/// A builtin command implemented directly in rust, alongside the arguments to pass.
     </span>Builtin(String, Builtin, Vec&lt;String&gt;),
     Normal(process::Command),
@@ -279,17 +281,17 @@
     <span class="kw">pub </span>negate: bool,
     commands: Vec&lt;VariCommand&gt;,
     <span class="comment">// These are the individual outputs of the commands, in various formats, previous will be modified/partially consumed depending on later commands.
-    </span>outputs: Vec&lt;RunnerCmdOut&gt;,
+    </span>outputs: Vec&lt;RunnerBashOut&gt;,
 }
 
-<span class="kw">pub enum </span>RunnerCmdOut {
+<span class="kw">pub enum </span>RunnerBashOut {
     Concrete(ConcreteOutput),
     Pending(process::Child),
 }
 
-<span class="kw">impl </span>Default <span class="kw">for </span>RunnerCmdOut {
+<span class="kw">impl </span>Default <span class="kw">for </span>RunnerBashOut {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-        RunnerCmdOut::Concrete(ConcreteOutput::default())
+        RunnerBashOut::Concrete(ConcreteOutput::default())
     }
 }
 
@@ -300,35 +302,35 @@
     <span class="kw">pub </span>code: <span class="prelude-ty">Option</span>&lt;i32&gt;,
 }
 
-<span class="kw">impl </span>RunnerCmdOut {
+<span class="kw">impl </span>RunnerBashOut {
     <span class="kw">fn </span>into_shell(<span class="self">self</span>, shell: <span class="kw-2">&amp;mut </span>Shell) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
         <span class="kw">match </span><span class="self">self </span>{
-            RunnerCmdOut::Concrete(conc) =&gt; {
+            RunnerBashOut::Concrete(conc) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(stdout) = conc.stdout {
-                    shell.stdout.push_str(<span class="kw-2">&amp;</span>stdout);
+                    shell.push_stdout(<span class="kw-2">&amp;</span>stdout);
                 }
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(stderr) = conc.stderr {
-                    shell.stderr.push_str(<span class="kw-2">&amp;</span>stderr);
+                    shell.push_stderr(<span class="kw-2">&amp;</span>stderr);
                 }
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(code) = conc.code {
-                    shell.code = code;
+                    shell.set_code(code);
                 }
             }
             <span class="comment">// This is probably the last command:
-            </span>RunnerCmdOut::Pending(child) =&gt; {
+            </span>RunnerBashOut::Pending(child) =&gt; {
                 <span class="kw">let </span>output = child
                     .wait_with_output()
                     .change_context(ShellErr::InternalError)<span class="question-mark">?</span>;
 
-                shell.stdout.push_str(
+                shell.push_stdout(
                     str::from_utf8(<span class="kw-2">&amp;</span>output.stdout).change_context(ShellErr::InternalError)<span class="question-mark">?</span>,
                 );
-                shell.stderr.push_str(
+                shell.push_stderr(
                     str::from_utf8(<span class="kw-2">&amp;</span>output.stderr).change_context(ShellErr::InternalError)<span class="question-mark">?</span>,
                 );
-                shell.code = output.status.code().unwrap_or(<span class="number">1</span>);
+                shell.set_code(output.status.code().unwrap_or(<span class="number">1</span>));
             }
         }
 
@@ -336,12 +338,12 @@
     }
 }
 
-<span class="kw">impl </span>From&lt;CmdOut&gt; <span class="kw">for </span>RunnerCmdOut {
-    <span class="kw">fn </span>from(cmd_out: CmdOut) -&gt; <span class="self">Self </span>{
-        RunnerCmdOut::Concrete(ConcreteOutput {
-            stdout: <span class="prelude-val">Some</span>(cmd_out.stdout),
-            stderr: <span class="prelude-val">Some</span>(cmd_out.stderr),
-            code: <span class="prelude-val">Some</span>(cmd_out.code),
+<span class="kw">impl </span>From&lt;BashOut&gt; <span class="kw">for </span>RunnerBashOut {
+    <span class="kw">fn </span>from(bash_out: BashOut) -&gt; <span class="self">Self </span>{
+        RunnerBashOut::Concrete(ConcreteOutput {
+            stdout: <span class="prelude-val">Some</span>(bash_out.stdout()),
+            stderr: <span class="prelude-val">Some</span>(bash_out.stderr()),
+            code: <span class="prelude-val">Some</span>(bash_out.code()),
         })
     }
 }
@@ -386,10 +388,10 @@
     <span class="kw">pub fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>, shell: <span class="kw-2">&amp;mut </span>Shell) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
         <span class="kw">for </span>command <span class="kw">in </span><span class="self">self</span>.commands.into_iter() {
             <span class="kw">let </span>last_out = <span class="self">self</span>.outputs.last_mut();
-            <span class="kw">let </span>next_out: RunnerCmdOut = <span class="kw">match </span>command {
+            <span class="kw">let </span>next_out: RunnerBashOut = <span class="kw">match </span>command {
                 VariCommand::Redirect(redirect) =&gt; handle_redirect(shell, last_out, redirect)<span class="question-mark">?</span>,
                 VariCommand::Builtin(name, builtin, args) =&gt; <span class="kw">match </span>builtin(shell, <span class="kw-2">&amp;</span>args) {
-                    <span class="prelude-val">Ok</span>(cmd_out) =&gt; cmd_out.into(),
+                    <span class="prelude-val">Ok</span>(bash_out) =&gt; bash_out.into(),
                     <span class="prelude-val">Err</span>(<span class="kw-2">mut </span>e) =&gt; {
                         e = e.attach_printable(<span class="macro">format!</span>(<span class="string">"Command: '{}' args: '{:?}'"</span>, name, args));
                         <span class="kw">match </span>e.current_context() {
@@ -403,7 +405,7 @@
                         }
                     }
                 },
-                VariCommand::PipedStdout(stdout) =&gt; RunnerCmdOut::Concrete(ConcreteOutput {
+                VariCommand::PipedStdout(stdout) =&gt; RunnerBashOut::Concrete(ConcreteOutput {
                     stdout: <span class="prelude-val">Some</span>(stdout),
                     stderr: <span class="prelude-val">None</span>,
                     code: <span class="prelude-val">None</span>,
@@ -420,7 +422,7 @@
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(last_out) = last_out {
                         <span class="kw">match </span>last_out {
                             <span class="comment">// Might contain stdout, in which case take it and use as stdin:
-                            </span>RunnerCmdOut::Concrete(conc) =&gt; {
+                            </span>RunnerBashOut::Concrete(conc) =&gt; {
                                 <span class="kw">if let </span><span class="prelude-val">Some</span>(stdout) = conc.stdout.take() {
                                     str_stdin = <span class="prelude-val">Some</span>(stdout);
                                     command.stdin(Stdio::piped());
@@ -428,7 +430,7 @@
                             }
 
                             <span class="comment">// Child process, pipe its handle through to the next command, keeping track of the stderr:
-                            </span>RunnerCmdOut::Pending(child) =&gt; {
+                            </span>RunnerBashOut::Pending(child) =&gt; {
                                 <span class="kw">if let </span><span class="prelude-val">Some</span>(stdout) = child.stdout.take() {
                                     command.stdin(stdout);
                                 }
@@ -454,12 +456,12 @@
                                     .change_context(ShellErr::InternalError)<span class="question-mark">?</span>;
                             }
 
-                            RunnerCmdOut::Pending(child)
+                            RunnerBashOut::Pending(child)
                         }
                         <span class="prelude-val">Err</span>(e) =&gt; {
                             <span class="comment">// Command might error straight away, in which case convert the err to stderr.
                             // this gives more or less parity with bash:
-                            </span>RunnerCmdOut::Concrete(ConcreteOutput {
+                            </span>RunnerBashOut::Concrete(ConcreteOutput {
                                 <span class="comment">// If the spawn errored, something went wrong, so set the code:
                                 </span>code: <span class="prelude-val">Some</span>(e.raw_os_error().unwrap_or(<span class="number">1</span>)),
                                 stdout: <span class="prelude-val">None</span>,
@@ -490,7 +492,7 @@
 
         <span class="comment">// Negate the code if needed:
         </span><span class="kw">if </span><span class="self">self</span>.negate {
-            shell.code = <span class="kw">if </span>shell.code == <span class="number">0 </span>{ <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>};
+            shell.set_code(<span class="kw">if </span>shell.code() == <span class="number">0 </span>{ <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
         }
 
         <span class="prelude-val">Ok</span>(())

@@ -29,21 +29,21 @@
 <a href="#27" id="27">27</a>
 <a href="#28" id="28">28</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut},
     prelude::<span class="kw-2">*</span>,
 };
 
 <span class="doccomment">/// https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
-</span><span class="kw">pub fn </span>set(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BuiltinErr&gt; {
+</span><span class="kw">pub fn </span>set(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
     <span class="kw">if let </span><span class="prelude-val">Some</span>(arg) = args.first() {
         <span class="kw">match </span>arg.as_str() {
             <span class="string">"+e" </span>=&gt; {
                 shell.set_e = <span class="bool-val">false</span>;
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(CmdOut::empty());
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(BashOut::empty());
             }
             <span class="string">"-e" </span>=&gt; {
                 shell.set_e = <span class="bool-val">true</span>;
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(CmdOut::empty());
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(BashOut::empty());
             }
             <span class="kw">_ </span>=&gt; {}
         }

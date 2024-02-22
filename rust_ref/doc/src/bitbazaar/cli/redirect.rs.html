@@ -303,16 +303,16 @@
 
 <span class="kw">use super</span>::{
     errs::ShellErr,
-    runner::{ConcreteOutput, RunnerCmdOut},
+    runner::{ConcreteOutput, RunnerBashOut},
     shell::Shell,
 };
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 
 <span class="kw">pub fn </span>handle_redirect(
     shell: <span class="kw-2">&amp;mut </span>Shell,
-    last_out: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>RunnerCmdOut&gt;,
+    last_out: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>RunnerBashOut&gt;,
     redirect: ast::DefaultRedirect,
-) -&gt; <span class="prelude-ty">Result</span>&lt;RunnerCmdOut, ShellErr&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;RunnerBashOut, ShellErr&gt; {
     <span class="prelude-val">Ok</span>(<span class="kw">match </span>redirect {
         ast::Redirect::Write(fd, name) =&gt; {
             <span class="kw">let </span>dest = Target::new(shell, name)<span class="question-mark">?</span>.set_write();
@@ -448,17 +448,17 @@
 }
 
 <span class="kw">impl </span>Data {
-    <span class="kw">fn </span>new(last: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>RunnerCmdOut&gt;, fd: <span class="prelude-ty">Option</span>&lt;u16&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ShellErr&gt; {
+    <span class="kw">fn </span>new(last: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>RunnerBashOut&gt;, fd: <span class="prelude-ty">Option</span>&lt;u16&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ShellErr&gt; {
         <span class="kw">let </span>fd = fd.unwrap_or(<span class="number">1</span>);
 
         <span class="prelude-val">Ok</span>(<span class="kw">match </span>fd {
             <span class="number">1 </span>=&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(last) = last {
                     <span class="kw">match </span>last {
-                        RunnerCmdOut::Concrete(conc) =&gt; {
+                        RunnerBashOut::Concrete(conc) =&gt; {
                             <span class="self">Self</span>::String(conc.stdout.take().unwrap_or_default())
                         }
-                        RunnerCmdOut::Pending(child) =&gt; {
+                        RunnerBashOut::Pending(child) =&gt; {
                             <span class="kw">if let </span><span class="prelude-val">Some</span>(h) = child.stdout.take() {
                                 <span class="self">Self</span>::StdoutHandle(h)
                             } <span class="kw">else </span>{
@@ -473,10 +473,10 @@
             <span class="number">2 </span>=&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(last) = last {
                     <span class="kw">match </span>last {
-                        RunnerCmdOut::Concrete(conc) =&gt; {
+                        RunnerBashOut::Concrete(conc) =&gt; {
                             <span class="self">Self</span>::String(conc.stderr.take().unwrap_or_default())
                         }
-                        RunnerCmdOut::Pending(child) =&gt; {
+                        RunnerBashOut::Pending(child) =&gt; {
                             <span class="kw">if let </span><span class="prelude-val">Some</span>(h) = child.stderr.take() {
                                 <span class="self">Self</span>::StderrHandle(h)
                             } <span class="kw">else </span>{
@@ -499,7 +499,7 @@
         })
     }
 
-    <span class="kw">fn </span>submit(<span class="self">self</span>, shell: <span class="kw-2">&amp;</span>Shell, dest: Target) -&gt; <span class="prelude-ty">Result</span>&lt;RunnerCmdOut, ShellErr&gt; {
+    <span class="kw">fn </span>submit(<span class="self">self</span>, shell: <span class="kw-2">&amp;</span>Shell, dest: Target) -&gt; <span class="prelude-ty">Result</span>&lt;RunnerBashOut, ShellErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>conc = ConcreteOutput::default();
 
         <span class="kw">match </span>dest.variant {
@@ -564,7 +564,7 @@
             TargetVariant::Null =&gt; {}
         }
 
-        <span class="prelude-val">Ok</span>(RunnerCmdOut::Concrete(conc))
+        <span class="prelude-val">Ok</span>(RunnerBashOut::Concrete(conc))
     }
 
     <span class="kw">fn </span>write(<span class="self">self</span>, <span class="kw-2">mut </span>writer: <span class="kw">impl </span>Write) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {

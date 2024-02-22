@@ -64,28 +64,28 @@
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
 <a href="#64" id="64">64</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::CmdOut;
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::BashOut;
 
 <span class="doccomment">/// User facing error type for Bash functionality.
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub enum </span>BashErr {
     <span class="doccomment">/// BashSyntaxError
-    </span>BashSyntaxError(CmdOut),
+    </span>BashSyntaxError(BashOut),
 
     <span class="doccomment">/// BashFeatureUnsupported
-    </span>BashFeatureUnsupported(CmdOut),
+    </span>BashFeatureUnsupported(BashOut),
 
     <span class="doccomment">/// InternalError
-    </span>InternalError(CmdOut),
+    </span>InternalError(BashOut),
 }
 
 <span class="kw">impl </span>BashErr {
-    <span class="doccomment">/// Get the CmdOut from the error.
-    </span><span class="kw">pub fn </span>cmd_out(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>CmdOut {
+    <span class="doccomment">/// Get the BashOut from the error.
+    </span><span class="kw">pub fn </span>bash_out(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>BashOut {
         <span class="kw">match </span><span class="self">self </span>{
-            BashErr::BashSyntaxError(cmd_out) =&gt; cmd_out,
-            BashErr::BashFeatureUnsupported(cmd_out) =&gt; cmd_out,
-            BashErr::InternalError(cmd_out) =&gt; cmd_out,
+            BashErr::BashSyntaxError(bash_out) =&gt; bash_out,
+            BashErr::BashFeatureUnsupported(bash_out) =&gt; bash_out,
+            BashErr::InternalError(bash_out) =&gt; bash_out,
         }
     }
 }
@@ -93,13 +93,13 @@
 <span class="kw">impl </span>std::fmt::Display <span class="kw">for </span>BashErr {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
-            BashErr::BashSyntaxError(cmd_out) =&gt; <span class="macro">write!</span>(f, <span class="string">"BashSyntaxError: couldn't parse bash script.\n{}"</span>, cmd_out.fmt_attempted_commands()),
-            BashErr::BashFeatureUnsupported(cmd_out) =&gt; {
-                <span class="macro">write!</span>(f, <span class="string">"BashFeatureUnsupported: feature in script is valid bash, but unsupported.\n{}"</span>, cmd_out.fmt_attempted_commands())
+            BashErr::BashSyntaxError(bash_out) =&gt; <span class="macro">write!</span>(f, <span class="string">"BashSyntaxError: couldn't parse bash script.\n{}"</span>, bash_out.fmt_attempted_commands()),
+            BashErr::BashFeatureUnsupported(bash_out) =&gt; {
+                <span class="macro">write!</span>(f, <span class="string">"BashFeatureUnsupported: feature in script is valid bash, but unsupported.\n{}"</span>, bash_out.fmt_attempted_commands())
             }
-            BashErr::InternalError(cmd_out) =&gt; <span class="macro">write!</span>(
+            BashErr::InternalError(bash_out) =&gt; <span class="macro">write!</span>(
                 f,
-                <span class="string">"InternalError: this shouldn't occur, open an issue at https://github.com/zakstucke/bitbazaar/issues\n{}"</span>, cmd_out.fmt_attempted_commands()
+                <span class="string">"InternalError: this shouldn't occur, open an issue at https://github.com/zakstucke/bitbazaar/issues\n{}"</span>, bash_out.fmt_attempted_commands()
             ),
         }
     }

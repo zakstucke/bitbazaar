@@ -135,7 +135,7 @@
     path::{Path, PathBuf},
 };
 
-<span class="kw">use super</span>::{errs::ShellErr, shell::Shell, BashErr, CmdOut};
+<span class="kw">use super</span>::{errs::ShellErr, shell::Shell, BashErr, BashOut};
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// Execute an arbitrary bash script.
@@ -227,13 +227,13 @@
     }
 
     <span class="doccomment">/// Execute the current contents of the bash script.
-    </span><span class="kw">pub fn </span>run(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BashErr&gt; {
+    </span><span class="kw">pub fn </span>run(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BashErr&gt; {
         <span class="kw">if </span><span class="self">self</span>.cmds.is_empty() {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(CmdOut::empty());
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(BashOut::empty());
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>shell = Shell::new(<span class="self">self</span>.env_vars, <span class="self">self</span>.root_dir)
-            .map_err(|e| shell_to_bash_err(CmdOut::empty(), e))<span class="question-mark">?</span>;
+            .map_err(|e| shell_to_bash_err(BashOut::empty(), e))<span class="question-mark">?</span>;
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = shell.execute_command_strings(<span class="self">self</span>.cmds) {
             <span class="kw">return </span><span class="prelude-val">Err</span>(shell_to_bash_err(shell.into(), e));
@@ -244,20 +244,20 @@
 }
 
 <span class="kw">fn </span>shell_to_bash_err(
-    <span class="kw-2">mut </span>cmd_out: CmdOut,
+    <span class="kw-2">mut </span>bash_out: BashOut,
     e: error_stack::Report&lt;ShellErr&gt;,
 ) -&gt; error_stack::Report&lt;BashErr&gt; {
     <span class="comment">// Doesn't really make sense, but set the exit code to 1 if 0, as technically the command errored even though it was the runner itself that errored and the command might not have been attempted.
-    </span><span class="kw">if </span>cmd_out.code == <span class="number">0 </span>{
-        cmd_out.code = <span class="number">1</span>;
+    </span><span class="kw">if </span>bash_out.code() == <span class="number">0 </span>{
+        bash_out.override_code(<span class="number">1</span>);
     }
     <span class="kw">match </span>e.current_context() {
-        ShellErr::Exit =&gt; e.change_context(BashErr::InternalError(cmd_out)).attach_printable(
+        ShellErr::Exit =&gt; e.change_context(BashErr::InternalError(bash_out)).attach_printable(
             <span class="string">"Shouldn't occur, shell exit errors should have been managed internally, not an external error."</span>,
         ),
-        ShellErr::InternalError =&gt; e.change_context(BashErr::InternalError(cmd_out)),
-        ShellErr::BashFeatureUnsupported =&gt; e.change_context(BashErr::BashFeatureUnsupported(cmd_out)),
-        ShellErr::BashSyntaxError =&gt; e.change_context(BashErr::BashSyntaxError(cmd_out)),
+        ShellErr::InternalError =&gt; e.change_context(BashErr::InternalError(bash_out)),
+        ShellErr::BashFeatureUnsupported =&gt; e.change_context(BashErr::BashFeatureUnsupported(bash_out)),
+        ShellErr::BashSyntaxError =&gt; e.change_context(BashErr::BashSyntaxError(bash_out)),
     }
 }
 </code></pre></div></section></main></body></html>

@@ -33,19 +33,19 @@
 <a href="#31" id="31">31</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::bad_call;
 <span class="kw">use crate</span>::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::<span class="kw-2">*</span>,
 };
 
 <span class="doccomment">/// https://www.gnu.org/software/bash/manual/bash.html#index-exit
 ///
-/// Exit the shell, returning a status of n to the shell’s parent.
+/// Exit the shell, returning a status of n to the shell's parent.
 /// If n is omitted, the exit status is that of the last command executed.
 /// Any trap on EXIT is executed before the shell terminates.
-</span><span class="kw">pub fn </span>exit(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BuiltinErr&gt; {
+</span><span class="kw">pub fn </span>exit(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
     <span class="kw">let </span>exit_code = <span class="kw">if </span>args.is_empty() {
         <span class="comment">// Last code
-        </span>shell.code
+        </span>shell.code()
     } <span class="kw">else if let </span><span class="prelude-val">Some</span>(code_str) = args.first() {
         <span class="kw">match </span>code_str.parse::&lt;i32&gt;() {
             <span class="prelude-val">Ok</span>(code) =&gt; code,
@@ -56,7 +56,7 @@
     };
 
     <span class="comment">// Set the code and propagate upwards:
-    </span>shell.code = exit_code;
+    </span>shell.set_code(exit_code);
     <span class="prelude-val">Err</span>(<span class="macro">err!</span>(BuiltinErr::Exit))
 }
 

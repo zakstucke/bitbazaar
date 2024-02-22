@@ -96,12 +96,12 @@
 
 <span class="kw">use </span><span class="kw">super</span>::bad_call;
 <span class="kw">use crate</span>::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::<span class="kw-2">*</span>,
 };
 
 <span class="doccomment">/// https://www.gnu.org/software/bash/manual/bash.html#index-cd
-</span><span class="kw">pub fn </span>cd(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BuiltinErr&gt; {
+</span><span class="kw">pub fn </span>cd(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
     <span class="macro">macro_rules! </span>hd {
         () =&gt; {
             <span class="kw">if let </span><span class="prelude-val">Ok</span>(hd) = shell.home_dir() {
@@ -174,7 +174,7 @@
         .chdir(target_path)
         .change_context(BuiltinErr::InternalError)<span class="question-mark">?</span>;
 
-    <span class="prelude-val">Ok</span>(CmdOut::empty())
+    <span class="prelude-val">Ok</span>(BashOut::empty())
 }
 
 <span class="comment">// Should be tested quite well in cli/mod.rs and other builtin tests.

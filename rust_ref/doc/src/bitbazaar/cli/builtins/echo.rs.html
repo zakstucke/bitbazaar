@@ -41,18 +41,13 @@
 <a href="#39" id="39">39</a>
 <a href="#40" id="40">40</a>
 <a href="#41" id="41">41</a>
-<a href="#42" id="42">42</a>
-<a href="#43" id="43">43</a>
-<a href="#44" id="44">44</a>
-<a href="#45" id="45">45</a>
-<a href="#46" id="46">46</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
-    cli::{errs::BuiltinErr, shell::Shell, CmdOut},
+    cli::{errs::BuiltinErr, shell::Shell, BashOut, CmdResult},
     prelude::<span class="kw-2">*</span>,
 };
 
 <span class="doccomment">/// https://www.gnu.org/software/bash/manual/bash.html#index-echo
-</span><span class="kw">pub fn </span>echo(_shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;CmdOut, BuiltinErr&gt; {
+</span><span class="kw">pub fn </span>echo(_shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>newline = <span class="bool-val">true</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>stdout = String::new();
@@ -82,12 +77,7 @@
         stdout.push(<span class="string">'\n'</span>);
     }
 
-    <span class="prelude-val">Ok</span>(CmdOut {
-        stdout,
-        stderr: <span class="string">""</span>.to_string(),
-        code: <span class="number">0</span>,
-        attempted_commands: <span class="macro">vec!</span>[], <span class="comment">// This is a top level attribute, in theory should have a different struct for internal.
-    </span>})
+    <span class="prelude-val">Ok</span>(CmdResult::new(<span class="string">""</span>, <span class="number">0</span>, stdout, <span class="string">""</span>).into())
 }
 
 <span class="attr">#[cfg(test)]
