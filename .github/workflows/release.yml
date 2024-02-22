@@ -37,7 +37,7 @@ on:
         default: false
       rust_version:
         description: Rust Version
-        default: 0.0.35
+        default: 0.0.36
 
 jobs:
   commit_versions:
@@ -92,6 +92,7 @@ jobs:
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         with:
           components: rustfmt, clippy
+
       - name: "Install cargo-hack, used for feature checking in pre-commit."
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
         uses: taiki-e/install-action@cargo-hack
