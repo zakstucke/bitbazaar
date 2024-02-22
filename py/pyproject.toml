@@ -18,7 +18,7 @@ dev = ["ipykernel>=6.25.2"]
 
 [project]
 name = "bitbazaar"
-version = "0.0.6"
+version = "0.0.7"
 description = "An assortment of publicly available cross-language utilities useful to my projects."
 readme = "README.md"
 license = { text = "MIT" }
