@@ -1,5 +1,3 @@
-#[cfg(feature = "clap")]
-mod clap_log_level_args;
 #[cfg(test)]
 mod diff_file_log;
 mod global_log;
@@ -7,8 +5,6 @@ mod macros;
 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 mod ot_tracing_bridge;
 
-#[cfg(feature = "clap")]
-pub use clap_log_level_args::ClapLogLevelArgs;
 pub use global_log::{global_fns::*, GlobalLog, GlobalLogBuilder};
 
 #[cfg(test)]
