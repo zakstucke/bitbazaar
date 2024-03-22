@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["flush","meter","record_exception","set_response_headers_from_ctx","set_span_parent_from_http_headers","shutdown"],"struct":["ClapLogLevelArgs","GlobalLog","GlobalLogBuilder"]};
+window.SIDEBAR_ITEMS = {"fn":["flush","meter","record_exception","set_response_headers_from_ctx","set_span_parent_from_http_headers","shutdown"],"struct":["GlobalLog","GlobalLogBuilder"]};
