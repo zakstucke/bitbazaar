@@ -34,6 +34,9 @@ export const createSteppedScale = ({
     // Try up to 5 times to produce values that don't end in white or black (i.e. the step size too large)
     const numAttempts = 5;
     for (let attempt = 1; attempt <= numAttempts; attempt++) {
+        // Reset steps for new attempt:
+        steps.length = 0;
+
         // Reduce the step size each attempt, to try and get a scale that doesn't hit white or black:
         const stepSize = 0.5 * (1 / attempt);
         let failed = false;
@@ -61,9 +64,6 @@ export const createSteppedScale = ({
         if (!failed) {
             break;
         }
-
-        // Reset steps to try again:
-        steps.length = 0;
     }
 
     return steps;
