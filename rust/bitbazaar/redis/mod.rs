@@ -1,11 +1,13 @@
 mod batch;
 mod conn;
+mod dlock;
 mod json;
 mod script;
 mod wrapper;
 
 pub use batch::{RedisBatch, RedisBatchFire, RedisBatchOps};
 pub use conn::RedisConn;
+pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonConsume};
 pub use script::{RedisScript, RedisScriptInvoker};
 pub use wrapper::Redis;
@@ -22,7 +24,7 @@ mod tests {
     use rstest::*;
 
     use super::*;
-    use crate::{errors::prelude::*, misc::in_ci};
+    use crate::{errors::prelude::*, misc::in_ci, redis::dlock::redis_dlock_tests};
 
     struct ChildGuard(Child);
 
@@ -380,6 +382,9 @@ mod tests {
                 .await,
             Some((None, None, vec![None, None, None, None]))
         );
+
+        // Run the dlock tests:
+        redis_dlock_tests(work_r).await?;
 
         Ok(())
     }

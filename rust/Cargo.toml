@@ -23,7 +23,15 @@ all-features = true
 log-filter = ["dep:regex"]
 timing = ['dep:comfy-table', 'dep:chrono']
 cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'dep:chrono', 'dep:strum']
-redis = ['dep:deadpool-redis', 'dep:redis', 'dep:sha1_smol', 'dep:serde_json']
+redis = [
+  'dep:deadpool-redis',
+  'dep:redis',
+  'dep:sha1_smol',
+  'dep:serde_json',
+  'dep:rand',
+  'dep:futures',
+  'dep:futures-timer',
+]
 opentelemetry-grpc = [
   'dep:tracing-log',
   'dep:opentelemetry-appender-tracing',
@@ -65,6 +73,9 @@ colored = '2'
 chrono = { version = '0.4', optional = true }
 strum = { version = "0.25", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
+rand = { version = "0.8", optional = true }
+futures = { version = "0.3", optional = true }
+futures-timer = { version = "3", optional = true }
 
 # FEAT: log-filter:
 regex = { version = '1', optional = true }
