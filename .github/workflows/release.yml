@@ -21,7 +21,7 @@ on:
         default: false
       js_version:
         description: JS Version
-        default: 0.0.27
+        default: 0.0.28
       py_rust_release:
         description: Rust-backed Python Release
         type: boolean
@@ -37,7 +37,7 @@ on:
         default: false
       rust_version:
         description: Rust Version
-        default: 0.0.38
+        default: 0.0.39
 
 jobs:
   commit_versions:
