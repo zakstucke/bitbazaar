@@ -1,5 +1,5 @@
-; ModuleID = 'probe7.213df43b7753780b-cgu.0'
-source_filename = "probe7.213df43b7753780b-cgu.0"
+; ModuleID = 'probe7.8856b6d9f2ec4c01-cgu.0'
+source_filename = "probe7.8856b6d9f2ec4c01-cgu.0"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
@@ -8,64 +8,44 @@ target triple = "x86_64-unknown-linux-gnu"
 
 ; core::f64::<impl f64>::total_cmp
 ; Function Attrs: inlinehint nonlazybind uwtable
-define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h2c07d4b43bba850aE"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
+define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17hb907e18e78d0d165E"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
 start:
   %right = alloca i64, align 8
   %left = alloca i64, align 8
-  %_0 = alloca i8, align 1
-  %self1 = load double, ptr %self, align 8, !noundef !3
+  %self1 = load double, ptr %self, align 8
   %_4 = bitcast double %self1 to i64
   store i64 %_4, ptr %left, align 8
-  %self2 = load double, ptr %other, align 8, !noundef !3
+  %self2 = load double, ptr %other, align 8
   %_7 = bitcast double %self2 to i64
   store i64 %_7, ptr %right, align 8
-  %_13 = load i64, ptr %left, align 8, !noundef !3
+  %_13 = load i64, ptr %left, align 8
   %_12 = ashr i64 %_13, 63
   %_10 = lshr i64 %_12, 1
-  %0 = load i64, ptr %left, align 8, !noundef !3
+  %0 = load i64, ptr %left, align 8
   %1 = xor i64 %0, %_10
   store i64 %1, ptr %left, align 8
-  %_18 = load i64, ptr %right, align 8, !noundef !3
+  %_18 = load i64, ptr %right, align 8
   %_17 = ashr i64 %_18, 63
   %_15 = lshr i64 %_17, 1
-  %2 = load i64, ptr %right, align 8, !noundef !3
+  %2 = load i64, ptr %right, align 8
   %3 = xor i64 %2, %_15
   store i64 %3, ptr %right, align 8
-  %_22 = load i64, ptr %left, align 8, !noundef !3
-  %_23 = load i64, ptr %right, align 8, !noundef !3
-  %_21 = icmp slt i64 %_22, %_23
-  br i1 %_21, label %bb1, label %bb2
-
-bb2:                                              ; preds = %start
-  %_24 = icmp eq i64 %_22, %_23
-  br i1 %_24, label %bb3, label %bb4
-
-bb1:                                              ; preds = %start
-  store i8 -1, ptr %_0, align 1
-  br label %bb6
-
-bb4:                                              ; preds = %bb2
-  store i8 1, ptr %_0, align 1
-  br label %bb5
-
-bb3:                                              ; preds = %bb2
-  store i8 0, ptr %_0, align 1
-  br label %bb5
-
-bb5:                                              ; preds = %bb3, %bb4
-  br label %bb6
-
-bb6:                                              ; preds = %bb1, %bb5
-  %4 = load i8, ptr %_0, align 1, !range !4, !noundef !3
-  ret i8 %4
+  %_21 = load i64, ptr %left, align 8
+  %_22 = load i64, ptr %right, align 8
+  %4 = icmp sgt i64 %_21, %_22
+  %5 = zext i1 %4 to i8
+  %6 = icmp slt i64 %_21, %_22
+  %7 = zext i1 %6 to i8
+  %_0 = sub nsw i8 %5, %7
+  ret i8 %_0
 }
 
 ; probe7::probe
 ; Function Attrs: nonlazybind uwtable
-define void @_ZN6probe75probe17hf2b113efa096afb5E() unnamed_addr #1 {
+define void @_ZN6probe75probe17h2e73fe4c3ada6b3bE() unnamed_addr #1 {
 start:
 ; call core::f64::<impl f64>::total_cmp
-  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h2c07d4b43bba850aE"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c), !range !4
+  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17hb907e18e78d0d165E"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c)
   ret void
 }
 
@@ -77,6 +57,4 @@ attributes #1 = { nonlazybind uwtable "probe-stack"="inline-asm" "target-cpu"="x
 
 !0 = !{i32 8, !"PIC Level", i32 2}
 !1 = !{i32 2, !"RtLibUseGOT", i32 1}
-!2 = !{!"rustc version 1.79.0-nightly (0ad927c0c 2024-03-21)"}
-!3 = !{}
-!4 = !{i8 -1, i8 2}
+!2 = !{!"rustc version 1.79.0-nightly (aa1c45908 2024-04-06)"}

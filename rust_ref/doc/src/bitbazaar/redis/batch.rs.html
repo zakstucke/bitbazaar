@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (0ad927c0c 2024-03-21)" data-channel="nightly" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9e1300b5663a8a03.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (aa1c45908 2024-04-06)" data-channel="nightly" data-search-js="search-ffac13a0df2b1870.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c97aec732c613ca4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -347,7 +347,58 @@
 <a href="#345" id="345">345</a>
 <a href="#346" id="346">346</a>
 <a href="#347" id="347">347</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{borrow::Cow, collections::HashSet, marker::PhantomData};
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, marker::PhantomData};
 
 <span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
 <span class="kw">use </span>once_cell::sync::Lazy;
@@ -386,7 +437,7 @@
     }
 
     <span class="kw">async fn </span>inner_fire&lt;R: FromRedisValue&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;R&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = <span class="self">self</span>.redis_conn.get_conn().<span class="kw">await </span>{
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = <span class="self">self</span>.redis_conn.get_inner_conn().<span class="kw">await </span>{
             <span class="kw">match </span><span class="self">self</span>.pipe.query_async(conn).<span class="kw">await </span>{
                 <span class="prelude-val">Ok</span>(result) =&gt; <span class="prelude-val">Some</span>(result),
                 <span class="prelude-val">Err</span>(err) =&gt; {
@@ -440,62 +491,119 @@
     }
 }
 
-<span class="comment">// The special singular variant that returns the command output directly.
-</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, R: FromRedisValue&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, (R,)&gt; {
+<span class="doccomment">/// Trait implementing the fire() method on a batch, variable over the items in the batch.
+</span><span class="kw">pub trait </span>RedisBatchFire {
+    <span class="doccomment">/// The final return type of the batch.
+    </span><span class="kw">type </span>ReturnType;
+
     <span class="doccomment">/// Commit the batch and return the result.
     /// If redis unavailable, or the types didn't match causing decoding to fail, `None` will be returned and the error logged.
-    ///
-    /// Note this is the special singular variant that returns the command output directly (no tuple).
-    </span><span class="kw">pub async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;R&gt;
-    <span class="kw">where
-        </span>(R,): FromRedisValue,
-    {
+    </span><span class="kw">fn </span>fire(<span class="self">self</span>) -&gt; <span class="kw">impl </span>std::future::Future&lt;Output = <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt;&gt;;
+}
+
+<span class="comment">// The special singular variant that returns the command output directly.
+</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, R: FromRedisValue&gt; RedisBatchFire <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, (R,)&gt; {
+    <span class="kw">type </span>ReturnType = R;
+
+    <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;R&gt; {
         <span class="self">self</span>.inner_fire().<span class="kw">await</span>.map(|(r,)| r)
     }
 }
 
-<span class="macro">macro_rules!</span> impl_batch_fire_tuple {
-    ($(<span class="macro-nonterminal">$index</span>:tt: <span class="macro-nonterminal">$</span><span class="kw">type</span>:<span class="macro-nonterminal">ident</span>),<span class="kw-2">*</span>) =&gt; {
-        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, $(<span class="macro-nonterminal">$</span><span class="kw">type</span>: <span class="macro-nonterminal">FromRedisValue</span>),<span class="kw-2">*</span>&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt; {
-            <span class="doccomment">/// Commit the batch and return the command results in a tuple.
-            /// If redis unavailable, or the types didn't match causing decoding to fail, `None` will be returned and the error logged.
-            </span><span class="kw">pub async fn </span><span class="macro-nonterminal">fire</span>(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt;
-            <span class="kw">where
-                </span>($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>): <span class="macro-nonterminal">FromRedisValue</span>,
-            {
+<span class="macro">macro_rules!</span> impl_batch_fire {
+    ( $(<span class="macro-nonterminal">$tup_item</span>:ident)* ) =&gt; (
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, $(<span class="macro-nonterminal">$tup_item</span>: FromRedisValue),<span class="kw-2">*</span>&gt; RedisBatchFire <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
+            <span class="kw">type </span>ReturnType = ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>);
+
+            <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
                 <span class="self">self</span>.inner_fire().<span class="kw">await
             </span>}
         }
-    };
+    );
 }
 
-<span class="comment">// Implement batch fire() for up to 16 operations: (EXCEPT FOR one command, which is implemented separately to return the value itself rather than the tuple)
-</span><span class="macro">impl_batch_fire_tuple!</span>();
-<span class="comment">// impl_batch_fire_tuple!(0: A); // Not this one, its got a custom implementation.
-</span><span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M, <span class="number">13</span>: N);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M, <span class="number">13</span>: N, <span class="number">14</span>: O);
-<span class="macro">impl_batch_fire_tuple!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M, <span class="number">13</span>: N, <span class="number">14</span>: O, <span class="number">15</span>: P);
+<span class="doccomment">/// Implements all the supported redis operations for the batch.
+</span><span class="kw">pub trait </span>RedisBatchOps&lt;<span class="lifetime">'c</span>&gt; {
+    <span class="doccomment">/// The current batch struct sig.
+    </span><span class="kw">type </span>CurrentType;
+    <span class="doccomment">/// The producer for the next batch struct sig.
+    </span><span class="kw">type </span>NextType&lt;T&gt;;
 
-<span class="macro">macro_rules!</span> impl_batch_methods {
-    ($(<span class="macro-nonterminal">$index</span>:tt: <span class="macro-nonterminal">$</span><span class="kw">type</span>:<span class="macro-nonterminal">ident</span>),<span class="kw-2">*</span>) =&gt; {
-        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, $(<span class="macro-nonterminal">$</span><span class="kw">type</span>: <span class="macro-nonterminal">FromRedisValue</span>),<span class="kw-2">*</span>&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt; {
-            <span class="doccomment">/// Run an arbitrary redis (lua script).
-            </span><span class="kw">pub fn </span><span class="macro-nonterminal">script</span>&lt;ScriptOutput&gt;(<span class="kw-2">mut </span><span class="self">self</span>, script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)* <span class="macro-nonterminal">ScriptOutput</span>,)&gt;
-            <span class="kw">where
-                </span>ScriptOutput: FromRedisValue,
-            {
+    <span class="doccomment">/// Run an arbitrary redis (lua script).
+    </span><span class="kw">fn </span>script&lt;ScriptOutput: FromRedisValue&gt;(
+        <span class="self">self</span>,
+        script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;ScriptOutput&gt;;
+
+    <span class="doccomment">/// Run an arbitrary redis (lua script). But discards any return value.
+    </span><span class="kw">fn </span>script_no_return(<span class="self">self</span>, script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;) -&gt; <span class="self">Self</span>::CurrentType;
+
+    <span class="doccomment">/// Set a key to a value with an optional expiry.
+    ///
+    /// (expiry accurate to the millisecond)
+    </span><span class="kw">fn </span>set(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        key: <span class="kw-2">&amp;</span>str,
+        value: <span class="kw">impl </span>ToRedisArgs,
+        expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+    ) -&gt; <span class="self">Self</span>::CurrentType;
+
+    <span class="doccomment">/// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
+    ///
+    /// (expiry accurate to the millisecond)
+    </span><span class="kw">fn </span>mset&lt;<span class="lifetime">'key</span>, Value: ToRedisArgs&gt;(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        pairs: <span class="kw">impl </span>IntoIterator&lt;Item = (<span class="kw-2">&amp;</span><span class="lifetime">'key </span>str, Value)&gt;,
+        expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+    ) -&gt; <span class="self">Self</span>::CurrentType;
+
+    <span class="doccomment">/// Clear one or more keys.
+    </span><span class="kw">fn </span>clear&lt;<span class="lifetime">'key</span>&gt;(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+    ) -&gt; <span class="self">Self</span>::CurrentType;
+
+    <span class="doccomment">/// Clear all keys under a given namespace
+    </span><span class="kw">fn </span>clear_namespace(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; <span class="self">Self</span>::CurrentType;
+
+    <span class="doccomment">/// Check if a key exists.
+    </span><span class="kw">fn </span>exists(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt;;
+
+    <span class="doccomment">/// Check if multiple keys exists.
+    </span><span class="kw">fn </span>mexists&lt;<span class="lifetime">'key</span>&gt;(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt;;
+
+    <span class="doccomment">/// Get a value from a key. Returning `None` if the key doesn't exist.
+    </span><span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        key: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;;
+
+    <span class="doccomment">/// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
+    </span><span class="kw">fn </span>mget&lt;<span class="lifetime">'key</span>, Value&gt;(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt;;
+}
+
+<span class="macro">macro_rules!</span> impl_batch_ops {
+    ( $(<span class="macro-nonterminal">$tup_item</span>:ident)* ) =&gt; (
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, $(<span class="macro-nonterminal">$tup_item</span>: FromRedisValue),<span class="kw-2">*</span>&gt; RedisBatchOps&lt;<span class="lifetime">'c</span>&gt; <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
+            <span class="kw">type </span>CurrentType = RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt;;
+            <span class="kw">type </span>NextType&lt;T&gt; = RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$tup_item</span>,)* T,)&gt;;
+
+            <span class="kw">fn </span>script&lt;ScriptOutput: FromRedisValue&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;,
+            ) -&gt; <span class="self">Self</span>::NextType&lt;ScriptOutput&gt; {
                 <span class="self">self</span>.pipe.add_command(script_invokation.eval_cmd());
                 <span class="self">self</span>.used_scripts.insert(script_invokation.script);
                 RedisBatch {
@@ -506,11 +614,9 @@
                 }
             }
 
-            <span class="doccomment">/// Run an arbitrary redis (lua script). But discards any return value.
-            </span><span class="kw">pub fn </span>script_no_return(<span class="kw-2">mut </span><span class="self">self</span>, script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt;
-            {
+            <span class="kw">fn </span>script_no_return(<span class="kw-2">mut </span><span class="self">self</span>, script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;) -&gt; <span class="self">Self</span>::CurrentType {
                 <span class="comment">// Adding ignore() to ignore response.
-                </span><span class="macro-nonterminal">self</span>.pipe.add_command(script_invokation.eval_cmd()).ignore();
+                </span><span class="self">self</span>.pipe.add_command(script_invokation.eval_cmd()).ignore();
                 <span class="self">self</span>.used_scripts.insert(script_invokation.script);
                 RedisBatch {
                     _returns: PhantomData,
@@ -520,14 +626,13 @@
                 }
             }
 
-            <span class="doccomment">/// Set a key to a value with an optional expiry.
-            ///
-            /// (expiry accurate to the millisecond)
-            </span><span class="kw">pub fn </span>set&lt;<span class="lifetime">'key</span>, Key, Value&gt;(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: Key, value: Value, expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt;
-            <span class="kw">where
-                </span><span class="macro-nonterminal">Key</span>: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-                Value: ToRedisArgs,
-            {
+            <span class="kw">fn </span>set(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                key: <span class="kw-2">&amp;</span>str,
+                value: <span class="kw">impl </span>ToRedisArgs,
+                expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+            ) -&gt; <span class="self">Self</span>::CurrentType {
                 <span class="kw">let </span>final_key = <span class="self">self</span>.redis_conn.final_key(namespace, key.into());
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(expiry) = expiry {
@@ -549,15 +654,12 @@
                 }
             }
 
-            <span class="doccomment">/// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
-            ///
-            /// (expiry accurate to the millisecond)
-            </span><span class="kw">pub fn </span>mset&lt;<span class="lifetime">'key</span>, Key, Value, Pairs&gt;(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, pairs: Pairs, expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt;
-            <span class="kw">where
-                </span><span class="macro-nonterminal">Value</span>: ToRedisArgs,
-                Key: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-                Pairs: IntoIterator&lt;Item = (Key, Value)&gt;,
-            {
+            <span class="kw">fn </span>mset&lt;<span class="lifetime">'key</span>, Value: ToRedisArgs&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                pairs: <span class="kw">impl </span>IntoIterator&lt;Item = (<span class="kw-2">&amp;</span><span class="lifetime">'key </span>str, Value)&gt;,
+                expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+            ) -&gt; <span class="self">Self</span>::CurrentType {
                 <span class="kw">let </span>final_pairs = pairs.into_iter().map(|(key, value)| (<span class="self">self</span>.redis_conn.final_key(namespace, key.into()), value)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(expiry) = expiry {
@@ -588,12 +690,11 @@
                 }
             }
 
-            <span class="doccomment">/// Clear one or more keys.
-            </span><span class="kw">pub fn </span>clear&lt;<span class="lifetime">'key</span>, Keys, Key&gt;(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, keys: Keys) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt;
-            <span class="kw">where
-                </span><span class="macro-nonterminal">Keys</span>: IntoIterator&lt;Item = Key&gt;,
-                Key: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-            {
+            <span class="kw">fn </span>clear&lt;<span class="lifetime">'key</span>&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+            ) -&gt; <span class="self">Self</span>::CurrentType {
                 <span class="kw">let </span>final_keys = keys.into_iter().map(Into::into).map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
                 <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
                 </span><span class="self">self</span>.pipe.del(final_keys).ignore();
@@ -605,18 +706,12 @@
                 }
             }
 
-            <span class="doccomment">/// Clear all keys under a given namespace
-            </span><span class="kw">pub fn </span>clear_namespace(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)<span class="kw-2">*</span>)&gt;
-            {
-                <span class="kw">let </span><span class="macro-nonterminal">final_namespace </span>= <span class="self">self</span>.redis_conn.final_namespace(namespace);
+            <span class="kw">fn </span>clear_namespace(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; <span class="self">Self</span>::CurrentType {
+                <span class="kw">let </span>final_namespace = <span class="self">self</span>.redis_conn.final_namespace(namespace);
                 <span class="self">self</span>.script_no_return(CLEAR_NAMESPACE_SCRIPT.invoker().arg(final_namespace))
             }
 
-            <span class="doccomment">/// Check if a key exists.
-            </span><span class="kw">pub fn </span>exists&lt;<span class="lifetime">'key</span>, Key&gt;(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: Key) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)* <span class="macro-nonterminal">bool</span>,)&gt;
-            <span class="kw">where
-                </span>Key: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-            {
+            <span class="kw">fn </span>exists(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt; {
                 <span class="self">self</span>.pipe.exists(<span class="self">self</span>.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -626,12 +721,11 @@
                 }
             }
 
-            <span class="doccomment">/// Check if multiple keys exists.
-            </span><span class="kw">pub fn </span>mexists&lt;<span class="lifetime">'key</span>, Keys, Key&gt;(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, keys: Keys) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)* <span class="macro-nonterminal">Vec</span>&lt;bool&gt;,)&gt;
-            <span class="kw">where
-                </span>Keys: IntoIterator&lt;Item = Key&gt;,
-                Key: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-            {
+            <span class="kw">fn </span>mexists&lt;<span class="lifetime">'key</span>&gt;(
+                <span class="self">self</span>,
+                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt; {
                 <span class="kw">let </span>final_keys = keys.into_iter().map(Into::into).map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
                 <span class="kw">let </span><span class="kw-2">mut </span>invoker = MEXISTS_SCRIPT.invoker();
                 <span class="kw">for </span>key <span class="kw">in </span><span class="kw-2">&amp;</span>final_keys {
@@ -640,12 +734,11 @@
                 <span class="self">self</span>.script::&lt;Vec&lt;bool&gt;&gt;(invoker)
             }
 
-            <span class="doccomment">/// Get a value from a key. Returning `None` if the key doesn't exist.
-            </span><span class="kw">pub fn </span>get&lt;<span class="lifetime">'key</span>, Value, Key&gt;(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: Key) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)* <span class="prelude-ty">Option</span>&lt;<span class="macro-nonterminal">Value</span>&gt;,)&gt;
-            <span class="kw">where
-                </span>Key: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-                Value: FromRedisValue
-            {
+            <span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                key: <span class="kw-2">&amp;</span>str,
+            ) -&gt; <span class="self">Self</span>::NextType&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt; {
                 <span class="self">self</span>.pipe.get(<span class="self">self</span>.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -655,13 +748,11 @@
                 }
             }
 
-            <span class="doccomment">/// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
-            </span><span class="kw">pub fn </span>mget&lt;<span class="lifetime">'key</span>, Value, Keys, Key&gt;(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, keys: Keys) -&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ($(<span class="macro-nonterminal">$</span><span class="kw">type</span>,)* <span class="macro-nonterminal">Vec</span>&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;,)&gt;
-            <span class="kw">where
-                </span>Keys: IntoIterator&lt;Item = Key&gt;,
-                Key: Into&lt;Cow&lt;<span class="lifetime">'key</span>, str&gt;&gt;,
-                Value: FromRedisValue
-            {
+            <span class="kw">fn </span>mget&lt;<span class="lifetime">'key</span>, Value&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt; {
                 <span class="kw">let </span>final_keys = keys.into_iter().map(Into::into).map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
                 <span class="self">self</span>.pipe.get(final_keys);
@@ -673,25 +764,36 @@
                 }
             }
         }
-    };
+    );
 }
 
-<span class="comment">// Implement batch methods for up to 16 operations:
-</span><span class="macro">impl_batch_methods!</span>();
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M, <span class="number">13</span>: N);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M, <span class="number">13</span>: N, <span class="number">14</span>: O);
-<span class="macro">impl_batch_methods!</span>(<span class="number">0</span>: A, <span class="number">1</span>: B, <span class="number">2</span>: C, <span class="number">3</span>: D, <span class="number">4</span>: E, <span class="number">5</span>: F, <span class="number">6</span>: G, <span class="number">7</span>: H, <span class="number">8</span>: I, <span class="number">9</span>: J, <span class="number">10</span>: K, <span class="number">11</span>: L, <span class="number">12</span>: M, <span class="number">13</span>: N, <span class="number">14</span>: O, <span class="number">15</span>: P);
+<span class="comment">// fire() trait for up to 12 operations:
+</span><span class="macro">impl_batch_fire!</span> {}
+<span class="comment">// impl_batch_fire! { A } // Special case that returns the command output directly (not in tuple)
+</span><span class="macro">impl_batch_fire!</span> { A B }
+<span class="macro">impl_batch_fire!</span> { A B C }
+<span class="macro">impl_batch_fire!</span> { A B C D }
+<span class="macro">impl_batch_fire!</span> { A B C D E }
+<span class="macro">impl_batch_fire!</span> { A B C D E F }
+<span class="macro">impl_batch_fire!</span> { A B C D E F G }
+<span class="macro">impl_batch_fire!</span> { A B C D E F G H }
+<span class="macro">impl_batch_fire!</span> { A B C D E F G H I }
+<span class="macro">impl_batch_fire!</span> { A B C D E F G H I J }
+<span class="macro">impl_batch_fire!</span> { A B C D E F G H I J K }
+<span class="macro">impl_batch_fire!</span> { A B C D E F G H I J K L }
+
+<span class="comment">// redis ops trait for up to 12 operations:
+</span><span class="macro">impl_batch_ops!</span> {}
+<span class="macro">impl_batch_ops!</span> { A }
+<span class="macro">impl_batch_ops!</span> { A B }
+<span class="macro">impl_batch_ops!</span> { A B C }
+<span class="macro">impl_batch_ops!</span> { A B C D }
+<span class="macro">impl_batch_ops!</span> { A B C D E }
+<span class="macro">impl_batch_ops!</span> { A B C D E F }
+<span class="macro">impl_batch_ops!</span> { A B C D E F G }
+<span class="macro">impl_batch_ops!</span> { A B C D E F G H }
+<span class="macro">impl_batch_ops!</span> { A B C D E F G H I }
+<span class="macro">impl_batch_ops!</span> { A B C D E F G H I J }
+<span class="macro">impl_batch_ops!</span> { A B C D E F G H I J K }
+<span class="macro">impl_batch_ops!</span> { A B C D E F G H I J K L }
 </code></pre></div></section></main></body></html>
