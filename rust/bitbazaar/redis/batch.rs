@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, marker::PhantomData};
+use std::{collections::HashSet, marker::PhantomData};
 
 use deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
 use once_cell::sync::Lazy;
@@ -37,7 +37,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     }
 
     async fn inner_fire<R: FromRedisValue>(&mut self) -> Option<R> {
-        if let Some(conn) = self.redis_conn.get_conn().await {
+        if let Some(conn) = self.redis_conn.get_inner_conn().await {
             match self.pipe.query_async(conn).await {
                 Ok(result) => Some(result),
                 Err(err) => {
@@ -91,62 +91,119 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     }
 }
 
-// The special singular variant that returns the command output directly.
-impl<'a, 'b, 'c, R: FromRedisValue> RedisBatch<'a, 'b, 'c, (R,)> {
+/// Trait implementing the fire() method on a batch, variable over the items in the batch.
+pub trait RedisBatchFire {
+    /// The final return type of the batch.
+    type ReturnType;
+
     /// Commit the batch and return the result.
     /// If redis unavailable, or the types didn't match causing decoding to fail, `None` will be returned and the error logged.
-    ///
-    /// Note this is the special singular variant that returns the command output directly (no tuple).
-    pub async fn fire(mut self) -> Option<R>
-    where
-        (R,): FromRedisValue,
-    {
+    fn fire(self) -> impl std::future::Future<Output = Option<Self::ReturnType>>;
+}
+
+// The special singular variant that returns the command output directly.
+impl<'a, 'b, 'c, R: FromRedisValue> RedisBatchFire for RedisBatch<'a, 'b, 'c, (R,)> {
+    type ReturnType = R;
+
+    async fn fire(mut self) -> Option<R> {
         self.inner_fire().await.map(|(r,)| r)
     }
 }
 
-macro_rules! impl_batch_fire_tuple {
-    ($($index:tt: $type:ident),*) => {
-        impl<'a, 'b, 'c, $($type: FromRedisValue),*> RedisBatch<'a, 'b, 'c, ($($type,)*)> {
-            /// Commit the batch and return the command results in a tuple.
-            /// If redis unavailable, or the types didn't match causing decoding to fail, `None` will be returned and the error logged.
-            pub async fn fire(mut self) -> Option<($($type,)*)>
-            where
-                ($($type,)*): FromRedisValue,
-            {
+macro_rules! impl_batch_fire {
+    ( $($tup_item:ident)* ) => (
+        impl<'a, 'b, 'c, $($tup_item: FromRedisValue),*> RedisBatchFire for RedisBatch<'a, 'b, 'c, ($($tup_item,)*)> {
+            type ReturnType = ($($tup_item,)*);
+
+            async fn fire(mut self) -> Option<($($tup_item,)*)> {
                 self.inner_fire().await
             }
         }
-    };
+    );
 }
 
-// Implement batch fire() for up to 16 operations: (EXCEPT FOR one command, which is implemented separately to return the value itself rather than the tuple)
-impl_batch_fire_tuple!();
-// impl_batch_fire_tuple!(0: A); // Not this one, its got a custom implementation.
-impl_batch_fire_tuple!(0: A, 1: B);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M, 13: N);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M, 13: N, 14: O);
-impl_batch_fire_tuple!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M, 13: N, 14: O, 15: P);
+/// Implements all the supported redis operations for the batch.
+pub trait RedisBatchOps<'c> {
+    /// The current batch struct sig.
+    type CurrentType;
+    /// The producer for the next batch struct sig.
+    type NextType<T>;
 
-macro_rules! impl_batch_methods {
-    ($($index:tt: $type:ident),*) => {
-        impl<'a, 'b, 'c, $($type: FromRedisValue),*> RedisBatch<'a, 'b, 'c, ($($type,)*)> {
-            /// Run an arbitrary redis (lua script).
-            pub fn script<ScriptOutput>(mut self, script_invokation: RedisScriptInvoker<'c>) -> RedisBatch<'a, 'b, 'c, ($($type,)* ScriptOutput,)>
-            where
-                ScriptOutput: FromRedisValue,
-            {
+    /// Run an arbitrary redis (lua script).
+    fn script<ScriptOutput: FromRedisValue>(
+        self,
+        script_invokation: RedisScriptInvoker<'c>,
+    ) -> Self::NextType<ScriptOutput>;
+
+    /// Run an arbitrary redis (lua script). But discards any return value.
+    fn script_no_return(self, script_invokation: RedisScriptInvoker<'c>) -> Self::CurrentType;
+
+    /// Set a key to a value with an optional expiry.
+    ///
+    /// (expiry accurate to the millisecond)
+    fn set(
+        self,
+        namespace: &'static str,
+        key: &str,
+        value: impl ToRedisArgs,
+        expiry: Option<std::time::Duration>,
+    ) -> Self::CurrentType;
+
+    /// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
+    ///
+    /// (expiry accurate to the millisecond)
+    fn mset<'key, Value: ToRedisArgs>(
+        self,
+        namespace: &'static str,
+        pairs: impl IntoIterator<Item = (&'key str, Value)>,
+        expiry: Option<std::time::Duration>,
+    ) -> Self::CurrentType;
+
+    /// Clear one or more keys.
+    fn clear<'key>(
+        self,
+        namespace: &'static str,
+        keys: impl IntoIterator<Item = &'key str>,
+    ) -> Self::CurrentType;
+
+    /// Clear all keys under a given namespace
+    fn clear_namespace(self, namespace: &'static str) -> Self::CurrentType;
+
+    /// Check if a key exists.
+    fn exists(self, namespace: &'static str, key: &str) -> Self::NextType<bool>;
+
+    /// Check if multiple keys exists.
+    fn mexists<'key>(
+        self,
+        namespace: &'static str,
+        keys: impl IntoIterator<Item = &'key str>,
+    ) -> Self::NextType<Vec<bool>>;
+
+    /// Get a value from a key. Returning `None` if the key doesn't exist.
+    fn get<Value: FromRedisValue>(
+        self,
+        namespace: &'static str,
+        key: &str,
+    ) -> Self::NextType<Option<Value>>;
+
+    /// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
+    fn mget<'key, Value>(
+        self,
+        namespace: &'static str,
+        keys: impl IntoIterator<Item = &'key str>,
+    ) -> Self::NextType<Vec<Option<Value>>>;
+}
+
+macro_rules! impl_batch_ops {
+    ( $($tup_item:ident)* ) => (
+        impl<'a, 'b, 'c, $($tup_item: FromRedisValue),*> RedisBatchOps<'c> for RedisBatch<'a, 'b, 'c, ($($tup_item,)*)> {
+            type CurrentType = RedisBatch<'a, 'b, 'c, ($($tup_item,)*)>;
+            type NextType<T> = RedisBatch<'a, 'b, 'c, ($($tup_item,)* T,)>;
+
+            fn script<ScriptOutput: FromRedisValue>(
+                mut self,
+                script_invokation: RedisScriptInvoker<'c>,
+            ) -> Self::NextType<ScriptOutput> {
                 self.pipe.add_command(script_invokation.eval_cmd());
                 self.used_scripts.insert(script_invokation.script);
                 RedisBatch {
@@ -157,9 +214,7 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Run an arbitrary redis (lua script). But discards any return value.
-            pub fn script_no_return(mut self, script_invokation: RedisScriptInvoker<'c>) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
-            {
+            fn script_no_return(mut self, script_invokation: RedisScriptInvoker<'c>) -> Self::CurrentType {
                 // Adding ignore() to ignore response.
                 self.pipe.add_command(script_invokation.eval_cmd()).ignore();
                 self.used_scripts.insert(script_invokation.script);
@@ -171,14 +226,13 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Set a key to a value with an optional expiry.
-            ///
-            /// (expiry accurate to the millisecond)
-            pub fn set<'key, Key, Value>(mut self, namespace: &'static str, key: Key, value: Value, expiry: Option<std::time::Duration>) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
-            where
-                Key: Into<Cow<'key, str>>,
-                Value: ToRedisArgs,
-            {
+            fn set(
+                mut self,
+                namespace: &'static str,
+                key: &str,
+                value: impl ToRedisArgs,
+                expiry: Option<std::time::Duration>,
+            ) -> Self::CurrentType {
                 let final_key = self.redis_conn.final_key(namespace, key.into());
 
                 if let Some(expiry) = expiry {
@@ -200,15 +254,12 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
-            ///
-            /// (expiry accurate to the millisecond)
-            pub fn mset<'key, Key, Value, Pairs>(mut self, namespace: &'static str, pairs: Pairs, expiry: Option<std::time::Duration>) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
-            where
-                Value: ToRedisArgs,
-                Key: Into<Cow<'key, str>>,
-                Pairs: IntoIterator<Item = (Key, Value)>,
-            {
+            fn mset<'key, Value: ToRedisArgs>(
+                mut self,
+                namespace: &'static str,
+                pairs: impl IntoIterator<Item = (&'key str, Value)>,
+                expiry: Option<std::time::Duration>,
+            ) -> Self::CurrentType {
                 let final_pairs = pairs.into_iter().map(|(key, value)| (self.redis_conn.final_key(namespace, key.into()), value)).collect::<Vec<_>>();
 
                 if let Some(expiry) = expiry {
@@ -239,12 +290,11 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Clear one or more keys.
-            pub fn clear<'key, Keys, Key>(mut self, namespace: &'static str, keys: Keys) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
-            where
-                Keys: IntoIterator<Item = Key>,
-                Key: Into<Cow<'key, str>>,
-            {
+            fn clear<'key>(
+                mut self,
+                namespace: &'static str,
+                keys: impl IntoIterator<Item = &'key str>,
+            ) -> Self::CurrentType {
                 let final_keys = keys.into_iter().map(Into::into).map(|key| self.redis_conn.final_key(namespace, key)).collect::<Vec<_>>();
                 // Ignoring so it doesn't take up a space in the tuple response.
                 self.pipe.del(final_keys).ignore();
@@ -256,18 +306,12 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Clear all keys under a given namespace
-            pub fn clear_namespace(self, namespace: &'static str) -> RedisBatch<'a, 'b, 'c, ($($type,)*)>
-            {
+            fn clear_namespace(self, namespace: &'static str) -> Self::CurrentType {
                 let final_namespace = self.redis_conn.final_namespace(namespace);
                 self.script_no_return(CLEAR_NAMESPACE_SCRIPT.invoker().arg(final_namespace))
             }
 
-            /// Check if a key exists.
-            pub fn exists<'key, Key>(mut self, namespace: &'static str, key: Key) -> RedisBatch<'a, 'b, 'c, ($($type,)* bool,)>
-            where
-                Key: Into<Cow<'key, str>>,
-            {
+            fn exists(mut self, namespace: &'static str, key: &str) -> Self::NextType<bool> {
                 self.pipe.exists(self.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -277,12 +321,11 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Check if multiple keys exists.
-            pub fn mexists<'key, Keys, Key>(self, namespace: &'static str, keys: Keys) -> RedisBatch<'a, 'b, 'c, ($($type,)* Vec<bool>,)>
-            where
-                Keys: IntoIterator<Item = Key>,
-                Key: Into<Cow<'key, str>>,
-            {
+            fn mexists<'key>(
+                self,
+                namespace: &'static str,
+                keys: impl IntoIterator<Item = &'key str>,
+            ) -> Self::NextType<Vec<bool>> {
                 let final_keys = keys.into_iter().map(Into::into).map(|key| self.redis_conn.final_key(namespace, key)).collect::<Vec<_>>();
                 let mut invoker = MEXISTS_SCRIPT.invoker();
                 for key in &final_keys {
@@ -291,12 +334,11 @@ macro_rules! impl_batch_methods {
                 self.script::<Vec<bool>>(invoker)
             }
 
-            /// Get a value from a key. Returning `None` if the key doesn't exist.
-            pub fn get<'key, Value, Key>(mut self, namespace: &'static str, key: Key) -> RedisBatch<'a, 'b, 'c, ($($type,)* Option<Value>,)>
-            where
-                Key: Into<Cow<'key, str>>,
-                Value: FromRedisValue
-            {
+            fn get<Value: FromRedisValue>(
+                mut self,
+                namespace: &'static str,
+                key: &str,
+            ) -> Self::NextType<Option<Value>> {
                 self.pipe.get(self.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -306,13 +348,11 @@ macro_rules! impl_batch_methods {
                 }
             }
 
-            /// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
-            pub fn mget<'key, Value, Keys, Key>(mut self, namespace: &'static str, keys: Keys) -> RedisBatch<'a, 'b, 'c, ($($type,)* Vec<Option<Value>>,)>
-            where
-                Keys: IntoIterator<Item = Key>,
-                Key: Into<Cow<'key, str>>,
-                Value: FromRedisValue
-            {
+            fn mget<'key, Value>(
+                mut self,
+                namespace: &'static str,
+                keys: impl IntoIterator<Item = &'key str>,
+            ) -> Self::NextType<Vec<Option<Value>>> {
                 let final_keys = keys.into_iter().map(Into::into).map(|key| self.redis_conn.final_key(namespace, key)).collect::<Vec<_>>();
 
                 self.pipe.get(final_keys);
@@ -324,24 +364,35 @@ macro_rules! impl_batch_methods {
                 }
             }
         }
-    };
+    );
 }
 
-// Implement batch methods for up to 16 operations:
-impl_batch_methods!();
-impl_batch_methods!(0: A);
-impl_batch_methods!(0: A, 1: B);
-impl_batch_methods!(0: A, 1: B, 2: C);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M, 13: N);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M, 13: N, 14: O);
-impl_batch_methods!(0: A, 1: B, 2: C, 3: D, 4: E, 5: F, 6: G, 7: H, 8: I, 9: J, 10: K, 11: L, 12: M, 13: N, 14: O, 15: P);
+// fire() trait for up to 12 operations:
+impl_batch_fire! {}
+// impl_batch_fire! { A } // Special case that returns the command output directly (not in tuple)
+impl_batch_fire! { A B }
+impl_batch_fire! { A B C }
+impl_batch_fire! { A B C D }
+impl_batch_fire! { A B C D E }
+impl_batch_fire! { A B C D E F }
+impl_batch_fire! { A B C D E F G }
+impl_batch_fire! { A B C D E F G H }
+impl_batch_fire! { A B C D E F G H I }
+impl_batch_fire! { A B C D E F G H I J }
+impl_batch_fire! { A B C D E F G H I J K }
+impl_batch_fire! { A B C D E F G H I J K L }
+
+// redis ops trait for up to 12 operations:
+impl_batch_ops! {}
+impl_batch_ops! { A }
+impl_batch_ops! { A B }
+impl_batch_ops! { A B C }
+impl_batch_ops! { A B C D }
+impl_batch_ops! { A B C D E }
+impl_batch_ops! { A B C D E F }
+impl_batch_ops! { A B C D E F G }
+impl_batch_ops! { A B C D E F G H }
+impl_batch_ops! { A B C D E F G H I }
+impl_batch_ops! { A B C D E F G H I J }
+impl_batch_ops! { A B C D E F G H I J K }
+impl_batch_ops! { A B C D E F G H I J K L }

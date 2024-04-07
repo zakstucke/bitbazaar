@@ -175,9 +175,21 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                 if let Some(port) = otlp.grpc_port {
                     use opentelemetry_otlp::{new_exporter, WithExportConfig};
 
-                    if !crate::misc::is_tcp_port_listening("localhost", port)? {
-                        return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", port));
+                    // Spinlock up to 10 seconds until the collector is listening, important not to lose startup logs, don't want to continue until we know the collector can receive logs.
+                    let wait_start = std::time::Instant::now();
+                    let mut found_collector = false;
+                    while wait_start.elapsed() < std::time::Duration::from_secs(10) {
+                        if crate::misc::is_tcp_port_listening("localhost", port)? {
+                            found_collector = true;
+                            break;
+                        }
+                        // Don't want this to delay startup otherwise, so very short waits:
+                        std::thread::sleep(std::time::Duration::from_millis(5));
                     }
+                    if !found_collector {
+                        return Err(anyerr!("Can't connect to open telemetry collector on local port {} (waited for 10 seconds). Are you sure it's running?", port));
+                    }
+
                     let endpoint = format!("grpc://localhost:{}", port);
                     let get_exporter = || new_exporter().tonic().with_endpoint(&endpoint);
                     exporters.push((

@@ -252,7 +252,7 @@ class GlobalLog {
                         ...baseExporterConfig,
                         url: `${otlp.endpoint}/v1/metrics`,
                     }),
-                    exportIntervalMillis: 1000,
+                    exportIntervalMillis: 60000, // Haven't found a way for it to not send when no metrics yet, so changing from 1s to 60s to not bloat the network logs of a client.
                 }),
             ],
         });

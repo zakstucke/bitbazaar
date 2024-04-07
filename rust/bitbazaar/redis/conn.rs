@@ -2,7 +2,7 @@ use std::{borrow::Cow, future::Future};
 
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 
-use super::batch::RedisBatch;
+use super::batch::{RedisBatch, RedisBatchFire, RedisBatchOps};
 use crate::errors::prelude::*;
 
 /// Wrapper around a lazy redis connection.
@@ -14,6 +14,22 @@ pub struct RedisConn<'a> {
 
 /// Public methods for RedisConn.
 impl<'a> RedisConn<'a> {
+    /// Get an internal connection from the pool, connections are kept in the pool for reuse.
+    /// If redis is acting up and unavailable, this will return None.
+    /// NOTE: this mainly is used internally, but provides a fallback to the underlying connection, if the exposed interface does not provide options that fit an external user need (which could definitely happen).
+    pub async fn get_inner_conn(&mut self) -> Option<&mut deadpool_redis::Connection> {
+        if self.conn.is_none() {
+            match self.pool.get().await {
+                Ok(conn) => self.conn = Some(conn),
+                Err(e) => {
+                    tracing::error!("Could not get redis connection: {}", e);
+                    return None;
+                }
+            }
+        }
+        self.conn.as_mut()
+    }
+
     /// Get a new [`RedisBatch`] for this connection that commands can be piped together with.
     pub fn batch<'ref_lt>(&'ref_lt mut self) -> RedisBatch<'ref_lt, 'a, '_> {
         RedisBatch::new(self)
@@ -30,16 +46,6 @@ impl<'a> RedisConn<'a> {
     pub fn final_key(&self, namespace: &'static str, key: Cow<'_, str>) -> String {
         format!("{}:{}", self.final_namespace(namespace), key)
     }
-
-    // /// Clear all keys under a namespace. Returning the number of keys deleted.
-    // pub async fn clear_namespace<'c>(&mut self, namespace: &'static str) -> Option<usize> {
-    //     let final_namespace = self.final_namespace(namespace);
-    //     CLEAR_NAMESPACE_SCRIPT
-    //         .run(self, |scr| {
-    //             scr.arg(final_namespace);
-    //         })
-    //         .await
-    // }
 
     /// Cache an async function in redis with an optional expiry.
     /// If already stored, the cached value will be returned, otherwise the function will be stored in redis for next time.
@@ -64,7 +70,7 @@ impl<'a> RedisConn<'a> {
 
         let cached = self
             .batch()
-            .get::<T, _>(namespace, key.clone())
+            .get::<T>(namespace, &key)
             .fire()
             .await
             .flatten();
@@ -72,7 +78,7 @@ impl<'a> RedisConn<'a> {
             Ok(cached)
         } else {
             let val = cb().await?;
-            self.batch().set(namespace, key, &val, expiry).fire().await;
+            self.batch().set(namespace, &key, &val, expiry).fire().await;
             Ok(val)
         }
     }
@@ -86,20 +92,5 @@ impl<'a> RedisConn<'a> {
             prefix,
             conn: None,
         }
-    }
-
-    /// Get an internal connection from the pool, reused after first call.
-    /// If redis is acting up and unavailable, this will return None.
-    pub(crate) async fn get_conn(&mut self) -> Option<&mut deadpool_redis::Connection> {
-        if self.conn.is_none() {
-            match self.pool.get().await {
-                Ok(conn) => self.conn = Some(conn),
-                Err(e) => {
-                    tracing::error!("Could not get redis connection: {}", e);
-                    return None;
-                }
-            }
-        }
-        self.conn.as_mut()
     }
 }
