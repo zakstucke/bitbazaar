@@ -35,4 +35,9 @@ impl Redis {
     pub fn conn(&self) -> RedisConn<'_> {
         RedisConn::new(&self.pool, &self.prefix)
     }
+
+    /// Escape hatch, access the inner deadpool_redis pool.
+    pub fn get_inner_pool(&self) -> &deadpool_redis::Pool {
+        &self.pool
+    }
 }

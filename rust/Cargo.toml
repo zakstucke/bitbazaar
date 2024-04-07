@@ -78,8 +78,8 @@ conch-parser = { version = "0.1.1", optional = true }
 homedir = { version = "0.2", optional = true }
 
 # FEAT: redis:
-deadpool-redis = { version = "0.14", features = ["rt_tokio_1"], optional = true }
-redis = { version = "0.24", default-features = false, features = ["aio", "json"], optional = true }
+deadpool-redis = { version = "0.15", features = ["rt_tokio_1"], optional = true }
+redis = { version = "0.25", default-features = false, features = ["aio", "json"], optional = true }
 sha1_smol = { version = "1.0", optional = true }
 
 # FEAT: opentelemetry-(grpc|http):

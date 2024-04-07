@@ -4,7 +4,7 @@ mod json;
 mod script;
 mod wrapper;
 
-pub use batch::RedisBatch;
+pub use batch::{RedisBatch, RedisBatchFire, RedisBatchOps};
 pub use conn::RedisConn;
 pub use json::{RedisJson, RedisJsonConsume};
 pub use script::{RedisScript, RedisScriptInvoker};
@@ -99,7 +99,7 @@ mod tests {
 
         // Shouldn't exist yet:
         for (conn, exp) in [(&mut work_conn, Some(None)), (&mut fail_conn, None)] {
-            assert_eq!(conn.batch().get::<String, _>("", "foo").fire().await, exp);
+            assert_eq!(conn.batch().get::<String>("", "foo").fire().await, exp);
         }
 
         // Set so should now exist:
@@ -110,7 +110,7 @@ mod tests {
             (&mut work_conn, Some(Some("bar".to_string()))),
             (&mut fail_conn, None),
         ] {
-            assert_eq!(conn.batch().get::<String, _>("", "foo").fire().await, exp);
+            assert_eq!(conn.batch().get::<String>("", "foo").fire().await, exp);
         }
 
         // Multiple should come back as tuple:
@@ -120,7 +120,7 @@ mod tests {
         ] {
             assert_eq!(
                 conn.batch()
-                    .get::<String, _>("", "I don't exist")
+                    .get::<String>("", "I don't exist")
                     .get("", "foo")
                     .fire()
                     .await,
@@ -198,7 +198,7 @@ mod tests {
                 .mset("n3", [("foo", "foo"), ("bar", "bar"), ("baz", "baz")], None)
                 .clear_namespace("n1")
                 .clear("n2", ["foo", "baz"])
-                .mget::<String, _, _>("n1", ["foo", "bar", "baz"])
+                .mget::<String>("n1", ["foo", "bar", "baz"])
                 .mget("n2", ["foo", "bar", "baz"])
                 .mget("n3", ["foo", "bar", "baz"])
                 .fire()
@@ -261,7 +261,7 @@ mod tests {
                         }),
                         None
                     )
-                    .get::<RedisJson<ExampleJson>, _>("", "foo")
+                    .get::<RedisJson<ExampleJson>>("", "foo")
                     .fire()
                     .await
                     .flatten()
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(
             work_conn
                 .batch()
-                .get::<String, _>("e1", "foo")
+                .get::<String>("e1", "foo")
                 .get("e1", "bar")
                 .mget("e2", ["foo", "bar", "baz", "qux"])
                 .fire()
@@ -373,9 +373,9 @@ mod tests {
         assert_eq!(
             work_conn
                 .batch()
-                .get::<String, _>("e1", "foo")
-                .get::<String, _>("e1", "bar")
-                .mget::<Vec<String>, _, _>("e2", ["foo", "bar", "baz", "qux"])
+                .get::<String>("e1", "foo")
+                .get::<String>("e1", "bar")
+                .mget::<Vec<String>>("e2", ["foo", "bar", "baz", "qux"])
                 .fire()
                 .await,
             Some((None, None, vec![None, None, None, None]))
