@@ -178,16 +178,29 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
                     // Spinlock up to 10 seconds until the collector is listening, important not to lose startup logs, don't want to continue until we know the collector can receive logs.
                     let wait_start = std::time::Instant::now();
                     let mut found_collector = false;
+                    let mut is_first = true;
                     while wait_start.elapsed() < std::time::Duration::from_secs(10) {
                         if crate::misc::is_tcp_port_listening("localhost", port)? {
                             found_collector = true;
+
+                            // If printed the spinlocking message, confirm all good now:
+                            if !is_first {
+                                println!("Collector up after {:?}!", wait_start.elapsed());
+                            }
+
                             break;
                         }
+
+                        if is_first {
+                            println!("Spinlocking for up to 10 seconds for OpenTelemetry collector availability on local port {}...", port);
+                            is_first = false;
+                        }
+
                         // Don't want this to delay startup otherwise, so very short waits:
                         std::thread::sleep(std::time::Duration::from_millis(5));
                     }
                     if !found_collector {
-                        return Err(anyerr!("Can't connect to open telemetry collector on local port {} (waited for 10 seconds). Are you sure it's running?", port));
+                        return Err(anyerr!("Can't connect to open telemetry collector on local port {}. Are you sure it's running?", port));
                     }
 
                     let endpoint = format!("grpc://localhost:{}", port);

@@ -3,13 +3,15 @@ mod conn;
 mod dlock;
 mod json;
 mod script;
+mod temp_list;
 mod wrapper;
 
-pub use batch::{RedisBatch, RedisBatchFire, RedisBatchOps};
+pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::RedisConn;
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonConsume};
 pub use script::{RedisScript, RedisScriptInvoker};
+pub use temp_list::RedisTempList;
 pub use wrapper::Redis;
 
 #[cfg(test)]
@@ -24,7 +26,12 @@ mod tests {
     use rstest::*;
 
     use super::*;
-    use crate::{errors::prelude::*, misc::in_ci, redis::dlock::redis_dlock_tests};
+    use crate::{
+        errors::prelude::*,
+        log::GlobalLog,
+        misc::in_ci,
+        redis::{dlock::redis_dlock_tests, temp_list::redis_temp_list_tests},
+    };
 
     struct ChildGuard(Child);
 
@@ -64,10 +71,15 @@ mod tests {
         }
     }
 
+    #[fixture]
+    fn logging() -> () {
+        GlobalLog::setup_quick_stdout_global_logging(tracing::Level::DEBUG).unwrap();
+    }
+
     /// Test functionality working as it should when redis up and running fine.
     #[rstest]
     #[tokio::test]
-    async fn test_redis_working() -> Result<(), AnyErr> {
+    async fn test_redis_working(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
         // Don't want to install redis in ci, just run this test locally:
         if in_ci() {
             return Ok(());
@@ -383,8 +395,59 @@ mod tests {
             Some((None, None, vec![None, None, None, None]))
         );
 
+        // zadd/zaddmulti/zrangebyscore/zremrangebyscore
+        assert_eq!(
+            work_conn
+                .batch()
+                .zadd("z1", "myset", None, 3, "foo")
+                // By setting an expiry time here, the set itself will now expire after 30ms:
+                .zadd("z1", "myset", Some(Duration::from_millis(30)), 1, "bar")
+                .zadd_multi(
+                    "z1",
+                    "myset",
+                    None,
+                    &[(2, "baz"), (5, "qux"), (6, "lah"), (0, "loo"), (4, "quux"),],
+                )
+                // Should return vals for scores in 2,3,4
+                .zrangebyscore::<String>("z1", "myset", 2, 4, None)
+                // Delete vals with scores in 2,3,4
+                .zremrangebyscore("z1", "myset", 2, 4)
+                // Means 0-6 now returns only 1,5,6 (not 0 due to limit of 3) as just deleted the rest.
+                .zrangebyscore::<String>("z1", "myset", 0, 6, Some(3))
+                .fire()
+                .await,
+            // Values are ordered from highest score to lowest score:
+            Some((
+                vec![
+                    (Some("quux".into()), 4),
+                    (Some("foo".into()), 3),
+                    (Some("baz".into()), 2),
+                ],
+                vec![
+                    (Some("lah".into()), 6),
+                    (Some("qux".into()), 5),
+                    (Some("bar".into()), 1)
+                ]
+            ))
+        );
+
+        // In 15ms should still exist, in another 20ms should be gone due to the set expire time:
+        tokio::time::sleep(std::time::Duration::from_millis(15)).await;
+        assert_eq!(
+            work_conn.batch().exists("z1", "myset").fire().await,
+            Some(true)
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        assert_eq!(
+            work_conn.batch().exists("z1", "myset").fire().await,
+            Some(false)
+        );
+
         // Run the dlock tests:
-        redis_dlock_tests(work_r).await?;
+        redis_dlock_tests(&work_r).await?;
+
+        // Run the temp_list tests:
+        redis_temp_list_tests(&work_r).await?;
 
         Ok(())
     }

@@ -19,7 +19,7 @@ use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng, RngCore};
 use redis::{RedisResult, Value};
 
-use super::{RedisBatchFire, RedisBatchOps, RedisConn, RedisScript};
+use super::{RedisBatchFire, RedisBatchReturningOps, RedisConn, RedisScript};
 use crate::prelude::*;
 
 const RETRY_DELAY: u32 = 200;
@@ -245,7 +245,6 @@ impl<'a> RedisLock<'a> {
 
             // If met the quorum and ttl still holds, succeed, otherwise just unlock.
             if n >= quorum && validity_time > 0 {
-                println!("Lock VALIDITY: {}", validity_time);
                 return Ok(true);
             } else {
                 self.unlock().await;
@@ -275,7 +274,7 @@ fn get_unique_lock_id() -> Vec<u8> {
 
 /// Run by the main tester that spawns up a redis process.
 #[cfg(test)]
-pub async fn redis_dlock_tests(r: super::Redis) -> Result<(), AnyErr> {
+pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
     // Just checking the object is normal: (from upstream)
     fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     is_normal::<RedisLock>();

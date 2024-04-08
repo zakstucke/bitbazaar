@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use deadpool_redis::{Config, Runtime};
 
-use super::{RedisConn, RedisLock, RedisLockErr};
+use super::{RedisConn, RedisLock, RedisLockErr, RedisTempList};
 use crate::errors::prelude::*;
 
 /// A wrapper around redis to make it more concise to use and not need redis in the downstream Cargo.toml.
@@ -54,6 +54,18 @@ impl Redis {
         wait_up_to: Option<Duration>,
     ) -> Result<RedisLock<'_>, RedisLockErr> {
         RedisLock::new(self, lock_id, time_to_live, wait_up_to).await
+    }
+
+    /// Connect up to a magic redis list that:
+    /// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
+    /// - Each item in the list can have it's own expiry, so the list is always clean of old items.
+    pub fn templist(
+        &self,
+        namespace: &'static str,
+        key: impl Into<String>,
+        expire_after: Duration,
+    ) -> RedisTempList<'_> {
+        RedisTempList::new(self, namespace, key.into(), expire_after)
     }
 
     /// Escape hatch, access the inner deadpool_redis pool.

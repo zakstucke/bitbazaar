@@ -31,6 +31,7 @@ redis = [
   'dep:rand',
   'dep:futures',
   'dep:futures-timer',
+  'dep:chrono',
 ]
 opentelemetry-grpc = [
   'dep:tracing-log',
