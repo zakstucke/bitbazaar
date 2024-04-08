@@ -131,19 +131,19 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// - `set_key`: The key of the set.
     /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
     /// - `score`: The score of the entry.
-    /// - `value`: The value of the entry.
+    /// - `value`: The value of the entry. (values of sets must be strings)
     pub fn zadd(
         mut self,
         set_namespace: &'static str,
         set_key: &str,
         set_ttl: Option<std::time::Duration>,
         score: i64,
-        value: impl ToRedisArgs,
+        value: impl AsRef<str>,
     ) -> Self {
         self.pipe
             .zadd(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                value,
+                value.as_ref(),
                 score,
             )
             // Ignoring so it doesn't take up a space in the tuple response.
@@ -160,6 +160,34 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         }
     }
 
+    /// remove an entry to an ordered set.
+    /// https://redis.io/commands/zrem/
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `value`: The value of the entry. (values of sets must be strings)
+    pub fn zrem(
+        mut self,
+        set_namespace: &'static str,
+        set_key: &str,
+        value: impl AsRef<str>,
+    ) -> Self {
+        self.pipe
+            .zrem(
+                self.redis_conn.final_key(set_namespace, set_key.into()),
+                value.as_ref(),
+            )
+            // Ignoring so it doesn't take up a space in the tuple response.
+            .ignore();
+        RedisBatch {
+            _returns: PhantomData,
+            redis_conn: self.redis_conn,
+            pipe: self.pipe,
+            used_scripts: self.used_scripts,
+        }
+    }
+
     /// Add multiple entries at once to an ordered set (auto creating the set if it doesn't exist).
     /// https://redis.io/commands/zadd/
     ///
@@ -167,18 +195,22 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
     /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
-    /// - items: The scores and values of the entries.
+    /// - items: The scores and values of the entries. (set values must be strings)
     pub fn zadd_multi(
         mut self,
         set_namespace: &'static str,
         set_key: &str,
         set_ttl: Option<std::time::Duration>,
-        items: &[(i64, impl ToRedisArgs)],
+        items: &[(i64, impl AsRef<str>)],
     ) -> Self {
         self.pipe
             .zadd_multiple(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                items,
+                items
+                    .iter()
+                    .map(|(score, value)| (*score, value.as_ref()))
+                    .collect::<Vec<_>>()
+                    .as_slice(),
             )
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();
@@ -256,15 +288,20 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
     ///
     /// (expiry accurate to the millisecond)
-    pub fn mset<'key, Value: ToRedisArgs>(
+    pub fn mset<Value: ToRedisArgs>(
         mut self,
         namespace: &'static str,
-        pairs: impl IntoIterator<Item = (&'key str, Value)>,
+        pairs: impl IntoIterator<Item = (impl AsRef<str>, Value)>,
         expiry: Option<std::time::Duration>,
     ) -> Self {
         let final_pairs = pairs
             .into_iter()
-            .map(|(key, value)| (self.redis_conn.final_key(namespace, key.into()), value))
+            .map(|(key, value)| {
+                (
+                    self.redis_conn.final_key(namespace, key.as_ref().into()),
+                    value,
+                )
+            })
             .collect::<Vec<_>>();
 
         if let Some(expiry) = expiry {
@@ -385,10 +422,10 @@ pub trait RedisBatchReturningOps<'c> {
     ) -> Self::NextType<Option<Value>>;
 
     /// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
-    fn mget<'key, Value>(
+    fn mget<Value>(
         self,
         namespace: &'static str,
-        keys: impl IntoIterator<Item = &'key str>,
+        keys: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Self::NextType<Vec<Option<Value>>>;
 
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -473,12 +510,12 @@ macro_rules! impl_batch_ops {
                 }
             }
 
-            fn mget<'key, Value>(
+            fn mget<Value>(
                 mut self,
                 namespace: &'static str,
-                keys: impl IntoIterator<Item = &'key str>,
+                keys: impl IntoIterator<Item = impl AsRef<str>>,
             ) -> Self::NextType<Vec<Option<Value>>> {
-                let final_keys = keys.into_iter().map(Into::into).map(|key| self.redis_conn.final_key(namespace, key)).collect::<Vec<_>>();
+                let final_keys = keys.into_iter().map(|key| self.redis_conn.final_key(namespace, key.as_ref().into())).collect::<Vec<_>>();
 
                 self.pipe.get(final_keys);
                 RedisBatch {

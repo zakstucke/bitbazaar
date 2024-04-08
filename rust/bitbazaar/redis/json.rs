@@ -5,6 +5,15 @@ use redis::{FromRedisValue, ToRedisArgs};
 #[derive(Debug)]
 pub struct RedisJson<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(pub T);
 
+/// If the object is comparable, make the wrapper too:
+impl<T: serde::Serialize + for<'a> serde::Deserialize<'a> + PartialEq> PartialEq for RedisJson<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+/// If the object is comparable, make the wrapper too:
+impl<T: serde::Serialize + for<'a> serde::Deserialize<'a> + Eq> Eq for RedisJson<T> {}
+
 /// A trait to allow consuming a redis wrapper and returning the inner json object.
 pub trait RedisJsonConsume<T> {
     /// Extract the inner json object from the redis wrapper.
