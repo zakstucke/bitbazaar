@@ -546,6 +546,43 @@
 <a href="#544" id="544">544</a>
 <a href="#545" id="545">545</a>
 <a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, marker::PhantomData};
 
 <span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
@@ -679,19 +716,19 @@
     /// - `set_key`: The key of the set.
     /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
     /// - `score`: The score of the entry.
-    /// - `value`: The value of the entry.
+    /// - `value`: The value of the entry. (values of sets must be strings)
     </span><span class="kw">pub fn </span>zadd(
         <span class="kw-2">mut </span><span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
         set_key: <span class="kw-2">&amp;</span>str,
         set_ttl: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
         score: i64,
-        value: <span class="kw">impl </span>ToRedisArgs,
+        value: <span class="kw">impl </span>AsRef&lt;str&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .zadd(
                 <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
-                value,
+                value.as_ref(),
                 score,
             )
             <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
@@ -708,6 +745,34 @@
         }
     }
 
+    <span class="doccomment">/// remove an entry to an ordered set.
+    /// https://redis.io/commands/zrem/
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `value`: The value of the entry. (values of sets must be strings)
+    </span><span class="kw">pub fn </span>zrem(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        set_key: <span class="kw-2">&amp;</span>str,
+        value: <span class="kw">impl </span>AsRef&lt;str&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.pipe
+            .zrem(
+                <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
+                value.as_ref(),
+            )
+            <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
+            </span>.ignore();
+        RedisBatch {
+            _returns: PhantomData,
+            redis_conn: <span class="self">self</span>.redis_conn,
+            pipe: <span class="self">self</span>.pipe,
+            used_scripts: <span class="self">self</span>.used_scripts,
+        }
+    }
+
     <span class="doccomment">/// Add multiple entries at once to an ordered set (auto creating the set if it doesn't exist).
     /// https://redis.io/commands/zadd/
     ///
@@ -715,18 +780,22 @@
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
     /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
-    /// - items: The scores and values of the entries.
+    /// - items: The scores and values of the entries. (set values must be strings)
     </span><span class="kw">pub fn </span>zadd_multi(
         <span class="kw-2">mut </span><span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
         set_key: <span class="kw-2">&amp;</span>str,
         set_ttl: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
-        items: <span class="kw-2">&amp;</span>[(i64, <span class="kw">impl </span>ToRedisArgs)],
+        items: <span class="kw-2">&amp;</span>[(i64, <span class="kw">impl </span>AsRef&lt;str&gt;)],
     ) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .zadd_multiple(
                 <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
-                items,
+                items
+                    .iter()
+                    .map(|(score, value)| (<span class="kw-2">*</span>score, value.as_ref()))
+                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+                    .as_slice(),
             )
             <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
             </span>.ignore();
@@ -804,15 +873,20 @@
     <span class="doccomment">/// Set multiple values (MSET) of the same type at once. If expiry used will use a custom lua script to achieve the functionality.
     ///
     /// (expiry accurate to the millisecond)
-    </span><span class="kw">pub fn </span>mset&lt;<span class="lifetime">'key</span>, Value: ToRedisArgs&gt;(
+    </span><span class="kw">pub fn </span>mset&lt;Value: ToRedisArgs&gt;(
         <span class="kw-2">mut </span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-        pairs: <span class="kw">impl </span>IntoIterator&lt;Item = (<span class="kw-2">&amp;</span><span class="lifetime">'key </span>str, Value)&gt;,
+        pairs: <span class="kw">impl </span>IntoIterator&lt;Item = (<span class="kw">impl </span>AsRef&lt;str&gt;, Value)&gt;,
         expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_pairs = pairs
             .into_iter()
-            .map(|(key, value)| (<span class="self">self</span>.redis_conn.final_key(namespace, key.into()), value))
+            .map(|(key, value)| {
+                (
+                    <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into()),
+                    value,
+                )
+            })
             .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(expiry) = expiry {
@@ -933,10 +1007,10 @@
     ) -&gt; <span class="self">Self</span>::NextType&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;;
 
     <span class="doccomment">/// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
-    </span><span class="kw">fn </span>mget&lt;<span class="lifetime">'key</span>, Value&gt;(
+    </span><span class="kw">fn </span>mget&lt;Value&gt;(
         <span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt;;
 
     <span class="doccomment">/// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -1021,12 +1095,12 @@
                 }
             }
 
-            <span class="kw">fn </span>mget&lt;<span class="lifetime">'key</span>, Value&gt;(
+            <span class="kw">fn </span>mget&lt;Value&gt;(
                 <span class="kw-2">mut </span><span class="self">self</span>,
                 namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
             ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt; {
-                <span class="kw">let </span>final_keys = keys.into_iter().map(Into::into).map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+                <span class="kw">let </span>final_keys = keys.into_iter().map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into())).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
                 <span class="self">self</span>.pipe.get(final_keys);
                 RedisBatch {

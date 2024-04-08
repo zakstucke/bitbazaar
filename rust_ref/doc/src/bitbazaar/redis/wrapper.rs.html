@@ -81,6 +81,11 @@
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>deadpool_redis::{Config, Runtime};
@@ -141,7 +146,12 @@
 
     <span class="doccomment">/// Connect up to a magic redis list that:
     /// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
-    /// - Each item in the list can have it's own expiry, so the list is always clean of old items.
+    /// - Each item in the list has it's own expiry, so the list is always clean of old items.
+    /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
+    /// - Returned items are returned newest to oldest (for all intents and purposes, slightly more complicated).
+    /// This makes this distributed data structure perfect for e.g.:
+    /// - recent/temporary logs/events of any sort.
+    /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
     </span><span class="kw">pub fn </span>templist(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,

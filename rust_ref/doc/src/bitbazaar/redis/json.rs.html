@@ -54,12 +54,30 @@
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>redis::{FromRedisValue, ToRedisArgs};
 
 <span class="doccomment">/// A wrapper on an arbitrary json object to allow reading and writing to redis.
 /// Use [`RedisJsonConsume::consume`] to extract the inner json object.
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>RedisJson&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(<span class="kw">pub </span>T);
+
+<span class="doccomment">/// If the object is comparable, make the wrapper too:
+</span><span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt; + PartialEq&gt; PartialEq <span class="kw">for </span>RedisJson&lt;T&gt; {
+    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
+        <span class="self">self</span>.<span class="number">0 </span>== other.<span class="number">0
+    </span>}
+}
+<span class="doccomment">/// If the object is comparable, make the wrapper too:
+</span><span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt; + Eq&gt; Eq <span class="kw">for </span>RedisJson&lt;T&gt; {}
 
 <span class="doccomment">/// A trait to allow consuming a redis wrapper and returning the inner json object.
 </span><span class="kw">pub trait </span>RedisJsonConsume&lt;T&gt; {
