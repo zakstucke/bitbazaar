@@ -395,7 +395,7 @@ mod tests {
             Some((None, None, vec![None, None, None, None]))
         );
 
-        // zadd/zaddmulti/zrangebyscore/zremrangebyscore
+        // zadd/zaddmulti/zrem/zrangebyscore/zremrangebyscore
         assert_eq!(
             work_conn
                 .batch()
@@ -408,7 +408,8 @@ mod tests {
                     None,
                     &[(2, "baz"), (5, "qux"), (6, "lah"), (0, "loo"), (4, "quux"),],
                 )
-                // Should return vals for scores in 2,3,4
+                .zrem("z1", "myset", "foo")
+                // Should return vals for scores in 2,3,4 (not 3 because I just removed it)
                 .zrangebyscore::<String>("z1", "myset", 2, 4, None)
                 // Delete vals with scores in 2,3,4
                 .zremrangebyscore("z1", "myset", 2, 4)
@@ -418,11 +419,7 @@ mod tests {
                 .await,
             // Values are ordered from highest score to lowest score:
             Some((
-                vec![
-                    (Some("quux".into()), 4),
-                    (Some("foo".into()), 3),
-                    (Some("baz".into()), 2),
-                ],
+                vec![(Some("quux".into()), 4), (Some("baz".into()), 2),],
                 vec![
                     (Some("lah".into()), 6),
                     (Some("qux".into()), 5),

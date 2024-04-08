@@ -58,7 +58,12 @@ impl Redis {
 
     /// Connect up to a magic redis list that:
     /// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
-    /// - Each item in the list can have it's own expiry, so the list is always clean of old items.
+    /// - Each item in the list has it's own expiry, so the list is always clean of old items.
+    /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
+    /// - Returned items are returned newest to oldest (for all intents and purposes, slightly more complicated).
+    /// This makes this distributed data structure perfect for e.g.:
+    /// - recent/temporary logs/events of any sort.
+    /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
     pub fn templist(
         &self,
         namespace: &'static str,
