@@ -2,7 +2,7 @@ use std::{borrow::Cow, future::Future};
 
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 
-use super::batch::{RedisBatch, RedisBatchFire, RedisBatchOps};
+use super::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 use crate::errors::prelude::*;
 
 /// Wrapper around a lazy redis connection.
