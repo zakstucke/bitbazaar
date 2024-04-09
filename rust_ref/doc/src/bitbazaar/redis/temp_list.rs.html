@@ -780,6 +780,35 @@
 <a href="#778" id="778">778</a>
 <a href="#779" id="779">779</a>
 <a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     sync::{atomic::AtomicI64, Arc},
@@ -794,9 +823,38 @@
 <span class="doccomment">/// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
 </span><span class="kw">pub struct </span>RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, T&gt; {
     <span class="doccomment">/// The normal item holder.
-    </span><span class="kw">pub </span>item: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>RedisTempListItem&lt;T&gt;,
+    </span>item: RedisTempListItem&lt;T&gt;,
     <span class="doccomment">/// The redis conn sidecar.
-    </span><span class="kw">pub </span>conn: RedisConn&lt;<span class="lifetime">'b</span>&gt;,
+    </span><span class="kw">pub </span>conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>RedisConn&lt;<span class="lifetime">'b</span>&gt;,
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'c</span>&gt; serde::Deserialize&lt;<span class="lifetime">'c</span>&gt;&gt;
+    RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, T&gt;
+{
+    <span class="doccomment">/// See [`RedisTempListItem::update`]
+    </span><span class="kw">pub async fn </span>update(<span class="kw-2">&amp;mut </span><span class="self">self</span>, updater: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>T)) {
+        <span class="self">self</span>.item.update(<span class="self">self</span>.conn, updater).<span class="kw">await</span>;
+    }
+
+    <span class="doccomment">/// See [`RedisTempListItem::replace`]
+    </span><span class="kw">pub async fn </span>replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>, replacer: <span class="kw">impl </span>FnOnce() -&gt; T) {
+        <span class="self">self</span>.item.replace(<span class="self">self</span>.conn, replacer).<span class="kw">await</span>;
+    }
+
+    <span class="doccomment">/// See [`RedisTempListItem::uid`]
+    </span><span class="kw">pub fn </span>uid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
+        <span class="self">self</span>.item.uid()
+    }
+
+    <span class="doccomment">/// See [`RedisTempListItem::item`]
+    </span><span class="kw">pub fn </span>item(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>T&gt; {
+        <span class="self">self</span>.item.item()
+    }
+
+    <span class="doccomment">/// See [`RedisTempListItem::into_item`]
+    </span><span class="kw">pub fn </span>into_item(<span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;T&gt; {
+        <span class="self">self</span>.item.into_item()
+    }
 }
 
 <span class="doccomment">/// A user friendly interface around a redis list item, allowing for easy updates and replacements.
@@ -817,6 +875,20 @@
 }
 
 <span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt; RedisTempListItem&lt;T&gt; {
+    <span class="doccomment">/// Useful helper utility to just get a vec of valid items from a vec of holders.
+    /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
+    </span><span class="kw">pub fn </span>vec_items(items: Vec&lt;<span class="self">Self</span>&gt;) -&gt; Vec&lt;T&gt; {
+        items.into_iter().filter_map(|x| x.into_item()).collect()
+    }
+
+    <span class="doccomment">/// Useful for combining a connection with an item, to prevent needing to pass both around.
+    </span><span class="kw">pub fn </span>with_conn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>&gt;(
+        <span class="self">self</span>,
+        conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>RedisConn&lt;<span class="lifetime">'b</span>&gt;,
+    ) -&gt; RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, T&gt; {
+        RedisTempListItemWithConn { item: <span class="self">self</span>, conn }
+    }
+
     <span class="doccomment">/// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
     </span><span class="kw">pub fn </span>new(
         uid: <span class="prelude-ty">Option</span>&lt;String&gt;,
@@ -837,14 +909,6 @@
             maybe_uid: <span class="prelude-val">None</span>,
             maybe_item: <span class="prelude-val">None</span>,
         }
-    }
-
-    <span class="doccomment">/// Useful for combining a connection with an item, to prevent needing to pass both around.
-    </span><span class="kw">pub fn </span>with_conn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>,
-        conn: RedisConn&lt;<span class="lifetime">'b</span>&gt;,
-    ) -&gt; RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, T&gt; {
-        RedisTempListItemWithConn { item: <span class="self">self</span>, conn }
     }
 
     <span class="doccomment">/// Fully manage the update of an item back to redis.
@@ -914,12 +978,6 @@
     <span class="doccomment">/// Consume the holder, returning the item, if it exists.
     </span><span class="kw">pub fn </span>into_item(<span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;T&gt; {
         <span class="self">self</span>.maybe_item
-    }
-
-    <span class="doccomment">/// Useful helper utility to just get a vec of valid items from a vec of holders.
-    /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
-    </span><span class="kw">pub fn </span>vec_items(items: Vec&lt;<span class="self">Self</span>&gt;) -&gt; Vec&lt;T&gt; {
-        items.into_iter().filter_map(|x| x.into_item()).collect()
     }
 }
 
