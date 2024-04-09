@@ -12,9 +12,38 @@ use crate::redis::RedisJsonBorrowed;
 /// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
 pub struct RedisTempListItemWithConn<'a, 'b, T> {
     /// The normal item holder.
-    pub item: &'a mut RedisTempListItem<T>,
+    item: RedisTempListItem<T>,
     /// The redis conn sidecar.
-    pub conn: RedisConn<'b>,
+    pub conn: &'a mut RedisConn<'b>,
+}
+
+impl<'a, 'b, T: serde::Serialize + for<'c> serde::Deserialize<'c>>
+    RedisTempListItemWithConn<'a, 'b, T>
+{
+    /// See [`RedisTempListItem::update`]
+    pub async fn update(&mut self, updater: impl FnOnce(&mut T)) {
+        self.item.update(self.conn, updater).await;
+    }
+
+    /// See [`RedisTempListItem::replace`]
+    pub async fn replace(&mut self, replacer: impl FnOnce() -> T) {
+        self.item.replace(self.conn, replacer).await;
+    }
+
+    /// See [`RedisTempListItem::uid`]
+    pub fn uid(&self) -> Option<&str> {
+        self.item.uid()
+    }
+
+    /// See [`RedisTempListItem::item`]
+    pub fn item(&self) -> Option<&T> {
+        self.item.item()
+    }
+
+    /// See [`RedisTempListItem::into_item`]
+    pub fn into_item(self) -> Option<T> {
+        self.item.into_item()
+    }
 }
 
 /// A user friendly interface around a redis list item, allowing for easy updates and replacements.
@@ -35,6 +64,20 @@ pub struct RedisTempListItem<T> {
 }
 
 impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> {
+    /// Useful helper utility to just get a vec of valid items from a vec of holders.
+    /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
+    pub fn vec_items(items: Vec<Self>) -> Vec<T> {
+        items.into_iter().filter_map(|x| x.into_item()).collect()
+    }
+
+    /// Useful for combining a connection with an item, to prevent needing to pass both around.
+    pub fn with_conn<'a, 'b>(
+        self,
+        conn: &'a mut RedisConn<'b>,
+    ) -> RedisTempListItemWithConn<'a, 'b, T> {
+        RedisTempListItemWithConn { item: self, conn }
+    }
+
     /// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
     pub fn new(
         uid: Option<String>,
@@ -55,14 +98,6 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
             maybe_uid: None,
             maybe_item: None,
         }
-    }
-
-    /// Useful for combining a connection with an item, to prevent needing to pass both around.
-    pub fn with_conn<'a, 'b>(
-        &'a mut self,
-        conn: RedisConn<'b>,
-    ) -> RedisTempListItemWithConn<'a, 'b, T> {
-        RedisTempListItemWithConn { item: self, conn }
     }
 
     /// Fully manage the update of an item back to redis.
@@ -132,12 +167,6 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
     /// Consume the holder, returning the item, if it exists.
     pub fn into_item(self) -> Option<T> {
         self.maybe_item
-    }
-
-    /// Useful helper utility to just get a vec of valid items from a vec of holders.
-    /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
-    pub fn vec_items(items: Vec<Self>) -> Vec<T> {
-        items.into_iter().filter_map(|x| x.into_item()).collect()
     }
 }
 
