@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9e1300b5663a8a03.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (9d5cdf75a 2024-04-07)" data-channel="nightly" data-search-js="search-ffac13a0df2b1870.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c97aec732c613ca4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9e1300b5663a8a03.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (ab5bda1aa 2024-04-08)" data-channel="nightly" data-search-js="search-ffac13a0df2b1870.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c97aec732c613ca4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -578,11 +578,6 @@
 <a href="#576" id="576">576</a>
 <a href="#577" id="577">577</a>
 <a href="#578" id="578">578</a>
-<a href="#579" id="579">579</a>
-<a href="#580" id="580">580</a>
-<a href="#581" id="581">581</a>
-<a href="#582" id="582">582</a>
-<a href="#583" id="583">583</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, marker::PhantomData};
 
 <span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
@@ -691,7 +686,7 @@
     <span class="doccomment">/// Expire an existing key with a new/updated ttl.
     ///
     /// https://redis.io/commands/pexpire/
-    </span><span class="kw">pub fn </span>expire(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: <span class="kw-2">&amp;</span>str, ttl: std::time::Duration) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>expire(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str, ttl: std::time::Duration) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .pexpire(
                 <span class="self">self</span>.redis_conn.final_key(namespace, key.into()),
@@ -719,7 +714,7 @@
     /// - `value`: The value of the entry. (values of sets must be strings)
     </span><span class="kw">pub fn </span>zadd(
         <span class="kw-2">mut </span><span class="self">self</span>,
-        set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
         set_ttl: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
         score: i64,
@@ -752,12 +747,7 @@
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
     /// - `value`: The value of the entry. (values of sets must be strings)
-    </span><span class="kw">pub fn </span>zrem(
-        <span class="kw-2">mut </span><span class="self">self</span>,
-        set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-        set_key: <span class="kw-2">&amp;</span>str,
-        value: <span class="kw">impl </span>AsRef&lt;str&gt;,
-    ) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>zrem(<span class="kw-2">mut </span><span class="self">self</span>, set_namespace: <span class="kw-2">&amp;</span>str, set_key: <span class="kw-2">&amp;</span>str, value: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .zrem(
                 <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
@@ -783,7 +773,7 @@
     /// - items: The scores and values of the entries. (set values must be strings)
     </span><span class="kw">pub fn </span>zadd_multi(
         <span class="kw-2">mut </span><span class="self">self</span>,
-        set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
         set_ttl: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
         items: <span class="kw-2">&amp;</span>[(i64, <span class="kw">impl </span>AsRef&lt;str&gt;)],
@@ -816,7 +806,7 @@
     /// https://redis.io/commands/zremrangebyscore/
     </span><span class="kw">pub fn </span>zremrangebyscore(
         <span class="kw-2">mut </span><span class="self">self</span>,
-        set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
         min: i64,
         max: i64,
@@ -842,7 +832,7 @@
     /// (expiry accurate to the millisecond)
     </span><span class="kw">pub fn </span>set(
         <span class="kw-2">mut </span><span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         key: <span class="kw-2">&amp;</span>str,
         value: <span class="kw">impl </span>ToRedisArgs,
         expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
@@ -875,7 +865,7 @@
     /// (expiry accurate to the millisecond)
     </span><span class="kw">pub fn </span>mset&lt;Value: ToRedisArgs&gt;(
         <span class="kw-2">mut </span><span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         pairs: <span class="kw">impl </span>IntoIterator&lt;Item = (<span class="kw">impl </span>AsRef&lt;str&gt;, Value)&gt;,
         expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
     ) -&gt; <span class="self">Self </span>{
@@ -922,7 +912,7 @@
     <span class="doccomment">/// Clear one or more keys.
     </span><span class="kw">pub fn </span>clear&lt;<span class="lifetime">'key</span>&gt;(
         <span class="kw-2">mut </span><span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_keys = keys
@@ -941,7 +931,7 @@
     }
 
     <span class="doccomment">/// Clear all keys under a given namespace
-    </span><span class="kw">pub fn </span>clear_namespace(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>clear_namespace(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_namespace = <span class="self">self</span>.redis_conn.final_namespace(namespace);
         <span class="self">self</span>.script_no_return(CLEAR_NAMESPACE_SCRIPT.invoker().arg(final_namespace))
     }
@@ -990,26 +980,26 @@
     ) -&gt; <span class="self">Self</span>::NextType&lt;ScriptOutput&gt;;
 
     <span class="doccomment">/// Check if a key exists.
-    </span><span class="kw">fn </span>exists(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt;;
+    </span><span class="kw">fn </span>exists(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt;;
 
     <span class="doccomment">/// Check if multiple keys exists.
     </span><span class="kw">fn </span>mexists&lt;<span class="lifetime">'key</span>&gt;(
         <span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt;;
 
     <span class="doccomment">/// Get a value from a key. Returning `None` if the key doesn't exist.
     </span><span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(
         <span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         key: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="self">Self</span>::NextType&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;;
 
     <span class="doccomment">/// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
     </span><span class="kw">fn </span>mget&lt;Value&gt;(
         <span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt;;
 
@@ -1029,7 +1019,7 @@
     /// https://redis.io/commands/zrangebyscore/
     </span><span class="kw">fn </span>zrangebyscore&lt;Value: FromRedisValue&gt;(
         <span class="self">self</span>,
-        set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
         min: i64,
         max: i64,
@@ -1058,7 +1048,7 @@
 
 
 
-            <span class="kw">fn </span>exists(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt; {
+            <span class="kw">fn </span>exists(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt; {
                 <span class="self">self</span>.pipe.exists(<span class="self">self</span>.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -1070,7 +1060,7 @@
 
             <span class="kw">fn </span>mexists&lt;<span class="lifetime">'key</span>&gt;(
                 <span class="self">self</span>,
-                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                namespace: <span class="kw-2">&amp;</span>str,
                 keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
             ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt; {
                 <span class="kw">let </span>final_keys = keys.into_iter().map(Into::into).map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
@@ -1083,7 +1073,7 @@
 
             <span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(
                 <span class="kw-2">mut </span><span class="self">self</span>,
-                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                namespace: <span class="kw-2">&amp;</span>str,
                 key: <span class="kw-2">&amp;</span>str,
             ) -&gt; <span class="self">Self</span>::NextType&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt; {
                 <span class="self">self</span>.pipe.get(<span class="self">self</span>.redis_conn.final_key(namespace, key.into()));
@@ -1097,7 +1087,7 @@
 
             <span class="kw">fn </span>mget&lt;Value&gt;(
                 <span class="kw-2">mut </span><span class="self">self</span>,
-                namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                namespace: <span class="kw-2">&amp;</span>str,
                 keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
             ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt; {
                 <span class="kw">let </span>final_keys = keys.into_iter().map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into())).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
@@ -1113,7 +1103,7 @@
 
             <span class="kw">fn </span>zrangebyscore&lt;Value: FromRedisValue&gt;(
                 <span class="kw-2">mut </span><span class="self">self</span>,
-                set_namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+                set_namespace: <span class="kw-2">&amp;</span>str,
                 set_key: <span class="kw-2">&amp;</span>str,
                 min: i64,
                 max: i64,

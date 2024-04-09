@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/temp_list.rs`."><title>temp_list.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9e1300b5663a8a03.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (9d5cdf75a 2024-04-07)" data-channel="nightly" data-search-js="search-ffac13a0df2b1870.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c97aec732c613ca4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/temp_list.rs`."><title>temp_list.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9e1300b5663a8a03.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (ab5bda1aa 2024-04-08)" data-channel="nightly" data-search-js="search-ffac13a0df2b1870.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c97aec732c613ca4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -551,60 +551,324 @@
 <a href="#549" id="549">549</a>
 <a href="#550" id="550">550</a>
 <a href="#551" id="551">551</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{sync::atomic::AtomicI64, time::Duration};
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
+<a href="#629" id="629">629</a>
+<a href="#630" id="630">630</a>
+<a href="#631" id="631">631</a>
+<a href="#632" id="632">632</a>
+<a href="#633" id="633">633</a>
+<a href="#634" id="634">634</a>
+<a href="#635" id="635">635</a>
+<a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+    borrow::Cow,
+    sync::{atomic::AtomicI64, Arc},
+    time::Duration,
+};
 
-<span class="kw">use super</span>::{batch::<span class="kw-2">*</span>, RedisJson};
+<span class="kw">use super</span>::{batch::<span class="kw-2">*</span>, RedisConn, RedisJson};
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::redis::RedisJsonBorrowed;
+
+<span class="doccomment">/// A user friendly interface around a redis list item, allowing for easy updates and replacements.
+/// This encapsulates when items aren't available, or the user doesn't actually want to use an item in some cases, but doesn't want to pass Options&lt;&gt; around.
+</span><span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+</span><span class="kw">pub struct </span>RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt; {
+    <span class="comment">// By making all this optional, it encapsulates a lot of user logic:
+    // - redis failure
+    // - key expiries
+    // - list expiries
+    // - the user just not wanting to use a list in a case, but still wants to use a fn that might take a list.
+
+    // Have to use a cow here, it won't be copied normally, but if serializing the item and reloading later, it will have to be an owned value.
+    </span>maybe_tmp_list: <span class="prelude-ty">Option</span>&lt;Cow&lt;<span class="lifetime">'a</span>, RedisTempList&gt;&gt;,
+    maybe_uid: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    maybe_item: <span class="prelude-ty">Option</span>&lt;T&gt;,
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt; RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt; {
+    <span class="doccomment">/// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
+    </span><span class="kw">pub fn </span>new(uid: <span class="prelude-ty">Option</span>&lt;String&gt;, item: <span class="prelude-ty">Option</span>&lt;T&gt;, tmp_list: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>RedisTempList&gt;) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            maybe_tmp_list: tmp_list.map(Cow::Borrowed),
+            maybe_uid: uid,
+            maybe_item: item,
+        }
+    }
+
+    <span class="doccomment">/// Create a dummy holder for a redis list item, useful when the list isn't available but you still want to use the holder elsewhere.
+    </span><span class="kw">pub fn </span>new_dummy() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            maybe_tmp_list: <span class="prelude-val">None</span>,
+            maybe_uid: <span class="prelude-val">None</span>,
+            maybe_item: <span class="prelude-val">None</span>,
+        }
+    }
+
+    <span class="doccomment">/// Fully manage the update of an item back to redis.
+    /// This interface is designed to encapsulate all failure logic,
+    /// and not run the callback if the item wasn't needed, didn't exist etc.
+    </span><span class="kw">pub async fn </span>update(<span class="kw-2">&amp;mut </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, updater: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>T)) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(tmp_list) = <span class="kw-2">&amp;</span><span class="self">self</span>.maybe_tmp_list {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(item) = <span class="self">self</span>.maybe_item.as_mut() {
+                <span class="comment">// Run the user's callback to make all changes.
+                </span>updater(item);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(uid) = <span class="kw-2">&amp;</span><span class="self">self</span>.maybe_uid {
+                    <span class="comment">// Sync those changes back to the list/redis:
+                    </span>tmp_list.update(conn, uid, item).<span class="kw">await</span>;
+                } <span class="kw">else </span>{
+                    <span class="comment">// Given we have the list but not the uid, we can just push it onto the list instead:
+                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(uid) = tmp_list.push(conn, item).<span class="kw">await </span>{
+                        <span class="self">self</span>.maybe_uid = <span class="prelude-val">Some</span>(uid);
+                    }
+                }
+            }
+        }
+    }
+
+    <span class="doccomment">/// Replace the contents of an item in the redis list with new, discarding any previous.
+    /// This encapsulates the logic of no list being available, the callback will then never run.
+    </span><span class="kw">pub async fn </span>replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, replacer: <span class="kw">impl </span>FnOnce() -&gt; T) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(tmp_list) = <span class="kw-2">&amp;</span><span class="self">self</span>.maybe_tmp_list {
+            <span class="kw">let </span>next_item = replacer();
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(uid) = <span class="kw-2">&amp;</span><span class="self">self</span>.maybe_uid {
+                <span class="comment">// Sync those changes back to the list/redis:
+                </span>tmp_list.update(conn, uid, <span class="kw-2">&amp;</span>next_item).<span class="kw">await</span>;
+            } <span class="kw">else </span>{
+                <span class="comment">// Given we have the list but not the uid, we can just push it onto the list instead:
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(uid) = tmp_list.push(conn, <span class="kw-2">&amp;</span>next_item).<span class="kw">await </span>{
+                    <span class="self">self</span>.maybe_uid = <span class="prelude-val">Some</span>(uid);
+                }
+            }
+            <span class="self">self</span>.maybe_item = <span class="prelude-val">Some</span>(next_item);
+        }
+    }
+
+    <span class="doccomment">/// Access the underlying item's uid, if it exists.
+    </span><span class="kw">pub fn </span>uid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
+        <span class="self">self</span>.maybe_uid.as_deref()
+    }
+
+    <span class="doccomment">/// Access the underlying item, if it exists.
+    </span><span class="kw">pub fn </span>item(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>T&gt; {
+        <span class="self">self</span>.maybe_item.as_ref()
+    }
+
+    <span class="doccomment">/// Consume the holder, returning the item, if it exists.
+    </span><span class="kw">pub fn </span>into_item(<span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;T&gt; {
+        <span class="self">self</span>.maybe_item
+    }
+
+    <span class="doccomment">/// Useful helper utility to just get a vec of valid items from a vec of holders.
+    /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
+    </span><span class="kw">pub fn </span>vec_items(items: Vec&lt;<span class="self">Self</span>&gt;) -&gt; Vec&lt;T&gt; {
+        items.into_iter().filter_map(|x| x.into_item()).collect()
+    }
+}
 
 <span class="doccomment">/// Connect up to a magic redis list that:
-/// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
+/// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `list_inactive_ttl` time)
 /// - Each item in the list has it's own expiry, so the list is always clean of old items.
 /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
-/// - Returned items are returned newest to oldest (for all intents and purposes, slightly more complicated).
+/// - Returned items are returned newest/last-updated to oldest
 /// This makes this distributed data structure perfect for e.g.:
 /// - recent/temporary logs/events of any sort.
 /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
-</span><span class="kw">pub struct </span>RedisTempList&lt;<span class="lifetime">'a</span>&gt; {
-    redis: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw">super</span>::Redis,
-    <span class="doccomment">/// The namespace of the list in redis
-    </span><span class="kw">pub </span>namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+</span><span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+</span><span class="kw">pub struct </span>RedisTempList {
+    <span class="doccomment">/// The namespace of the list in redis (should come in as static, but Cow needed because of deserialization)
+    </span><span class="kw">pub </span>namespace: Cow&lt;<span class="lifetime">'static</span>, str&gt;,
+
     <span class="doccomment">/// The key of the list in redis
     </span><span class="kw">pub </span>key: String,
+
     <span class="doccomment">/// If the list hasn't been read or written to in this time, it will be expired.
-    </span><span class="kw">pub </span>expire_after: Duration,
+    </span><span class="kw">pub </span>list_inactive_ttl: Duration,
+
+    <span class="doccomment">/// If an item hasn't been read or written to in this time, it will be expired.
+    </span><span class="kw">pub </span>item_inactive_ttl: Duration,
 
     <span class="doccomment">/// Used to prevent overlap between push() and extend() calls using the same ts by accident.
-    </span>last_extension_ts_millis: AtomicI64,
+    </span><span class="attr">#[serde(skip)]
+    </span>last_extension_ts_millis: Arc&lt;AtomicI64&gt;,
 }
 
 <span class="doccomment">/// A managed list entry in redis that will:
 /// - Auto expire on inactivity
 /// - Return items newest to oldest
 /// - Items are set with their own ttl, so the members themselves expire separate from the full list
-</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; RedisTempList&lt;<span class="lifetime">'a</span>&gt; {
+</span><span class="kw">impl </span>RedisTempList {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
-        redis: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw">super</span>::Redis,
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
         key: String,
-        expire_after: Duration,
+        list_inactive_ttl: Duration,
+        item_inactive_ttl: Duration,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            redis,
-            namespace,
+            namespace: Cow::Borrowed(namespace),
             key,
-            expire_after,
-            last_extension_ts_millis: AtomicI64::new(<span class="number">0</span>),
+            list_inactive_ttl,
+            item_inactive_ttl,
+            last_extension_ts_millis: Arc::new(AtomicI64::new(<span class="number">0</span>)),
         }
     }
 
     <span class="doccomment">/// The score should be the utc timestamp to expire:
-    </span><span class="kw">async fn </span>extend_inner&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
+    </span><span class="kw">async fn </span>extend_inner&lt;<span class="lifetime">'a</span>, T&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        items: <span class="kw">impl </span>IntoIterator&lt;Item = T&gt;,
-        ttl: Duration,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="kw">let </span>score = (chrono::Utc::now() + ttl).timestamp_millis();
+        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        items: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;
+    <span class="kw">where
+        </span>T: <span class="lifetime">'a </span>+ serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;,
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T: serde::Serialize,
+    {
+        <span class="kw">let </span>score = (chrono::Utc::now() + <span class="self">self</span>.item_inactive_ttl).timestamp_millis();
 
         <span class="comment">// Get the current millis, but actually increment the value if they're the same, protects against accidentally using the same ts on separate quickfire calls.
         </span><span class="kw">let </span>last_ts_millis = <span class="self">self
@@ -636,15 +900,13 @@
             .map(|(uid, <span class="kw">_</span>)| uid.to_string())
             .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 
-        <span class="kw">let </span>result: <span class="prelude-ty">Option</span>&lt;()&gt; = <span class="self">self
-            </span>.redis
-            .conn()
+        <span class="kw">let </span>result: <span class="prelude-ty">Option</span>&lt;()&gt; = conn
             .batch()
-            <span class="comment">// Add the uids to the main set, the command will auto update the set's ttl (self.expire_after) given it's been updated.
+            <span class="comment">// Add the uids to the main set, the command will auto update the set's ttl (self.list_inactive_ttl) given it's been updated.
             </span>.zadd_multi(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
-                <span class="prelude-val">Some</span>(<span class="self">self</span>.expire_after), <span class="comment">// This will auto reset the expire time of the list as a whole
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.list_inactive_ttl), <span class="comment">// This will auto reset the expire time of the list as a whole
                 </span>items_with_uids
                     .iter()
                     .map(|(uid, <span class="kw">_</span>)| (score, uid))
@@ -653,18 +915,18 @@
             )
             <span class="comment">// Now store the values themselves as normal redis keys with the same ttl: (these are normal ttls that auto clean up)
             </span>.mset(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 items_with_uids
                     .into_iter()
-                    .map(|(uid, item)| (uid, RedisJson(item))),
-                <span class="prelude-val">Some</span>(ttl),
+                    .map(|(uid, item)| (uid, RedisJsonBorrowed(item))),
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.item_inactive_ttl),
             )
             <span class="comment">// Cleanup old members that have now expired:
             // (set member expiry is a logical process, not currently part of redis but could be soon)
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             </span>.zremrangebyscore(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
@@ -683,18 +945,18 @@
     <span class="doccomment">/// Add a new item to the sorted list.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
     /// - Some(String): The uid of the item added, this can be used to update or delete the item directly.
     /// - None: Something went wrong and the item wasn't added correctly.
-    </span><span class="kw">pub async fn </span>push&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        item: T,
-        ttl: Duration,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
-        <span class="kw">let </span>uids = <span class="self">self</span>.extend_inner(std::iter::once(item), ttl).<span class="kw">await</span>;
+    </span><span class="kw">pub async fn </span>push&lt;<span class="lifetime">'a</span>, T&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, item: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt;
+    <span class="kw">where
+        </span>T: <span class="lifetime">'a </span>+ serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;,
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T: serde::Serialize,
+    {
+        <span class="kw">let </span>uids = <span class="self">self</span>.extend_inner(conn, std::iter::once(item)).<span class="kw">await</span>;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(uids) = uids {
             <span class="kw">if </span>uids.len() != <span class="number">1 </span>{
                 <span class="macro">tracing::error!</span>(
@@ -714,28 +976,30 @@
     /// Purposely using one ttl for all, should think about why if you're needing to set different ttls to items you're adding together!
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
     /// - Some(Vec&lt;String&gt;): The uids of the items added, these can be used to update or delete the items directly.
     /// - None: Something went wrong and the items weren't added correctly.
-    </span><span class="kw">pub async fn </span>extend&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        items: <span class="kw">impl </span>IntoIterator&lt;Item = T&gt;,
-        ttl: Duration,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="self">self</span>.extend_inner(items, ttl).<span class="kw">await
+    </span><span class="kw">pub async fn </span>extend&lt;<span class="lifetime">'a</span>, T&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        items: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;
+    <span class="kw">where
+        </span>T: <span class="lifetime">'a </span>+ serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;,
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T: serde::Serialize,
+    {
+        <span class="self">self</span>.extend_inner(conn, items).<span class="kw">await
     </span>}
 
-    <span class="doccomment">/// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than just the T.
-    /// Use this when you want to be able to update/delete individual items with the result.
-    </span><span class="kw">pub async fn </span>read_multi_with_info&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
+    <span class="doccomment">/// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than RedisTempList&lt;T&gt; that makes working with items easier.
+    </span><span class="kw">pub async fn </span>read_multi_raw&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
+        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
     ) -&gt; Vec&lt;(i64, String, T)&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>conn = <span class="self">self</span>.redis.conn();
-
         <span class="comment">// NOTE: because of the separation between the root list, and the values themselves as a separate redis keys, 2 calls are needed.
         // 1. Get the uids from the list
         // 2. Get the values from the uids
@@ -749,12 +1013,12 @@
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             </span>.zremrangebyscore(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .zrangebyscore::&lt;String&gt;(<span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, i64::MIN, i64::MAX, limit)
+            .zrangebyscore::&lt;String&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, i64::MIN, i64::MAX, limit)
             .fire()
             .<span class="kw">await</span>;
 
@@ -772,11 +1036,11 @@
                 </span><span class="kw">let </span>items: <span class="prelude-ty">Option</span>&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;RedisJson&lt;T&gt;&gt;&gt;&gt; = conn
                     .batch()
                     .mget(
-                        <span class="self">self</span>.namespace,
+                        <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                         <span class="kw-2">&amp;</span>item_info.iter().map(|(uid, <span class="kw">_</span>)| uid).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
                     )
                     <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-                    </span>.expire(<span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.expire_after)
+                    </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
                     .fire()
                     .<span class="kw">await</span>;
 
@@ -804,42 +1068,40 @@
         </span><span class="macro">vec!</span>[]
     }
 
-    <span class="doccomment">/// Read multiple items from the list, ordered from latest ttl to oldest.
-    /// When the ttl is the same, the items are returned newest to oldest.
+    <span class="doccomment">/// Read multiple items from the list, ordered from last updated to least (newest to oldest).
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Vec&lt;T&gt;: The items in the list from newest to oldest up to the provided limit (if any).
-    </span><span class="kw">pub async fn </span>read_multi&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    /// - Vec&lt;RedisTempListItem&lt;T&gt;: The wrapped items in the list from newest to oldest up to the provided limit (if any).
+    </span><span class="kw">pub async fn </span>read_multi&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
-    ) -&gt; Vec&lt;T&gt; {
-        <span class="self">self</span>.read_multi_with_info(limit)
+    ) -&gt; Vec&lt;RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt;&gt; {
+        <span class="self">self</span>.read_multi_raw::&lt;T&gt;(conn, limit)
             .<span class="kw">await
             </span>.into_iter()
-            .map(|(<span class="kw">_</span>, <span class="kw">_</span>, item)| item)
+            .map(|(_score, uid, item)| RedisTempListItem::new(<span class="prelude-val">Some</span>(uid), <span class="prelude-val">Some</span>(item), <span class="prelude-val">Some</span>(<span class="self">self</span>)))
             .collect()
     }
 
     <span class="doccomment">/// Read a specific item given it's uid.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Some(T): The item found with the uid.
-    /// - None: The item wasn't found, or something went wrong during the read.
-    </span><span class="kw">pub async fn </span>read&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    /// - RedisTempListItem&lt;'a, 'c, T&gt;: The item holder that encapsulates any error logic.
+    </span><span class="kw">pub async fn </span>read&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
         uid: <span class="kw-2">&amp;</span>str,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;T&gt; {
-        <span class="kw">let </span>item: <span class="prelude-ty">Option</span>&lt;<span class="prelude-ty">Option</span>&lt;RedisJson&lt;T&gt;&gt;&gt; = <span class="self">self
-            </span>.redis
-            .conn()
+    ) -&gt; RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt; {
+        <span class="kw">let </span>item: <span class="prelude-ty">Option</span>&lt;<span class="prelude-ty">Option</span>&lt;RedisJson&lt;T&gt;&gt;&gt; = conn
             .batch()
             <span class="comment">// NOTE: cleaning up first as don't want these to be included in the read.
             // Cleanup old members that have now expired:
@@ -847,46 +1109,45 @@
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             </span>.zremrangebyscore(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .get(<span class="self">self</span>.namespace, uid)
+            .get(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, uid)
             <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-            </span>.expire(<span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.expire_after)
+            </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
             .fire()
             .<span class="kw">await</span>;
+
         <span class="kw">if let </span><span class="prelude-val">Some</span>(item) = item.flatten() {
-            <span class="prelude-val">Some</span>(item.<span class="number">0</span>)
+            RedisTempListItem::new(<span class="prelude-val">Some</span>(uid.to_string()), <span class="prelude-val">Some</span>(item.<span class="number">0</span>), <span class="prelude-val">Some</span>(<span class="self">self</span>))
         } <span class="kw">else </span>{
-            <span class="prelude-val">None
-        </span>}
+            RedisTempListItem::new_dummy()
+        }
     }
 
     <span class="doccomment">/// Delete a specific item given it's uid.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
-    </span><span class="kw">pub async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, uid: <span class="kw-2">&amp;</span>str) {
-        <span class="self">self</span>.redis
-            .conn()
-            .batch()
+    </span><span class="kw">pub async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, uid: <span class="kw-2">&amp;</span>str) {
+        conn.batch()
             <span class="comment">// NOTE: cleaning up first as don't want these to be included in the read.
             // Cleanup old members that have now expired:
             // (member expiry is a logical process, not currently part of redis but could be soon)
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             </span>.zremrangebyscore(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .zrem(<span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, uid)
+            .zrem(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, uid)
             <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-            </span>.expire(<span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.expire_after)
+            </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
             .fire()
             .<span class="kw">await</span>;
     }
@@ -894,36 +1155,40 @@
     <span class="doccomment">/// Update a specific item given it's uid.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
-    </span><span class="kw">pub async fn </span>update&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        uid: <span class="kw-2">&amp;</span>str,
-        item: T,
-        ttl: Duration,
-    ) {
-        <span class="kw">let </span>new_score = (chrono::Utc::now() + ttl).timestamp_millis();
+    /// - Reset the item's expiry time, given its been updated
+    ///
+    </span><span class="kw">pub async fn </span>update&lt;<span class="lifetime">'a</span>, T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, uid: <span class="kw-2">&amp;</span>str, item: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T)
+    <span class="kw">where
+        </span>T: <span class="lifetime">'a </span>+ serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;,
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T: serde::Serialize,
+    {
+        <span class="kw">let </span>new_score = (chrono::Utc::now() + <span class="self">self</span>.item_inactive_ttl).timestamp_millis();
 
-        <span class="self">self</span>.redis
-            .conn()
-            .batch()
+        conn.batch()
             <span class="comment">// This will update the uid's score/ttl, redis will automatically see it already existed (if it hadn't already expired) and update it.
             // It will also implicitly renew the list's ttl.
             </span>.zadd(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
-                <span class="prelude-val">Some</span>(<span class="self">self</span>.expire_after),
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.list_inactive_ttl),
                 new_score,
                 uid,
             )
             <span class="comment">// Update the value itself, which is stored under the uid as a normal redis value:
-            </span>.set(<span class="self">self</span>.namespace, uid, RedisJson(item), <span class="prelude-val">Some</span>(ttl))
+            </span>.set(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
+                uid,
+                RedisJsonBorrowed(item),
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.item_inactive_ttl),
+            )
             <span class="comment">// Cleanup old members that have now expired:
             // (member expiry is a logical process, not currently part of redis but could be soon)
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             </span>.zremrangebyscore(
-                <span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
@@ -934,11 +1199,9 @@
 
     <span class="doccomment">/// Clear all the items in the list.
     /// (by just deleting the list itself, stored values will still live until their ttl but used a random uid so no conflicts)
-    </span><span class="kw">pub async fn </span>clear(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="self">self</span>.redis
-            .conn()
-            .batch()
-            .clear(<span class="self">self</span>.namespace, std::iter::once(<span class="self">self</span>.key.as_str()))
+    </span><span class="kw">pub async fn </span>clear(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;) {
+        conn.batch()
+            .clear(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, std::iter::once(<span class="self">self</span>.key.as_str()))
             .fire()
             .<span class="kw">await</span>;
     }
@@ -958,119 +1221,165 @@
     </span><span class="kw">fn </span>is_normal&lt;T: Sized + Send + Sync + Unpin&gt;() {}
     is_normal::&lt;RedisTempList&gt;();
 
+    <span class="kw">let </span><span class="kw-2">mut </span>conn = r.conn();
+
     <span class="kw">static </span>NS: <span class="kw-2">&amp;</span>str = <span class="string">"templist_tests"</span>;
 
-    <span class="kw">let </span>li1 = r.templist(NS, <span class="string">"t1"</span>, Duration::from_millis(<span class="number">100</span>));
-    li1.extend(
-        <span class="macro">vec!</span>[<span class="string">"i1"</span>.to_string(), <span class="string">"i2"</span>.to_string(), <span class="string">"i3"</span>.to_string()],
-        Duration::from_millis(<span class="number">30</span>),
-    )
-    .<span class="kw">await</span>;
-    li1.push(<span class="string">"i4"</span>.to_string(), Duration::from_millis(<span class="number">10</span>)).<span class="kw">await</span>;
-    li1.push(<span class="string">"i5"</span>.to_string(), Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-    <span class="comment">// Keys are ordered from latest ttl to oldest, then reverse lexicographically when the ttl is the same:
+    <span class="kw">let </span>li1 = r.templist(
+        NS,
+        <span class="string">"t1"</span>,
+        Duration::from_millis(<span class="number">100</span>),
+        Duration::from_millis(<span class="number">60</span>),
+    );
+    li1.extend(<span class="kw-2">&amp;mut </span>conn, <span class="macro">vec!</span>[<span class="kw-2">&amp;</span><span class="string">"i1"</span>, <span class="kw-2">&amp;</span><span class="string">"i2"</span>, <span class="kw-2">&amp;</span><span class="string">"i3"</span>]).<span class="kw">await</span>;
+    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    li1.push(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span><span class="string">"i4"</span>).<span class="kw">await</span>;
+    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    li1.push(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span><span class="string">"i5"</span>).<span class="kw">await</span>;
+    <span class="comment">// Keys are ordered from recent to old:
     </span><span class="macro">assert_eq!</span>(
-        li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>,
-        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>, <span class="string">"i4"</span>]
+        RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]
     );
     <span class="comment">// Read with limit, should be keeping newest and dropping oldest:
     </span><span class="macro">assert_eq!</span>(
-        li1.read_multi::&lt;String&gt;(<span class="prelude-val">Some</span>(<span class="number">3</span>)).<span class="kw">await</span>,
-        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>]
+        RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">Some</span>(<span class="number">3</span>)).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>, <span class="string">"i3"</span>]
     );
     tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
-    <span class="comment">// i4 should be expired, it had a ttl of 10ms:
+    <span class="comment">// First batch should have expired now (3 20ms waits)
+    // i4 should be expired, it had a ttl of 20ms:
     </span><span class="macro">assert_eq!</span>(
-        li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>,
-        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]
+        RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>]
     );
     tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
-    <span class="comment">// i1,2,3 should be expired, they had a ttl of 30ms:
-    </span><span class="macro">assert_eq!</span>(li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, <span class="macro">vec!</span>[<span class="string">"i5"</span>]);
+    <span class="comment">// i4 should be gone now:
+    </span><span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i5"</span>]
+    );
     tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
-    <span class="comment">// i5 should be expired, it had a ttl of 50ms:
-    </span><span class="macro">assert_eq!</span>(li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, Vec::&lt;String&gt;::new());
+    <span class="comment">// i5 should be gone now:
+    </span><span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        Vec::&lt;String&gt;::new()
+    );
 
-    <span class="comment">// Put a new item in there with a nice long ttl:
-    </span><span class="kw">let </span>uid = li1
-        .push(<span class="string">"i6"</span>.to_string(), Duration::from_millis(<span class="number">1000</span>))
-        .<span class="kw">await
-        </span>.unwrap();
-    <span class="comment">// Li should still be there after 80ms, as the last push should have updated the list's ttl:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, <span class="macro">vec!</span>[<span class="string">"i6"</span>]);
-    <span class="comment">// Above read_multi should have also updated the list's ttl, so should be there after another 80ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li1.read::&lt;String&gt;(<span class="kw-2">&amp;</span>uid).<span class="kw">await</span>, <span class="prelude-val">Some</span>(<span class="string">"i6"</span>.to_string()));
-    <span class="comment">// Above direct read should have also updated the list's ttl, so should be there after another 80ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li1.read::&lt;String&gt;(<span class="kw-2">&amp;</span>uid).<span class="kw">await</span>, <span class="prelude-val">Some</span>(<span class="string">"i6"</span>.to_string()));
-    <span class="kw">let </span>uid_i7 = li1
-        .push(<span class="string">"i7"</span>.to_string(), Duration::from_millis(<span class="number">1000</span>))
-        .<span class="kw">await
-        </span>.unwrap();
-    tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    li1.delete(<span class="kw-2">&amp;</span>uid).<span class="kw">await</span>;
-    <span class="comment">// Above delete should have updated the list's ttl, so should be there after another 80ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, <span class="macro">vec!</span>[<span class="string">"i7"</span>]);
-    tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    li1.update(
-        <span class="kw-2">&amp;</span>uid_i7,
-        <span class="string">"i7-updated"</span>.to_string(),
+    <span class="comment">// Let's create a strange list, one with a short list lifetime but effectively infinite item lifetime:
+    </span><span class="kw">let </span>li2 = r.templist(
+        NS,
+        <span class="string">"t2"</span>,
+        Duration::from_millis(<span class="number">50</span>),
         Duration::from_millis(<span class="number">1000</span>),
-    )
-    .<span class="kw">await</span>;
-    <span class="comment">// Above update should have updated the list's ttl, so should be there after another 80ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">80</span>)).<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(
-        li1.read::&lt;String&gt;(<span class="kw-2">&amp;</span>uid_i7).<span class="kw">await</span>,
-        <span class="prelude-val">Some</span>(<span class="string">"i7-updated"</span>.to_string())
     );
-    <span class="comment">// When no reads or writes, the list should expire after 100ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">110</span>)).<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li1.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, Vec::&lt;String&gt;::new());
+    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    <span class="kw">let </span>i1_uid = li2.push(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span><span class="string">"i1"</span>).<span class="kw">await</span>.unwrap();
+    <span class="comment">// Li should still be there after another 40ms, as the last push should have updated the list's ttl:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i1"</span>]
+    );
+    tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    li2.extend(<span class="kw-2">&amp;mut </span>conn, <span class="macro">vec!</span>[<span class="kw-2">&amp;</span><span class="string">"i2"</span>, <span class="kw-2">&amp;</span><span class="string">"i3"</span>, <span class="kw-2">&amp;</span><span class="string">"i4"</span>]).<span class="kw">await</span>;
+    <span class="comment">// Li should still be there after another 40ms, as the last push should have updated the list's ttl:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i4"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]
+    );
+    <span class="comment">// Above read_multi should have also updated the list's ttl, so should be there after another 40ms:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        li2.read::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>i1_uid).<span class="kw">await</span>.into_item(),
+        <span class="prelude-val">Some</span>(<span class="string">"i1"</span>.to_string())
+    );
+    <span class="comment">// Above direct read should have also updated the list's ttl, so should be there after another 40ms:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        li2.read::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>i1_uid).<span class="kw">await</span>.into_item(),
+        <span class="prelude-val">Some</span>(<span class="string">"i1"</span>.to_string())
+    );
+    <span class="kw">let </span>uid_i5 = li2.push(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span><span class="string">"i5"</span>).<span class="kw">await</span>.unwrap();
+    tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    li2.delete(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>i1_uid).<span class="kw">await</span>;
+    <span class="comment">// Above delete should have updated the list's ttl, so should be there after another 40ms:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>]
+    );
+    tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    li2.update(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>uid_i5, <span class="kw-2">&amp;</span><span class="string">"i5-updated"</span>).<span class="kw">await</span>;
+    <span class="comment">// Above update should have updated the list's ttl, so should be there after another 40ms:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        li2.read::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>uid_i5).<span class="kw">await</span>.into_item(),
+        <span class="prelude-val">Some</span>(<span class="string">"i5-updated"</span>.to_string())
+    );
+    <span class="comment">// When no reads or writes, the list should expire after 50ms:
+    </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        Vec::&lt;String&gt;::new()
+    );
 
     <span class="comment">// Make sure manual clear() works on a new list too:
-    </span><span class="kw">let </span>li2 = r.templist(NS, <span class="string">"t2"</span>, Duration::from_millis(<span class="number">100</span>));
-    li2.extend(
-        <span class="macro">vec!</span>[<span class="string">"i1"</span>.to_string(), <span class="string">"i2"</span>.to_string(), <span class="string">"i3"</span>.to_string()],
+    </span><span class="kw">let </span>li3 = r.templist(
+        NS,
+        <span class="string">"t3"</span>,
+        Duration::from_millis(<span class="number">100</span>),
         Duration::from_millis(<span class="number">30</span>),
-    )
-    .<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li2.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, <span class="macro">vec!</span>[<span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]);
-    li2.clear().<span class="kw">await</span>;
-    <span class="macro">assert_eq!</span>(li2.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>, Vec::&lt;String&gt;::new());
+    );
+    li3.extend(<span class="kw-2">&amp;mut </span>conn, <span class="macro">vec!</span>[<span class="kw-2">&amp;</span><span class="string">"i1"</span>, <span class="kw-2">&amp;</span><span class="string">"i2"</span>, <span class="kw-2">&amp;</span><span class="string">"i3"</span>]).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li3.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        <span class="macro">vec!</span>[<span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]
+    );
+    li3.clear(<span class="kw-2">&amp;mut </span>conn).<span class="kw">await</span>;
+    <span class="macro">assert_eq!</span>(
+        RedisTempListItem::vec_items(li3.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
+        Vec::&lt;String&gt;::new()
+    );
 
     <span class="comment">// Try with arb value, e.g. vec of (i32, String):
-    </span><span class="kw">let </span>li3 = r.templist(NS, <span class="string">"t3"</span>, Duration::from_millis(<span class="number">100</span>));
-    li3.push((<span class="number">1</span>, <span class="string">"a"</span>.to_string()), Duration::from_millis(<span class="number">30</span>))
-        .<span class="kw">await</span>;
-    li3.push((<span class="number">2</span>, <span class="string">"b"</span>.to_string()), Duration::from_millis(<span class="number">30</span>))
-        .<span class="kw">await</span>;
+    </span><span class="kw">let </span>li4 = r.templist(
+        NS,
+        <span class="string">"t4"</span>,
+        Duration::from_millis(<span class="number">100</span>),
+        Duration::from_millis(<span class="number">30</span>),
+    );
+    li4.push(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>(<span class="number">1</span>, <span class="string">"a"</span>)).<span class="kw">await</span>;
+    li4.push(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;</span>(<span class="number">2</span>, <span class="string">"b"</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
-        li3.read_multi::&lt;(i32, String)&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>,
+        RedisTempListItem::vec_items(li4.read_multi::&lt;(i32, String)&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[(<span class="number">2</span>, <span class="string">"b"</span>.to_string()), (<span class="number">1</span>, <span class="string">"a"</span>.to_string())]
     );
 
     <span class="comment">// Try with json value:
-    </span><span class="kw">let </span>li4 = r.templist(NS, <span class="string">"t4"</span>, Duration::from_millis(<span class="number">100</span>));
-    li4.extend(
+    </span><span class="kw">let </span>li5 = r.templist(
+        NS,
+        <span class="string">"t5"</span>,
+        Duration::from_millis(<span class="number">100</span>),
+        Duration::from_millis(<span class="number">30</span>),
+    );
+    li5.extend(
+        <span class="kw-2">&amp;mut </span>conn,
         <span class="macro">vec!</span>[
-            ExampleObject {
+            <span class="kw-2">&amp;</span>ExampleObject {
                 a: <span class="number">1</span>,
                 b: <span class="string">"a"</span>.to_string(),
             },
-            ExampleObject {
+            <span class="kw-2">&amp;</span>ExampleObject {
                 a: <span class="number">2</span>,
                 b: <span class="string">"b"</span>.to_string(),
             },
         ],
-        Duration::from_millis(<span class="number">30</span>),
     )
     .<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
-        li4.read_multi::&lt;ExampleObject&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>,
+        RedisTempListItem::vec_items(li5.read_multi::&lt;ExampleObject&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[
             ExampleObject {
                 a: <span class="number">2</span>,
@@ -1084,19 +1393,16 @@
     );
 
     <span class="comment">// Make sure duplicate values don't break the list and are still kept:
-    </span><span class="kw">let </span>li5 = r.templist(NS, <span class="string">"t5"</span>, Duration::from_millis(<span class="number">100</span>));
-    li5.extend(
-        <span class="macro">vec!</span>[
-            <span class="string">"i1"</span>.to_string(),
-            <span class="string">"i2"</span>.to_string(),
-            <span class="string">"i1"</span>.to_string(),
-            <span class="string">"i3"</span>.to_string(),
-        ],
+    </span><span class="kw">let </span>li6 = r.templist(
+        NS,
+        <span class="string">"t6"</span>,
+        Duration::from_millis(<span class="number">100</span>),
         Duration::from_millis(<span class="number">30</span>),
-    )
-    .<span class="kw">await</span>;
+    );
+    li6.extend(<span class="kw-2">&amp;mut </span>conn, <span class="macro">vec!</span>[<span class="kw-2">&amp;</span><span class="string">"i1"</span>, <span class="kw-2">&amp;</span><span class="string">"i2"</span>, <span class="kw-2">&amp;</span><span class="string">"i1"</span>, <span class="kw-2">&amp;</span><span class="string">"i3"</span>])
+        .<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
-        li5.read_multi::&lt;String&gt;(<span class="prelude-val">None</span>).<span class="kw">await</span>,
+        RedisTempListItem::vec_items(li6.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i3"</span>, <span class="string">"i1"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]
     );
 
