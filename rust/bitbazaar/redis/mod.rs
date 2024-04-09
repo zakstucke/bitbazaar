@@ -11,7 +11,7 @@ pub use conn::RedisConn;
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonBorrowed};
 pub use script::{RedisScript, RedisScriptInvoker};
-pub use temp_list::{RedisTempList, RedisTempListItem};
+pub use temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
 pub use wrapper::Redis;
 
 #[cfg(test)]
