@@ -10,11 +10,11 @@ use crate::prelude::*;
 use crate::redis::RedisJsonBorrowed;
 
 /// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
-pub struct RedisTempListItemWithConn<'a, T> {
+pub struct RedisTempListItemWithConn<'a, 'b, T> {
     /// The normal item holder.
-    pub item: RedisTempListItem<T>,
-    /// The redis conn.
-    pub conn: RedisConn<'a>,
+    pub item: &'a mut RedisTempListItem<T>,
+    /// The redis conn sidecar.
+    pub conn: RedisConn<'b>,
 }
 
 /// A user friendly interface around a redis list item, allowing for easy updates and replacements.
@@ -58,7 +58,10 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
     }
 
     /// Useful for combining a connection with an item, to prevent needing to pass both around.
-    pub fn with_conn(self, conn: RedisConn<'_>) -> RedisTempListItemWithConn<'_, T> {
+    pub fn with_conn<'a, 'b>(
+        &'a mut self,
+        conn: RedisConn<'b>,
+    ) -> RedisTempListItemWithConn<'a, 'b, T> {
         RedisTempListItemWithConn { item: self, conn }
     }
 
