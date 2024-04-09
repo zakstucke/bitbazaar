@@ -60,7 +60,7 @@ impl Redis {
     /// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
     /// - Each item in the list has it's own expiry, so the list is always clean of old items.
     /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
-    /// - Returned items are returned newest to oldest (for all intents and purposes, slightly more complicated).
+    /// - Returned items are returned newest/last-updated to oldest
     /// This makes this distributed data structure perfect for e.g.:
     /// - recent/temporary logs/events of any sort.
     /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
@@ -68,9 +68,10 @@ impl Redis {
         &self,
         namespace: &'static str,
         key: impl Into<String>,
-        expire_after: Duration,
-    ) -> RedisTempList<'_> {
-        RedisTempList::new(self, namespace, key.into(), expire_after)
+        list_inactive_ttl: Duration,
+        item_inactive_ttl: Duration,
+    ) -> RedisTempList {
+        RedisTempList::new(namespace, key.into(), list_inactive_ttl, item_inactive_ttl)
     }
 
     /// Escape hatch, access the inner deadpool_redis pool.

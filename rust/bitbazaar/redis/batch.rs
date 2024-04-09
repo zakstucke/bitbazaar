@@ -106,7 +106,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// Expire an existing key with a new/updated ttl.
     ///
     /// https://redis.io/commands/pexpire/
-    pub fn expire(mut self, namespace: &'static str, key: &str, ttl: std::time::Duration) -> Self {
+    pub fn expire(mut self, namespace: &str, key: &str, ttl: std::time::Duration) -> Self {
         self.pipe
             .pexpire(
                 self.redis_conn.final_key(namespace, key.into()),
@@ -134,7 +134,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// - `value`: The value of the entry. (values of sets must be strings)
     pub fn zadd(
         mut self,
-        set_namespace: &'static str,
+        set_namespace: &str,
         set_key: &str,
         set_ttl: Option<std::time::Duration>,
         score: i64,
@@ -167,12 +167,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
     /// - `value`: The value of the entry. (values of sets must be strings)
-    pub fn zrem(
-        mut self,
-        set_namespace: &'static str,
-        set_key: &str,
-        value: impl AsRef<str>,
-    ) -> Self {
+    pub fn zrem(mut self, set_namespace: &str, set_key: &str, value: impl AsRef<str>) -> Self {
         self.pipe
             .zrem(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
@@ -198,7 +193,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// - items: The scores and values of the entries. (set values must be strings)
     pub fn zadd_multi(
         mut self,
-        set_namespace: &'static str,
+        set_namespace: &str,
         set_key: &str,
         set_ttl: Option<std::time::Duration>,
         items: &[(i64, impl AsRef<str>)],
@@ -231,7 +226,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// https://redis.io/commands/zremrangebyscore/
     pub fn zremrangebyscore(
         mut self,
-        set_namespace: &'static str,
+        set_namespace: &str,
         set_key: &str,
         min: i64,
         max: i64,
@@ -257,7 +252,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// (expiry accurate to the millisecond)
     pub fn set(
         mut self,
-        namespace: &'static str,
+        namespace: &str,
         key: &str,
         value: impl ToRedisArgs,
         expiry: Option<std::time::Duration>,
@@ -290,7 +285,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// (expiry accurate to the millisecond)
     pub fn mset<Value: ToRedisArgs>(
         mut self,
-        namespace: &'static str,
+        namespace: &str,
         pairs: impl IntoIterator<Item = (impl AsRef<str>, Value)>,
         expiry: Option<std::time::Duration>,
     ) -> Self {
@@ -337,7 +332,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// Clear one or more keys.
     pub fn clear<'key>(
         mut self,
-        namespace: &'static str,
+        namespace: &str,
         keys: impl IntoIterator<Item = &'key str>,
     ) -> Self {
         let final_keys = keys
@@ -356,7 +351,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     }
 
     /// Clear all keys under a given namespace
-    pub fn clear_namespace(self, namespace: &'static str) -> Self {
+    pub fn clear_namespace(self, namespace: &str) -> Self {
         let final_namespace = self.redis_conn.final_namespace(namespace);
         self.script_no_return(CLEAR_NAMESPACE_SCRIPT.invoker().arg(final_namespace))
     }
@@ -405,26 +400,26 @@ pub trait RedisBatchReturningOps<'c> {
     ) -> Self::NextType<ScriptOutput>;
 
     /// Check if a key exists.
-    fn exists(self, namespace: &'static str, key: &str) -> Self::NextType<bool>;
+    fn exists(self, namespace: &str, key: &str) -> Self::NextType<bool>;
 
     /// Check if multiple keys exists.
     fn mexists<'key>(
         self,
-        namespace: &'static str,
+        namespace: &str,
         keys: impl IntoIterator<Item = &'key str>,
     ) -> Self::NextType<Vec<bool>>;
 
     /// Get a value from a key. Returning `None` if the key doesn't exist.
     fn get<Value: FromRedisValue>(
         self,
-        namespace: &'static str,
+        namespace: &str,
         key: &str,
     ) -> Self::NextType<Option<Value>>;
 
     /// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
     fn mget<Value>(
         self,
-        namespace: &'static str,
+        namespace: &str,
         keys: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Self::NextType<Vec<Option<Value>>>;
 
@@ -444,7 +439,7 @@ pub trait RedisBatchReturningOps<'c> {
     /// https://redis.io/commands/zrangebyscore/
     fn zrangebyscore<Value: FromRedisValue>(
         self,
-        set_namespace: &'static str,
+        set_namespace: &str,
         set_key: &str,
         min: i64,
         max: i64,
@@ -473,7 +468,7 @@ macro_rules! impl_batch_ops {
 
 
 
-            fn exists(mut self, namespace: &'static str, key: &str) -> Self::NextType<bool> {
+            fn exists(mut self, namespace: &str, key: &str) -> Self::NextType<bool> {
                 self.pipe.exists(self.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -485,7 +480,7 @@ macro_rules! impl_batch_ops {
 
             fn mexists<'key>(
                 self,
-                namespace: &'static str,
+                namespace: &str,
                 keys: impl IntoIterator<Item = &'key str>,
             ) -> Self::NextType<Vec<bool>> {
                 let final_keys = keys.into_iter().map(Into::into).map(|key| self.redis_conn.final_key(namespace, key)).collect::<Vec<_>>();
@@ -498,7 +493,7 @@ macro_rules! impl_batch_ops {
 
             fn get<Value: FromRedisValue>(
                 mut self,
-                namespace: &'static str,
+                namespace: &str,
                 key: &str,
             ) -> Self::NextType<Option<Value>> {
                 self.pipe.get(self.redis_conn.final_key(namespace, key.into()));
@@ -512,7 +507,7 @@ macro_rules! impl_batch_ops {
 
             fn mget<Value>(
                 mut self,
-                namespace: &'static str,
+                namespace: &str,
                 keys: impl IntoIterator<Item = impl AsRef<str>>,
             ) -> Self::NextType<Vec<Option<Value>>> {
                 let final_keys = keys.into_iter().map(|key| self.redis_conn.final_key(namespace, key.as_ref().into())).collect::<Vec<_>>();
@@ -528,7 +523,7 @@ macro_rules! impl_batch_ops {
 
             fn zrangebyscore<Value: FromRedisValue>(
                 mut self,
-                set_namespace: &'static str,
+                set_namespace: &str,
                 set_key: &str,
                 min: i64,
                 max: i64,

@@ -1,57 +1,168 @@
-use std::{sync::atomic::AtomicI64, time::Duration};
+use std::{
+    borrow::Cow,
+    sync::{atomic::AtomicI64, Arc},
+    time::Duration,
+};
 
-use super::{batch::*, RedisJson};
+use super::{batch::*, RedisConn, RedisJson};
 #[cfg(test)]
 use crate::prelude::*;
+use crate::redis::RedisJsonBorrowed;
+
+/// A user friendly interface around a redis list item, allowing for easy updates and replacements.
+/// This encapsulates when items aren't available, or the user doesn't actually want to use an item in some cases, but doesn't want to pass Options<> around.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RedisTempListItem<'a, T> {
+    // By making all this optional, it encapsulates a lot of user logic:
+    // - redis failure
+    // - key expiries
+    // - list expiries
+    // - the user just not wanting to use a list in a case, but still wants to use a fn that might take a list.
+
+    // Have to use a cow here, it won't be copied normally, but if serializing the item and reloading later, it will have to be an owned value.
+    maybe_tmp_list: Option<Cow<'a, RedisTempList>>,
+    maybe_uid: Option<String>,
+    maybe_item: Option<T>,
+}
+
+impl<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>> RedisTempListItem<'a, T> {
+    /// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
+    pub fn new(uid: Option<String>, item: Option<T>, tmp_list: Option<&'a RedisTempList>) -> Self {
+        Self {
+            maybe_tmp_list: tmp_list.map(Cow::Borrowed),
+            maybe_uid: uid,
+            maybe_item: item,
+        }
+    }
+
+    /// Create a dummy holder for a redis list item, useful when the list isn't available but you still want to use the holder elsewhere.
+    pub fn new_dummy() -> Self {
+        Self {
+            maybe_tmp_list: None,
+            maybe_uid: None,
+            maybe_item: None,
+        }
+    }
+
+    /// Fully manage the update of an item back to redis.
+    /// This interface is designed to encapsulate all failure logic,
+    /// and not run the callback if the item wasn't needed, didn't exist etc.
+    pub async fn update(&mut self, conn: &mut RedisConn<'_>, updater: impl FnOnce(&mut T)) {
+        if let Some(tmp_list) = &self.maybe_tmp_list {
+            if let Some(item) = self.maybe_item.as_mut() {
+                // Run the user's callback to make all changes.
+                updater(item);
+                if let Some(uid) = &self.maybe_uid {
+                    // Sync those changes back to the list/redis:
+                    tmp_list.update(conn, uid, item).await;
+                } else {
+                    // Given we have the list but not the uid, we can just push it onto the list instead:
+                    if let Some(uid) = tmp_list.push(conn, item).await {
+                        self.maybe_uid = Some(uid);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Replace the contents of an item in the redis list with new, discarding any previous.
+    /// This encapsulates the logic of no list being available, the callback will then never run.
+    pub async fn replace(&mut self, conn: &mut RedisConn<'_>, replacer: impl FnOnce() -> T) {
+        if let Some(tmp_list) = &self.maybe_tmp_list {
+            let next_item = replacer();
+            if let Some(uid) = &self.maybe_uid {
+                // Sync those changes back to the list/redis:
+                tmp_list.update(conn, uid, &next_item).await;
+            } else {
+                // Given we have the list but not the uid, we can just push it onto the list instead:
+                if let Some(uid) = tmp_list.push(conn, &next_item).await {
+                    self.maybe_uid = Some(uid);
+                }
+            }
+            self.maybe_item = Some(next_item);
+        }
+    }
+
+    /// Access the underlying item's uid, if it exists.
+    pub fn uid(&self) -> Option<&str> {
+        self.maybe_uid.as_deref()
+    }
+
+    /// Access the underlying item, if it exists.
+    pub fn item(&self) -> Option<&T> {
+        self.maybe_item.as_ref()
+    }
+
+    /// Consume the holder, returning the item, if it exists.
+    pub fn into_item(self) -> Option<T> {
+        self.maybe_item
+    }
+
+    /// Useful helper utility to just get a vec of valid items from a vec of holders.
+    /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
+    pub fn vec_items(items: Vec<Self>) -> Vec<T> {
+        items.into_iter().filter_map(|x| x.into_item()).collect()
+    }
+}
 
 /// Connect up to a magic redis list that:
-/// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
+/// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `list_inactive_ttl` time)
 /// - Each item in the list has it's own expiry, so the list is always clean of old items.
 /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
-/// - Returned items are returned newest to oldest (for all intents and purposes, slightly more complicated).
+/// - Returned items are returned newest/last-updated to oldest
 /// This makes this distributed data structure perfect for e.g.:
 /// - recent/temporary logs/events of any sort.
 /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
-pub struct RedisTempList<'a> {
-    redis: &'a super::Redis,
-    /// The namespace of the list in redis
-    pub namespace: &'static str,
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RedisTempList {
+    /// The namespace of the list in redis (should come in as static, but Cow needed because of deserialization)
+    pub namespace: Cow<'static, str>,
+
     /// The key of the list in redis
     pub key: String,
+
     /// If the list hasn't been read or written to in this time, it will be expired.
-    pub expire_after: Duration,
+    pub list_inactive_ttl: Duration,
+
+    /// If an item hasn't been read or written to in this time, it will be expired.
+    pub item_inactive_ttl: Duration,
 
     /// Used to prevent overlap between push() and extend() calls using the same ts by accident.
-    last_extension_ts_millis: AtomicI64,
+    #[serde(skip)]
+    last_extension_ts_millis: Arc<AtomicI64>,
 }
 
 /// A managed list entry in redis that will:
 /// - Auto expire on inactivity
 /// - Return items newest to oldest
 /// - Items are set with their own ttl, so the members themselves expire separate from the full list
-impl<'a> RedisTempList<'a> {
+impl RedisTempList {
     pub(crate) fn new(
-        redis: &'a super::Redis,
         namespace: &'static str,
         key: String,
-        expire_after: Duration,
+        list_inactive_ttl: Duration,
+        item_inactive_ttl: Duration,
     ) -> Self {
         Self {
-            redis,
-            namespace,
+            namespace: Cow::Borrowed(namespace),
             key,
-            expire_after,
-            last_extension_ts_millis: AtomicI64::new(0),
+            list_inactive_ttl,
+            item_inactive_ttl,
+            last_extension_ts_millis: Arc::new(AtomicI64::new(0)),
         }
     }
 
     /// The score should be the utc timestamp to expire:
-    async fn extend_inner<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
+    async fn extend_inner<'a, T>(
         &self,
-        items: impl IntoIterator<Item = T>,
-        ttl: Duration,
-    ) -> Option<Vec<String>> {
-        let score = (chrono::Utc::now() + ttl).timestamp_millis();
+        conn: &mut RedisConn<'_>,
+        items: impl IntoIterator<Item = &'a T>,
+    ) -> Option<Vec<String>>
+    where
+        T: 'a + serde::Deserialize<'a>,
+        &'a T: serde::Serialize,
+    {
+        let score = (chrono::Utc::now() + self.item_inactive_ttl).timestamp_millis();
 
         // Get the current millis, but actually increment the value if they're the same, protects against accidentally using the same ts on separate quickfire calls.
         let last_ts_millis = self
@@ -83,15 +194,13 @@ impl<'a> RedisTempList<'a> {
             .map(|(uid, _)| uid.to_string())
             .collect::<Vec<_>>();
 
-        let result: Option<()> = self
-            .redis
-            .conn()
+        let result: Option<()> = conn
             .batch()
-            // Add the uids to the main set, the command will auto update the set's ttl (self.expire_after) given it's been updated.
+            // Add the uids to the main set, the command will auto update the set's ttl (self.list_inactive_ttl) given it's been updated.
             .zadd_multi(
-                self.namespace,
+                &self.namespace,
                 &self.key,
-                Some(self.expire_after), // This will auto reset the expire time of the list as a whole
+                Some(self.list_inactive_ttl), // This will auto reset the expire time of the list as a whole
                 items_with_uids
                     .iter()
                     .map(|(uid, _)| (score, uid))
@@ -100,18 +209,18 @@ impl<'a> RedisTempList<'a> {
             )
             // Now store the values themselves as normal redis keys with the same ttl: (these are normal ttls that auto clean up)
             .mset(
-                self.namespace,
+                &self.namespace,
                 items_with_uids
                     .into_iter()
-                    .map(|(uid, item)| (uid, RedisJson(item))),
-                Some(ttl),
+                    .map(|(uid, item)| (uid, RedisJsonBorrowed(item))),
+                Some(self.item_inactive_ttl),
             )
             // Cleanup old members that have now expired:
             // (set member expiry is a logical process, not currently part of redis but could be soon)
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
-                self.namespace,
+                &self.namespace,
                 &self.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
@@ -130,18 +239,18 @@ impl<'a> RedisTempList<'a> {
     /// Add a new item to the sorted list.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
     /// - Some(String): The uid of the item added, this can be used to update or delete the item directly.
     /// - None: Something went wrong and the item wasn't added correctly.
-    pub async fn push<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &self,
-        item: T,
-        ttl: Duration,
-    ) -> Option<String> {
-        let uids = self.extend_inner(std::iter::once(item), ttl).await;
+    pub async fn push<'a, T>(&'a self, conn: &mut RedisConn<'_>, item: &'a T) -> Option<String>
+    where
+        T: 'a + serde::Deserialize<'a>,
+        &'a T: serde::Serialize,
+    {
+        let uids = self.extend_inner(conn, std::iter::once(item)).await;
         if let Some(uids) = uids {
             if uids.len() != 1 {
                 tracing::error!(
@@ -161,28 +270,30 @@ impl<'a> RedisTempList<'a> {
     /// Purposely using one ttl for all, should think about why if you're needing to set different ttls to items you're adding together!
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
     /// - Some(Vec<String>): The uids of the items added, these can be used to update or delete the items directly.
     /// - None: Something went wrong and the items weren't added correctly.
-    pub async fn extend<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &self,
-        items: impl IntoIterator<Item = T>,
-        ttl: Duration,
-    ) -> Option<Vec<String>> {
-        self.extend_inner(items, ttl).await
+    pub async fn extend<'a, T>(
+        &'a self,
+        conn: &mut RedisConn<'_>,
+        items: impl IntoIterator<Item = &'a T>,
+    ) -> Option<Vec<String>>
+    where
+        T: 'a + serde::Deserialize<'a>,
+        &'a T: serde::Serialize,
+    {
+        self.extend_inner(conn, items).await
     }
 
-    /// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than just the T.
-    /// Use this when you want to be able to update/delete individual items with the result.
-    pub async fn read_multi_with_info<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
+    /// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than RedisTempList<T> that makes working with items easier.
+    pub async fn read_multi_raw<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
         &self,
+        conn: &mut RedisConn<'_>,
         limit: Option<isize>,
     ) -> Vec<(i64, String, T)> {
-        let mut conn = self.redis.conn();
-
         // NOTE: because of the separation between the root list, and the values themselves as a separate redis keys, 2 calls are needed.
         // 1. Get the uids from the list
         // 2. Get the values from the uids
@@ -196,12 +307,12 @@ impl<'a> RedisTempList<'a> {
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
-                self.namespace,
+                &self.namespace,
                 &self.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .zrangebyscore::<String>(self.namespace, &self.key, i64::MIN, i64::MAX, limit)
+            .zrangebyscore::<String>(&self.namespace, &self.key, i64::MIN, i64::MAX, limit)
             .fire()
             .await;
 
@@ -219,11 +330,11 @@ impl<'a> RedisTempList<'a> {
                 let items: Option<Vec<Option<RedisJson<T>>>> = conn
                     .batch()
                     .mget(
-                        self.namespace,
+                        &self.namespace,
                         &item_info.iter().map(|(uid, _)| uid).collect::<Vec<_>>(),
                     )
                     // Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-                    .expire(self.namespace, &self.key, self.expire_after)
+                    .expire(&self.namespace, &self.key, self.list_inactive_ttl)
                     .fire()
                     .await;
 
@@ -251,42 +362,40 @@ impl<'a> RedisTempList<'a> {
         vec![]
     }
 
-    /// Read multiple items from the list, ordered from latest ttl to oldest.
-    /// When the ttl is the same, the items are returned newest to oldest.
+    /// Read multiple items from the list, ordered from last updated to least (newest to oldest).
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Vec<T>: The items in the list from newest to oldest up to the provided limit (if any).
-    pub async fn read_multi<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &self,
+    /// - Vec<RedisTempListItem<T>: The wrapped items in the list from newest to oldest up to the provided limit (if any).
+    pub async fn read_multi<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
+        &'a self,
+        conn: &mut RedisConn<'_>,
         limit: Option<isize>,
-    ) -> Vec<T> {
-        self.read_multi_with_info(limit)
+    ) -> Vec<RedisTempListItem<'a, T>> {
+        self.read_multi_raw::<T>(conn, limit)
             .await
             .into_iter()
-            .map(|(_, _, item)| item)
+            .map(|(_score, uid, item)| RedisTempListItem::new(Some(uid), Some(item), Some(self)))
             .collect()
     }
 
     /// Read a specific item given it's uid.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Some(T): The item found with the uid.
-    /// - None: The item wasn't found, or something went wrong during the read.
-    pub async fn read<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &self,
+    /// - RedisTempListItem<'a, 'c, T>: The item holder that encapsulates any error logic.
+    pub async fn read<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
+        &'a self,
+        conn: &mut RedisConn<'_>,
         uid: &str,
-    ) -> Option<T> {
-        let item: Option<Option<RedisJson<T>>> = self
-            .redis
-            .conn()
+    ) -> RedisTempListItem<'a, T> {
+        let item: Option<Option<RedisJson<T>>> = conn
             .batch()
             // NOTE: cleaning up first as don't want these to be included in the read.
             // Cleanup old members that have now expired:
@@ -294,46 +403,45 @@ impl<'a> RedisTempList<'a> {
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
-                self.namespace,
+                &self.namespace,
                 &self.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .get(self.namespace, uid)
+            .get(&self.namespace, uid)
             // Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-            .expire(self.namespace, &self.key, self.expire_after)
+            .expire(&self.namespace, &self.key, self.list_inactive_ttl)
             .fire()
             .await;
+
         if let Some(item) = item.flatten() {
-            Some(item.0)
+            RedisTempListItem::new(Some(uid.to_string()), Some(item.0), Some(self))
         } else {
-            None
+            RedisTempListItem::new_dummy()
         }
     }
 
     /// Delete a specific item given it's uid.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
-    pub async fn delete(&self, uid: &str) {
-        self.redis
-            .conn()
-            .batch()
+    pub async fn delete(&self, conn: &mut RedisConn<'_>, uid: &str) {
+        conn.batch()
             // NOTE: cleaning up first as don't want these to be included in the read.
             // Cleanup old members that have now expired:
             // (member expiry is a logical process, not currently part of redis but could be soon)
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
-                self.namespace,
+                &self.namespace,
                 &self.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .zrem(self.namespace, &self.key, uid)
+            .zrem(&self.namespace, &self.key, uid)
             // Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-            .expire(self.namespace, &self.key, self.expire_after)
+            .expire(&self.namespace, &self.key, self.list_inactive_ttl)
             .fire()
             .await;
     }
@@ -341,36 +449,40 @@ impl<'a> RedisTempList<'a> {
     /// Update a specific item given it's uid.
     ///
     /// This will also:
-    /// - Autoreset list's expire time to self.expire_after from now
+    /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
-    pub async fn update<T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &self,
-        uid: &str,
-        item: T,
-        ttl: Duration,
-    ) {
-        let new_score = (chrono::Utc::now() + ttl).timestamp_millis();
+    /// - Reset the item's expiry time, given its been updated
+    ///
+    pub async fn update<'a, T>(&self, conn: &mut RedisConn<'_>, uid: &str, item: &'a T)
+    where
+        T: 'a + serde::Deserialize<'a>,
+        &'a T: serde::Serialize,
+    {
+        let new_score = (chrono::Utc::now() + self.item_inactive_ttl).timestamp_millis();
 
-        self.redis
-            .conn()
-            .batch()
+        conn.batch()
             // This will update the uid's score/ttl, redis will automatically see it already existed (if it hadn't already expired) and update it.
             // It will also implicitly renew the list's ttl.
             .zadd(
-                self.namespace,
+                &self.namespace,
                 &self.key,
-                Some(self.expire_after),
+                Some(self.list_inactive_ttl),
                 new_score,
                 uid,
             )
             // Update the value itself, which is stored under the uid as a normal redis value:
-            .set(self.namespace, uid, RedisJson(item), Some(ttl))
+            .set(
+                &self.namespace,
+                uid,
+                RedisJsonBorrowed(item),
+                Some(self.item_inactive_ttl),
+            )
             // Cleanup old members that have now expired:
             // (member expiry is a logical process, not currently part of redis but could be soon)
             // https://github.com/redis/redis/issues/135#issuecomment-2361996
             // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
-                self.namespace,
+                &self.namespace,
                 &self.key,
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
@@ -381,11 +493,9 @@ impl<'a> RedisTempList<'a> {
 
     /// Clear all the items in the list.
     /// (by just deleting the list itself, stored values will still live until their ttl but used a random uid so no conflicts)
-    pub async fn clear(&self) {
-        self.redis
-            .conn()
-            .batch()
-            .clear(self.namespace, std::iter::once(self.key.as_str()))
+    pub async fn clear(&self, conn: &mut RedisConn<'_>) {
+        conn.batch()
+            .clear(&self.namespace, std::iter::once(self.key.as_str()))
             .fire()
             .await;
     }
@@ -405,119 +515,165 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
     fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     is_normal::<RedisTempList>();
 
+    let mut conn = r.conn();
+
     static NS: &str = "templist_tests";
 
-    let li1 = r.templist(NS, "t1", Duration::from_millis(100));
-    li1.extend(
-        vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
-        Duration::from_millis(30),
-    )
-    .await;
-    li1.push("i4".to_string(), Duration::from_millis(10)).await;
-    li1.push("i5".to_string(), Duration::from_millis(50)).await;
-    // Keys are ordered from latest ttl to oldest, then reverse lexicographically when the ttl is the same:
+    let li1 = r.templist(
+        NS,
+        "t1",
+        Duration::from_millis(100),
+        Duration::from_millis(60),
+    );
+    li1.extend(&mut conn, vec![&"i1", &"i2", &"i3"]).await;
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    li1.push(&mut conn, &"i4").await;
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    li1.push(&mut conn, &"i5").await;
+    // Keys are ordered from recent to old:
     assert_eq!(
-        li1.read_multi::<String>(None).await,
-        vec!["i5", "i3", "i2", "i1", "i4"]
+        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+        vec!["i5", "i4", "i3", "i2", "i1"]
     );
     // Read with limit, should be keeping newest and dropping oldest:
     assert_eq!(
-        li1.read_multi::<String>(Some(3)).await,
-        vec!["i5", "i3", "i2"]
+        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, Some(3)).await),
+        vec!["i5", "i4", "i3"]
     );
     tokio::time::sleep(Duration::from_millis(20)).await;
-    // i4 should be expired, it had a ttl of 10ms:
+    // First batch should have expired now (3 20ms waits)
+    // i4 should be expired, it had a ttl of 20ms:
     assert_eq!(
-        li1.read_multi::<String>(None).await,
-        vec!["i5", "i3", "i2", "i1"]
+        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+        vec!["i5", "i4"]
     );
     tokio::time::sleep(Duration::from_millis(20)).await;
-    // i1,2,3 should be expired, they had a ttl of 30ms:
-    assert_eq!(li1.read_multi::<String>(None).await, vec!["i5"]);
+    // i4 should be gone now:
+    assert_eq!(
+        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+        vec!["i5"]
+    );
     tokio::time::sleep(Duration::from_millis(20)).await;
-    // i5 should be expired, it had a ttl of 50ms:
-    assert_eq!(li1.read_multi::<String>(None).await, Vec::<String>::new());
+    // i5 should be gone now:
+    assert_eq!(
+        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+        Vec::<String>::new()
+    );
 
-    // Put a new item in there with a nice long ttl:
-    let uid = li1
-        .push("i6".to_string(), Duration::from_millis(1000))
-        .await
-        .unwrap();
-    // Li should still be there after 80ms, as the last push should have updated the list's ttl:
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    assert_eq!(li1.read_multi::<String>(None).await, vec!["i6"]);
-    // Above read_multi should have also updated the list's ttl, so should be there after another 80ms:
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    assert_eq!(li1.read::<String>(&uid).await, Some("i6".to_string()));
-    // Above direct read should have also updated the list's ttl, so should be there after another 80ms:
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    assert_eq!(li1.read::<String>(&uid).await, Some("i6".to_string()));
-    let uid_i7 = li1
-        .push("i7".to_string(), Duration::from_millis(1000))
-        .await
-        .unwrap();
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    li1.delete(&uid).await;
-    // Above delete should have updated the list's ttl, so should be there after another 80ms:
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    assert_eq!(li1.read_multi::<String>(None).await, vec!["i7"]);
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    li1.update(
-        &uid_i7,
-        "i7-updated".to_string(),
+    // Let's create a strange list, one with a short list lifetime but effectively infinite item lifetime:
+    let li2 = r.templist(
+        NS,
+        "t2",
+        Duration::from_millis(50),
         Duration::from_millis(1000),
-    )
-    .await;
-    // Above update should have updated the list's ttl, so should be there after another 80ms:
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    assert_eq!(
-        li1.read::<String>(&uid_i7).await,
-        Some("i7-updated".to_string())
     );
-    // When no reads or writes, the list should expire after 100ms:
-    tokio::time::sleep(Duration::from_millis(110)).await;
-    assert_eq!(li1.read_multi::<String>(None).await, Vec::<String>::new());
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    let i1_uid = li2.push(&mut conn, &"i1").await.unwrap();
+    // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert_eq!(
+        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+        vec!["i1"]
+    );
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    li2.extend(&mut conn, vec![&"i2", &"i3", &"i4"]).await;
+    // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert_eq!(
+        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+        vec!["i4", "i3", "i2", "i1"]
+    );
+    // Above read_multi should have also updated the list's ttl, so should be there after another 40ms:
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert_eq!(
+        li2.read::<String>(&mut conn, &i1_uid).await.into_item(),
+        Some("i1".to_string())
+    );
+    // Above direct read should have also updated the list's ttl, so should be there after another 40ms:
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert_eq!(
+        li2.read::<String>(&mut conn, &i1_uid).await.into_item(),
+        Some("i1".to_string())
+    );
+    let uid_i5 = li2.push(&mut conn, &"i5").await.unwrap();
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    li2.delete(&mut conn, &i1_uid).await;
+    // Above delete should have updated the list's ttl, so should be there after another 40ms:
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert_eq!(
+        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+        vec!["i5", "i4", "i3", "i2"]
+    );
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    li2.update(&mut conn, &uid_i5, &"i5-updated").await;
+    // Above update should have updated the list's ttl, so should be there after another 40ms:
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    assert_eq!(
+        li2.read::<String>(&mut conn, &uid_i5).await.into_item(),
+        Some("i5-updated".to_string())
+    );
+    // When no reads or writes, the list should expire after 50ms:
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    assert_eq!(
+        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+        Vec::<String>::new()
+    );
 
     // Make sure manual clear() works on a new list too:
-    let li2 = r.templist(NS, "t2", Duration::from_millis(100));
-    li2.extend(
-        vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
+    let li3 = r.templist(
+        NS,
+        "t3",
+        Duration::from_millis(100),
         Duration::from_millis(30),
-    )
-    .await;
-    assert_eq!(li2.read_multi::<String>(None).await, vec!["i3", "i2", "i1"]);
-    li2.clear().await;
-    assert_eq!(li2.read_multi::<String>(None).await, Vec::<String>::new());
+    );
+    li3.extend(&mut conn, vec![&"i1", &"i2", &"i3"]).await;
+    assert_eq!(
+        RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
+        vec!["i3", "i2", "i1"]
+    );
+    li3.clear(&mut conn).await;
+    assert_eq!(
+        RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
+        Vec::<String>::new()
+    );
 
     // Try with arb value, e.g. vec of (i32, String):
-    let li3 = r.templist(NS, "t3", Duration::from_millis(100));
-    li3.push((1, "a".to_string()), Duration::from_millis(30))
-        .await;
-    li3.push((2, "b".to_string()), Duration::from_millis(30))
-        .await;
+    let li4 = r.templist(
+        NS,
+        "t4",
+        Duration::from_millis(100),
+        Duration::from_millis(30),
+    );
+    li4.push(&mut conn, &(1, "a")).await;
+    li4.push(&mut conn, &(2, "b")).await;
     assert_eq!(
-        li3.read_multi::<(i32, String)>(None).await,
+        RedisTempListItem::vec_items(li4.read_multi::<(i32, String)>(&mut conn, None).await),
         vec![(2, "b".to_string()), (1, "a".to_string())]
     );
 
     // Try with json value:
-    let li4 = r.templist(NS, "t4", Duration::from_millis(100));
-    li4.extend(
+    let li5 = r.templist(
+        NS,
+        "t5",
+        Duration::from_millis(100),
+        Duration::from_millis(30),
+    );
+    li5.extend(
+        &mut conn,
         vec![
-            ExampleObject {
+            &ExampleObject {
                 a: 1,
                 b: "a".to_string(),
             },
-            ExampleObject {
+            &ExampleObject {
                 a: 2,
                 b: "b".to_string(),
             },
         ],
-        Duration::from_millis(30),
     )
     .await;
     assert_eq!(
-        li4.read_multi::<ExampleObject>(None).await,
+        RedisTempListItem::vec_items(li5.read_multi::<ExampleObject>(&mut conn, None).await),
         vec![
             ExampleObject {
                 a: 2,
@@ -531,19 +687,16 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
     );
 
     // Make sure duplicate values don't break the list and are still kept:
-    let li5 = r.templist(NS, "t5", Duration::from_millis(100));
-    li5.extend(
-        vec![
-            "i1".to_string(),
-            "i2".to_string(),
-            "i1".to_string(),
-            "i3".to_string(),
-        ],
+    let li6 = r.templist(
+        NS,
+        "t6",
+        Duration::from_millis(100),
         Duration::from_millis(30),
-    )
-    .await;
+    );
+    li6.extend(&mut conn, vec![&"i1", &"i2", &"i1", &"i3"])
+        .await;
     assert_eq!(
-        li5.read_multi::<String>(None).await,
+        RedisTempListItem::vec_items(li6.read_multi::<String>(&mut conn, None).await),
         vec!["i3", "i1", "i2", "i1"]
     );
 
