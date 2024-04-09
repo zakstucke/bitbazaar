@@ -9,6 +9,14 @@ use super::{batch::*, RedisConn, RedisJson};
 use crate::prelude::*;
 use crate::redis::RedisJsonBorrowed;
 
+/// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
+pub struct RedisTempListItemWithConn<'a, T> {
+    /// The normal item holder.
+    pub item: RedisTempListItem<T>,
+    /// The redis conn.
+    pub conn: RedisConn<'a>,
+}
+
 /// A user friendly interface around a redis list item, allowing for easy updates and replacements.
 /// This encapsulates when items aren't available, or the user doesn't actually want to use an item in some cases, but doesn't want to pass Options<> around.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -49,10 +57,16 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
         }
     }
 
+    /// Useful for combining a connection with an item, to prevent needing to pass both around.
+    pub fn with_conn(self, conn: RedisConn<'_>) -> RedisTempListItemWithConn<'_, T> {
+        RedisTempListItemWithConn { item: self, conn }
+    }
+
     /// Fully manage the update of an item back to redis.
     /// This interface is designed to encapsulate all failure logic,
     /// and not run the callback if the item wasn't needed, didn't exist etc.
     pub async fn update(&mut self, conn: &mut RedisConn<'_>, updater: impl FnOnce(&mut T)) {
+        let mut try_push = false;
         if let Some(tmp_list) = &self.maybe_tmp_list {
             if let Some(item) = self.maybe_item.as_mut() {
                 // Run the user's callback to make all changes.
@@ -62,9 +76,16 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
                     tmp_list.update(conn, uid, item).await;
                 } else {
                     // Given we have the list but not the uid, we can just push it onto the list instead:
-                    if let Some(uid) = tmp_list.push(conn, item).await {
-                        self.maybe_uid = Some(uid);
-                    }
+                    try_push = true;
+                }
+            }
+        }
+
+        // For borrowing reasons doing separately to above:
+        if try_push {
+            if let Some(tmp_list) = self.maybe_tmp_list.clone() {
+                if let Some(item) = self.maybe_item.take() {
+                    *self = tmp_list.push(conn, item).await;
                 }
             }
         }
@@ -73,18 +94,25 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
     /// Replace the contents of an item in the redis list with new, discarding any previous.
     /// This encapsulates the logic of no list being available, the callback will then never run.
     pub async fn replace(&mut self, conn: &mut RedisConn<'_>, replacer: impl FnOnce() -> T) {
+        let mut try_push_with_next_item = (false, None);
         if let Some(tmp_list) = &self.maybe_tmp_list {
             let next_item = replacer();
             if let Some(uid) = &self.maybe_uid {
                 // Sync those changes back to the list/redis:
                 tmp_list.update(conn, uid, &next_item).await;
+                self.maybe_item = Some(next_item);
             } else {
                 // Given we have the list but not the uid, we can just push it onto the list instead:
-                if let Some(uid) = tmp_list.push(conn, &next_item).await {
-                    self.maybe_uid = Some(uid);
+                try_push_with_next_item = (true, Some(next_item));
+            }
+        }
+        // For borrowing reasons doing separately to above:
+        if let Some(tmp_list) = self.maybe_tmp_list.clone() {
+            if try_push_with_next_item.0 {
+                if let Some(next_item) = try_push_with_next_item.1 {
+                    *self = tmp_list.push(conn, next_item).await;
                 }
             }
-            self.maybe_item = Some(next_item);
         }
     }
 
@@ -248,15 +276,14 @@ impl RedisTempList {
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Some(String): The uid of the item added, this can be used to update or delete the item directly.
-    /// - None: Something went wrong and the item wasn't added correctly.
-    pub async fn push<'a, T>(&'a self, conn: &mut RedisConn<'_>, item: &'a T) -> Option<String>
-    where
-        T: 'a + serde::Deserialize<'a>,
-        &'a T: serde::Serialize,
-    {
-        let uids = self.extend_inner(conn, std::iter::once(item)).await;
-        if let Some(uids) = uids {
+    /// RedisTempListItem<T>: The resulting item holder which can be used to further manipulate the items.
+    pub async fn push<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
+        self: &'a Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
+        conn: &mut RedisConn<'_>,
+        item: T,
+    ) -> RedisTempListItem<T> {
+        let uids = self.extend_inner(conn, std::iter::once(&item)).await;
+        let uid = if let Some(uids) = uids {
             if uids.len() != 1 {
                 tracing::error!(
                     "Expected 1 uid to be returned during temp list push, got: {:?}",
@@ -268,6 +295,12 @@ impl RedisTempList {
             }
         } else {
             None
+        };
+
+        if let Some(uid) = uid {
+            RedisTempListItem::new(Some(uid), Some(item), Some(self))
+        } else {
+            RedisTempListItem::new_dummy()
         }
     }
 
@@ -279,18 +312,26 @@ impl RedisTempList {
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Some(Vec<String>): The uids of the items added, these can be used to update or delete the items directly.
+    /// - Some(Vec<RedisTempListItem<T>>): The resulting item holders for each of the items added, these can be used to further manipulate the items.
     /// - None: Something went wrong and the items weren't added correctly.
-    pub async fn extend<'a, T>(
-        &'a self,
+    pub async fn extend<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
+        self: &'a Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
         conn: &mut RedisConn<'_>,
-        items: impl IntoIterator<Item = &'a T>,
-    ) -> Option<Vec<String>>
-    where
-        T: 'a + serde::Deserialize<'a>,
-        &'a T: serde::Serialize,
-    {
-        self.extend_inner(conn, items).await
+        items: impl IntoIterator<Item = T>,
+    ) -> Vec<RedisTempListItem<T>> {
+        let items = items.into_iter().collect::<Vec<_>>();
+        let uids = self.extend_inner(conn, &items).await;
+        if uids.is_some() {
+            let uids = uids.unwrap();
+            uids.into_iter()
+                .zip(items.into_iter())
+                .map(|(uid, item)| RedisTempListItem::new(Some(uid), Some(item), Some(self)))
+                .collect()
+        } else {
+            uids.into_iter()
+                .map(|_| RedisTempListItem::new_dummy())
+                .collect()
+        }
     }
 
     /// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than RedisTempList<T> that makes working with items easier.
@@ -530,11 +571,15 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         Duration::from_millis(100),
         Duration::from_millis(60),
     );
-    li1.extend(&mut conn, vec![&"i1", &"i2", &"i3"]).await;
+    li1.extend(
+        &mut conn,
+        vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
+    )
+    .await;
     tokio::time::sleep(Duration::from_millis(20)).await;
-    li1.push(&mut conn, &"i4").await;
+    li1.push(&mut conn, "i4".to_string()).await;
     tokio::time::sleep(Duration::from_millis(20)).await;
-    li1.push(&mut conn, &"i5").await;
+    li1.push(&mut conn, "i5".to_string()).await;
     // Keys are ordered from recent to old:
     assert_eq!(
         RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
@@ -573,7 +618,7 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         Duration::from_millis(1000),
     );
     tokio::time::sleep(Duration::from_millis(20)).await;
-    let i1_uid = li2.push(&mut conn, &"i1").await.unwrap();
+    let i1 = li2.push(&mut conn, "i1".to_string()).await;
     // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
     tokio::time::sleep(Duration::from_millis(40)).await;
     assert_eq!(
@@ -581,7 +626,11 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         vec!["i1"]
     );
     tokio::time::sleep(Duration::from_millis(40)).await;
-    li2.extend(&mut conn, vec![&"i2", &"i3", &"i4"]).await;
+    li2.extend(
+        &mut conn,
+        vec!["i2".to_string(), "i3".to_string(), "i4".to_string()],
+    )
+    .await;
     // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
     tokio::time::sleep(Duration::from_millis(40)).await;
     assert_eq!(
@@ -591,18 +640,22 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
     // Above read_multi should have also updated the list's ttl, so should be there after another 40ms:
     tokio::time::sleep(Duration::from_millis(40)).await;
     assert_eq!(
-        li2.read::<String>(&mut conn, &i1_uid).await.into_item(),
+        li2.read::<String>(&mut conn, i1.uid().unwrap())
+            .await
+            .into_item(),
         Some("i1".to_string())
     );
     // Above direct read should have also updated the list's ttl, so should be there after another 40ms:
     tokio::time::sleep(Duration::from_millis(40)).await;
     assert_eq!(
-        li2.read::<String>(&mut conn, &i1_uid).await.into_item(),
+        li2.read::<String>(&mut conn, i1.uid().unwrap())
+            .await
+            .into_item(),
         Some("i1".to_string())
     );
-    let uid_i5 = li2.push(&mut conn, &"i5").await.unwrap();
+    let i5 = li2.push(&mut conn, "i5".to_string()).await;
     tokio::time::sleep(Duration::from_millis(40)).await;
-    li2.delete(&mut conn, &i1_uid).await;
+    li2.delete(&mut conn, i1.uid().unwrap()).await;
     // Above delete should have updated the list's ttl, so should be there after another 40ms:
     tokio::time::sleep(Duration::from_millis(40)).await;
     assert_eq!(
@@ -610,11 +663,14 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         vec!["i5", "i4", "i3", "i2"]
     );
     tokio::time::sleep(Duration::from_millis(40)).await;
-    li2.update(&mut conn, &uid_i5, &"i5-updated").await;
+    li2.update(&mut conn, i5.uid().unwrap(), &"i5-updated")
+        .await;
     // Above update should have updated the list's ttl, so should be there after another 40ms:
     tokio::time::sleep(Duration::from_millis(40)).await;
     assert_eq!(
-        li2.read::<String>(&mut conn, &uid_i5).await.into_item(),
+        li2.read::<String>(&mut conn, i5.uid().unwrap())
+            .await
+            .into_item(),
         Some("i5-updated".to_string())
     );
     // When no reads or writes, the list should expire after 50ms:
@@ -631,7 +687,11 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         Duration::from_millis(100),
         Duration::from_millis(30),
     );
-    li3.extend(&mut conn, vec![&"i1", &"i2", &"i3"]).await;
+    li3.extend(
+        &mut conn,
+        vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
+    )
+    .await;
     assert_eq!(
         RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
         vec!["i3", "i2", "i1"]
@@ -649,8 +709,8 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         Duration::from_millis(100),
         Duration::from_millis(30),
     );
-    li4.push(&mut conn, &(1, "a")).await;
-    li4.push(&mut conn, &(2, "b")).await;
+    li4.push(&mut conn, (1, "a".to_string())).await;
+    li4.push(&mut conn, (2, "b".to_string())).await;
     assert_eq!(
         RedisTempListItem::vec_items(li4.read_multi::<(i32, String)>(&mut conn, None).await),
         vec![(2, "b".to_string()), (1, "a".to_string())]
@@ -666,11 +726,11 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
     li5.extend(
         &mut conn,
         vec![
-            &ExampleObject {
+            ExampleObject {
                 a: 1,
                 b: "a".to_string(),
             },
-            &ExampleObject {
+            ExampleObject {
                 a: 2,
                 b: "b".to_string(),
             },
@@ -698,8 +758,16 @@ pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
         Duration::from_millis(100),
         Duration::from_millis(30),
     );
-    li6.extend(&mut conn, vec![&"i1", &"i2", &"i1", &"i3"])
-        .await;
+    li6.extend(
+        &mut conn,
+        vec![
+            "i1".to_string(),
+            "i2".to_string(),
+            "i1".to_string(),
+            "i3".to_string(),
+        ],
+    )
+    .await;
     assert_eq!(
         RedisTempListItem::vec_items(li6.read_multi::<String>(&mut conn, None).await),
         vec!["i3", "i1", "i2", "i1"]
