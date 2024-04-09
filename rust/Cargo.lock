@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "bitbazaar"
-version = "0.0.43"
+version = "0.0.44"
 dependencies = [
  "chrono",
  "colored",
