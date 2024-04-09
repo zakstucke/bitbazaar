@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["RedisLockErr"],"struct":["Redis","RedisBatch","RedisConn","RedisJson","RedisJsonBorrowed","RedisLock","RedisScript","RedisScriptInvoker","RedisTempList","RedisTempListItem"],"trait":["RedisBatchFire","RedisBatchReturningOps"]};
+window.SIDEBAR_ITEMS = {"enum":["RedisLockErr"],"struct":["Redis","RedisBatch","RedisConn","RedisJson","RedisJsonBorrowed","RedisLock","RedisScript","RedisScriptInvoker","RedisTempList","RedisTempListItem","RedisTempListItemWithConn"],"trait":["RedisBatchFire","RedisBatchReturningOps"]};
