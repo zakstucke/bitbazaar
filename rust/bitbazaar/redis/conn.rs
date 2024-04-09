@@ -37,13 +37,13 @@ impl<'a> RedisConn<'a> {
 
     /// Redis keys are all prefixed, use this to finalise a namespace outside of built in commands, e.g. for use in a custom script.
     #[inline]
-    pub fn final_namespace(&self, namespace: &'static str) -> String {
+    pub fn final_namespace(&self, namespace: &str) -> String {
         format!("{}:{}", self.prefix, namespace)
     }
 
     /// Redis keys are all prefixed, use this to finalise a key outside of built in commands, e.g. for use in a custom script.
     #[inline]
-    pub fn final_key(&self, namespace: &'static str, key: Cow<'_, str>) -> String {
+    pub fn final_key(&self, namespace: &str, key: Cow<'_, str>) -> String {
         format!("{}:{}", self.final_namespace(namespace), key)
     }
 
@@ -57,7 +57,7 @@ impl<'a> RedisConn<'a> {
     #[inline]
     pub async fn cached_fn<'b, T, Fut, K: Into<Cow<'b, str>>>(
         &mut self,
-        namespace: &'static str,
+        namespace: &str,
         key: K,
         expiry: Option<std::time::Duration>,
         cb: impl FnOnce() -> Fut,
