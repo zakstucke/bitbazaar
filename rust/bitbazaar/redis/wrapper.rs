@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use deadpool_redis::{Config, Runtime};
 
@@ -70,7 +70,7 @@ impl Redis {
         key: impl Into<String>,
         list_inactive_ttl: Duration,
         item_inactive_ttl: Duration,
-    ) -> RedisTempList {
+    ) -> Arc<RedisTempList> {
         RedisTempList::new(namespace, key.into(), list_inactive_ttl, item_inactive_ttl)
     }
 

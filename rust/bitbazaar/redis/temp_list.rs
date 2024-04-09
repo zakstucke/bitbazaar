@@ -12,24 +12,29 @@ use crate::redis::RedisJsonBorrowed;
 /// A user friendly interface around a redis list item, allowing for easy updates and replacements.
 /// This encapsulates when items aren't available, or the user doesn't actually want to use an item in some cases, but doesn't want to pass Options<> around.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct RedisTempListItem<'a, T> {
+pub struct RedisTempListItem<T> {
     // By making all this optional, it encapsulates a lot of user logic:
     // - redis failure
     // - key expiries
     // - list expiries
     // - the user just not wanting to use a list in a case, but still wants to use a fn that might take a list.
 
-    // Have to use a cow here, it won't be copied normally, but if serializing the item and reloading later, it will have to be an owned value.
-    maybe_tmp_list: Option<Cow<'a, RedisTempList>>,
+    // The arc is used to prevent a need to copy for each time, but can serialize with it if needed.
+    maybe_tmp_list: Option<Arc<RedisTempList>>,
+
     maybe_uid: Option<String>,
     maybe_item: Option<T>,
 }
 
-impl<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>> RedisTempListItem<'a, T> {
+impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> {
     /// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
-    pub fn new(uid: Option<String>, item: Option<T>, tmp_list: Option<&'a RedisTempList>) -> Self {
+    pub fn new(
+        uid: Option<String>,
+        item: Option<T>,
+        tmp_list: Option<&Arc<RedisTempList>>, // Forcing entry as ref and will clone the arc in here, to make it clear what's going on.
+    ) -> Self {
         Self {
-            maybe_tmp_list: tmp_list.map(Cow::Borrowed),
+            maybe_tmp_list: tmp_list.cloned(),
             maybe_uid: uid,
             maybe_item: item,
         }
@@ -142,14 +147,14 @@ impl RedisTempList {
         key: String,
         list_inactive_ttl: Duration,
         item_inactive_ttl: Duration,
-    ) -> Self {
-        Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             namespace: Cow::Borrowed(namespace),
             key,
             list_inactive_ttl,
             item_inactive_ttl,
             last_extension_ts_millis: Arc::new(AtomicI64::new(0)),
-        }
+        })
     }
 
     /// The score should be the utc timestamp to expire:
@@ -370,11 +375,11 @@ impl RedisTempList {
     ///
     /// Returns:
     /// - Vec<RedisTempListItem<T>: The wrapped items in the list from newest to oldest up to the provided limit (if any).
-    pub async fn read_multi<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &'a self,
+    pub async fn read_multi<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
+        self: &Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
         conn: &mut RedisConn<'_>,
         limit: Option<isize>,
-    ) -> Vec<RedisTempListItem<'a, T>> {
+    ) -> Vec<RedisTempListItem<T>> {
         self.read_multi_raw::<T>(conn, limit)
             .await
             .into_iter()
@@ -390,11 +395,11 @@ impl RedisTempList {
     ///
     /// Returns:
     /// - RedisTempListItem<'a, 'c, T>: The item holder that encapsulates any error logic.
-    pub async fn read<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
-        &'a self,
+    pub async fn read<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
+        self: &Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
         conn: &mut RedisConn<'_>,
         uid: &str,
-    ) -> RedisTempListItem<'a, T> {
+    ) -> RedisTempListItem<T> {
         let item: Option<Option<RedisJson<T>>> = conn
             .batch()
             // NOTE: cleaning up first as don't want these to be included in the read.
