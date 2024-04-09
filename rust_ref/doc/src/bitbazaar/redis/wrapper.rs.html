@@ -87,7 +87,7 @@
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
 <a href="#87" id="87">87</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{sync::Arc, time::Duration};
 
 <span class="kw">use </span>deadpool_redis::{Config, Runtime};
 
@@ -159,7 +159,7 @@
         key: <span class="kw">impl </span>Into&lt;String&gt;,
         list_inactive_ttl: Duration,
         item_inactive_ttl: Duration,
-    ) -&gt; RedisTempList {
+    ) -&gt; Arc&lt;RedisTempList&gt; {
         RedisTempList::new(namespace, key.into(), list_inactive_ttl, item_inactive_ttl)
     }
 

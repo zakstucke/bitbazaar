@@ -704,6 +704,11 @@
 <a href="#702" id="702">702</a>
 <a href="#703" id="703">703</a>
 <a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     sync::{atomic::AtomicI64, Arc},
@@ -718,24 +723,29 @@
 <span class="doccomment">/// A user friendly interface around a redis list item, allowing for easy updates and replacements.
 /// This encapsulates when items aren't available, or the user doesn't actually want to use an item in some cases, but doesn't want to pass Options&lt;&gt; around.
 </span><span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-</span><span class="kw">pub struct </span>RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt; {
+</span><span class="kw">pub struct </span>RedisTempListItem&lt;T&gt; {
     <span class="comment">// By making all this optional, it encapsulates a lot of user logic:
     // - redis failure
     // - key expiries
     // - list expiries
     // - the user just not wanting to use a list in a case, but still wants to use a fn that might take a list.
 
-    // Have to use a cow here, it won't be copied normally, but if serializing the item and reloading later, it will have to be an owned value.
-    </span>maybe_tmp_list: <span class="prelude-ty">Option</span>&lt;Cow&lt;<span class="lifetime">'a</span>, RedisTempList&gt;&gt;,
+    // The arc is used to prevent a need to copy for each time, but can serialize with it if needed.
+    </span>maybe_tmp_list: <span class="prelude-ty">Option</span>&lt;Arc&lt;RedisTempList&gt;&gt;,
+
     maybe_uid: <span class="prelude-ty">Option</span>&lt;String&gt;,
     maybe_item: <span class="prelude-ty">Option</span>&lt;T&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt; RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt; {
+<span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt; RedisTempListItem&lt;T&gt; {
     <span class="doccomment">/// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
-    </span><span class="kw">pub fn </span>new(uid: <span class="prelude-ty">Option</span>&lt;String&gt;, item: <span class="prelude-ty">Option</span>&lt;T&gt;, tmp_list: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>RedisTempList&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(
+        uid: <span class="prelude-ty">Option</span>&lt;String&gt;,
+        item: <span class="prelude-ty">Option</span>&lt;T&gt;,
+        tmp_list: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Arc&lt;RedisTempList&gt;&gt;, <span class="comment">// Forcing entry as ref and will clone the arc in here, to make it clear what's going on.
+    </span>) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            maybe_tmp_list: tmp_list.map(Cow::Borrowed),
+            maybe_tmp_list: tmp_list.cloned(),
             maybe_uid: uid,
             maybe_item: item,
         }
@@ -848,14 +858,14 @@
         key: String,
         list_inactive_ttl: Duration,
         item_inactive_ttl: Duration,
-    ) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
+    ) -&gt; Arc&lt;<span class="self">Self</span>&gt; {
+        Arc::new(<span class="self">Self </span>{
             namespace: Cow::Borrowed(namespace),
             key,
             list_inactive_ttl,
             item_inactive_ttl,
             last_extension_ts_millis: Arc::new(AtomicI64::new(<span class="number">0</span>)),
-        }
+        })
     }
 
     <span class="doccomment">/// The score should be the utc timestamp to expire:
@@ -1076,11 +1086,11 @@
     ///
     /// Returns:
     /// - Vec&lt;RedisTempListItem&lt;T&gt;: The wrapped items in the list from newest to oldest up to the provided limit (if any).
-    </span><span class="kw">pub async fn </span>read_multi&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+    </span><span class="kw">pub async fn </span>read_multi&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
+        <span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
+        </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
-    ) -&gt; Vec&lt;RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt;&gt; {
+    ) -&gt; Vec&lt;RedisTempListItem&lt;T&gt;&gt; {
         <span class="self">self</span>.read_multi_raw::&lt;T&gt;(conn, limit)
             .<span class="kw">await
             </span>.into_iter()
@@ -1096,11 +1106,11 @@
     ///
     /// Returns:
     /// - RedisTempListItem&lt;'a, 'c, T&gt;: The item holder that encapsulates any error logic.
-    </span><span class="kw">pub async fn </span>read&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+    </span><span class="kw">pub async fn </span>read&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
+        <span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
+        </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
         uid: <span class="kw-2">&amp;</span>str,
-    ) -&gt; RedisTempListItem&lt;<span class="lifetime">'a</span>, T&gt; {
+    ) -&gt; RedisTempListItem&lt;T&gt; {
         <span class="kw">let </span>item: <span class="prelude-ty">Option</span>&lt;<span class="prelude-ty">Option</span>&lt;RedisJson&lt;T&gt;&gt;&gt; = conn
             .batch()
             <span class="comment">// NOTE: cleaning up first as don't want these to be included in the read.
