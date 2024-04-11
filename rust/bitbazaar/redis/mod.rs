@@ -440,6 +440,31 @@ mod tests {
             Some(false)
         );
 
+        // TODO this isn't possible with redis right now, but looks like its coming very soon.
+        // Once this is working, also do test for mget, where some in the mget fail, and also do for the temp list, in case some don't match T they should be ignored but not stop others being pulled.
+        // See:
+        // https://github.com/redis-rs/redis-rs/issues/746
+        // https://github.com/redis-rs/redis-rs/pull/1093
+        // https://github.com/redis-rs/redis-rs/pull/1144
+        // https://github.com/redis-rs/redis-rs/issues/540
+        // https://github.com/redis-rs/redis-rs/pull/813
+        // https://github.com/redis-rs/redis-rs/issues/1043
+
+        // // If something's of the incorrect type in a get as part of a batch, it shouldn't break the batch (historic bug the batch would fail and the outer would be none)
+        // assert_eq!(
+        //     work_conn
+        //         .batch()
+        //         .set("z1", "corrupt1", "bazboo", Some(Duration::from_millis(30)))
+        //         .set("z1", "valid", "str", Some(Duration::from_millis(30)))
+        //         .set("z1", "corrupt2", "foobar", Some(Duration::from_millis(30)))
+        //         .get::<Vec<HashMap<String, String>>>("z1", "corrupt1")
+        //         .get::<String>("z1", "valid")
+        //         .get::<RedisJson<ExampleJson>>("z1", "corrupt2")
+        //         .fire()
+        //         .await,
+        //     Some((None, Some("str".to_string()), None))
+        // );
+
         // Run the dlock tests:
         redis_dlock_tests(&work_r).await?;
 

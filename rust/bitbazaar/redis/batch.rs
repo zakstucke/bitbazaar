@@ -250,11 +250,11 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// Set a key to a value with an optional expiry.
     ///
     /// (expiry accurate to the millisecond)
-    pub fn set(
+    pub fn set<T: ToRedisArgs>(
         mut self,
         namespace: &str,
         key: &str,
-        value: impl ToRedisArgs,
+        value: T,
         expiry: Option<std::time::Duration>,
     ) -> Self {
         let final_key = self.redis_conn.final_key(namespace, key.into());

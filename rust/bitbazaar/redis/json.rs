@@ -2,7 +2,7 @@ use redis::{FromRedisValue, ToRedisArgs};
 
 /// A wrapper on an arbitrary json object to allow reading and writing to redis.
 /// Access the inner with .0.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RedisJson<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(pub T);
 
 impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> FromRedisValue for RedisJson<T> {
