@@ -18,7 +18,7 @@ static MSET_WITH_EXPIRY_SCRIPT: Lazy<RedisScript> =
 ///
 /// Batched commands are run in order, but other commands from different sources may be interleaved.
 /// Note each command may be run twice, if scripts needed caching to redis.
-pub struct RedisBatch<'a, 'b, 'c, ReturnType = ()> {
+pub struct RedisBatch<'a, 'b, 'c, ReturnType> {
     _returns: PhantomData<ReturnType>,
     redis_conn: &'a mut RedisConn<'b>,
     pipe: Pipeline,
