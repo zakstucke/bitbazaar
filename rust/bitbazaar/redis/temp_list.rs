@@ -149,6 +149,16 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
         }
     }
 
+    /// Delete the item from the list.
+    /// Will be a no-op of the item wrapper is actually empty for some reason.
+    pub async fn delete(self, conn: &mut RedisConn<'_>) {
+        if let Some(tmp_list) = self.maybe_tmp_list {
+            if let Some(uid) = self.maybe_uid {
+                tmp_list.delete(conn, &uid).await;
+            }
+        }
+    }
+
     /// Access the underlying item's uid, if it exists.
     pub fn uid(&self) -> Option<&str> {
         self.maybe_uid.as_deref()
@@ -254,7 +264,7 @@ impl RedisTempList {
             .map(|(uid, _)| uid.to_string())
             .collect::<Vec<_>>();
 
-        let result: Option<()> = conn
+        let result = conn
             .batch()
             // Add the uids to the main set, the command will auto update the set's ttl (self.list_inactive_ttl) given it's been updated.
             .zadd_multi(
@@ -372,7 +382,7 @@ impl RedisTempList {
         // 2. Get the values from the uids
         // This cannot be done without a round-trip through a script because redis requires all keys used in scripts to be known ahead of time (using KEYS), so can't use that.
 
-        let item_info: Option<Vec<(Option<String>, i64)>> = conn
+        let item_info = conn
             .batch()
             // NOTE: cleaning up first as don't want these to be included in the read.
             // Cleanup old members that have now expired:
@@ -400,9 +410,9 @@ impl RedisTempList {
             // Don't continue if no items successfully decoded:
             if !item_info.is_empty() {
                 // Pull the items using the retrieved uids:
-                let items: Option<Vec<Option<RedisJson<T>>>> = conn
+                let items = conn
                     .batch()
-                    .mget(
+                    .mget::<RedisJson<T>>(
                         &self.namespace,
                         &item_info.iter().map(|(uid, _)| uid).collect::<Vec<_>>(),
                     )
@@ -468,7 +478,7 @@ impl RedisTempList {
         conn: &mut RedisConn<'_>,
         uid: &str,
     ) -> RedisTempListItem<T> {
-        let item: Option<Option<RedisJson<T>>> = conn
+        let item = conn
             .batch()
             // NOTE: cleaning up first as don't want these to be included in the read.
             // Cleanup old members that have now expired:
@@ -481,7 +491,7 @@ impl RedisTempList {
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .get(&self.namespace, uid)
+            .get::<RedisJson<T>>(&self.namespace, uid)
             // Unlike our zadd during setting, need to manually refresh the expire time of the list here:
             .expire(&self.namespace, &self.key, self.list_inactive_ttl)
             .fire()
