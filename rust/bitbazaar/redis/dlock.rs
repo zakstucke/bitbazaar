@@ -151,7 +151,6 @@ impl<'a> RedisLock<'a> {
             let lock_id = lock_id.clone();
             let val = val.clone();
             async move {
-                // TODONOW script types should be as generic args.
                 let result: Option<i32> = conn
                     .batch()
                     .script(

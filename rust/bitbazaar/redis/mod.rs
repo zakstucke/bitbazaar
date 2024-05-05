@@ -408,23 +408,32 @@ mod tests {
                     None,
                     &[(2, "baz"), (5, "qux"), (6, "lah"), (0, "loo"), (4, "quux"),],
                 )
-                .zrem("z1", "myset", "foo")
+                .zrem("z1", "myset", std::iter::once("foo"))
                 // Should return vals for scores in 2,3,4 (not 3 because I just removed it)
-                .zrangebyscore::<String>("z1", "myset", 2, 4, None)
+                .zrangebyscore_high_to_low::<String>("z1", "myset", 2, 4, None)
                 // Delete vals with scores in 2,3,4
                 .zremrangebyscore("z1", "myset", 2, 4)
-                // Means 0-6 now returns only 1,5,6 (not 0 due to limit of 3) as just deleted the rest.
-                .zrangebyscore::<String>("z1", "myset", 0, 6, Some(3))
+                // Means 0-6 now returns only 6,5,1 (not 0 due to limit of 3) as just deleted the rest.
+                .zrangebyscore_high_to_low::<String>("z1", "myset", 0, 6, Some(3))
+                // Means 0-6 now returns only 0,1,5 (not 6 due to limit of 3) as just deleted the rest.
+                .zrangebyscore_low_to_high::<String>("z1", "myset", 0, 6, Some(3))
                 .fire()
                 .await,
             // Values are ordered from highest score to lowest score:
             Some((
                 vec![(Some("quux".into()), 4), (Some("baz".into()), 2),],
                 vec![
+                    // High to low version
                     (Some("lah".into()), 6),
                     (Some("qux".into()), 5),
-                    (Some("bar".into()), 1)
-                ]
+                    (Some("bar".into()), 1),
+                ],
+                vec![
+                    // Low to high version
+                    (Some("loo".into()), 0),
+                    (Some("bar".into()), 1),
+                    (Some("qux".into()), 5),
+                ],
             ))
         );
 
