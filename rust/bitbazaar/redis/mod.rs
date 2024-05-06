@@ -10,6 +10,9 @@ pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::RedisConn;
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonBorrowed};
+// Re-exporting the json derive utilities to allow redis to take arbitrary json types without the need for the wrapper.
+// Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
+pub use redis_macros::{FromRedisValue, ToRedisArgs};
 pub use script::{RedisScript, RedisScriptInvoker};
 pub use temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
 pub use wrapper::Redis;
@@ -44,7 +47,9 @@ mod tests {
         }
     }
 
-    #[derive(PartialEq, Debug, serde::Serialize, serde::Deserialize)]
+    #[derive(
+        PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
+    )]
     struct ExampleJson {
         ree: String,
     }
@@ -270,16 +275,15 @@ mod tests {
                     .set(
                         "",
                         "foo",
-                        RedisJson(ExampleJson {
+                        ExampleJson {
                             ree: "roo".to_string()
-                        }),
+                        },
                         None
                     )
-                    .get::<RedisJson<ExampleJson>>("", "foo")
+                    .get::<ExampleJson>("", "foo")
                     .fire()
                     .await
-                    .flatten()
-                    .map(|x| x.0),
+                    .flatten(),
                 exp
             );
         }
@@ -296,12 +300,11 @@ mod tests {
                     conn.cached_fn("my_fn_group", "foo", None, || async {
                         // Add one to the call count, should only be called once:
                         called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                        Ok(RedisJson(ExampleJson {
+                        Ok(ExampleJson {
                             ree: "roo".to_string(),
-                        }))
+                        })
                     })
-                    .await?
-                    .0,
+                    .await?,
                     ExampleJson {
                         ree: "roo".to_string(),
                     },
@@ -325,13 +328,12 @@ mod tests {
                         || async {
                             // Add one to the call count, should only be called once:
                             called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                            Ok(RedisJson(ExampleJson {
+                            Ok(ExampleJson {
                                 ree: "roo".to_string(),
-                            }))
+                            })
                         }
                     )
-                    .await?
-                    .0,
+                    .await?,
                 ExampleJson {
                     ree: "roo".to_string(),
                 },
