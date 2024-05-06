@@ -179,16 +179,16 @@ where
         self.logger.emit(log_record);
     }
 
-    #[cfg(feature = "logs_level_enabled")]
-    fn event_enabled(
-        &self,
-        _event: &tracing_core::Event<'_>,
-        _ctx: tracing_subscriber::ot_tracing_bridge::Context<'_, S>,
-    ) -> bool {
-        let severity = severity_of_level(_event.metadata().level());
-        self.logger
-            .event_enabled(severity, _event.metadata().target())
-    }
+    // #[cfg(feature = "logs_level_enabled")]
+    // fn event_enabled(
+    //     &self,
+    //     _event: &tracing_core::Event<'_>,
+    //     _ctx: tracing_subscriber::ot_tracing_bridge::Context<'_, S>,
+    // ) -> bool {
+    //     let severity = severity_of_level(_event.metadata().level());
+    //     self.logger
+    //         .event_enabled(severity, _event.metadata().target())
+    // }
 }
 
 const fn severity_of_level(level: &Level) -> Severity {
