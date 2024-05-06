@@ -483,6 +483,8 @@
 <a href="#483" id="483">483</a>
 <a href="#484" id="484">484</a>
 <a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>batch;
 <span class="kw">mod </span>conn;
 <span class="kw">mod </span>dlock;
@@ -495,6 +497,9 @@
 <span class="kw">pub use </span>conn::RedisConn;
 <span class="kw">pub use </span>dlock::{RedisLock, RedisLockErr};
 <span class="kw">pub use </span>json::{RedisJson, RedisJsonBorrowed};
+<span class="comment">// Re-exporting the json derive utilities to allow redis to take arbitrary json types without the need for the wrapper.
+// Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
+</span><span class="kw">pub use </span>redis_macros::{FromRedisValue, ToRedisArgs};
 <span class="kw">pub use </span>script::{RedisScript, RedisScriptInvoker};
 <span class="kw">pub use </span>temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
 <span class="kw">pub use </span>wrapper::Redis;
@@ -529,7 +534,9 @@
         }
     }
 
-    <span class="attr">#[derive(PartialEq, Debug, serde::Serialize, serde::Deserialize)]
+    <span class="attr">#[derive(
+        PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
+    )]
     </span><span class="kw">struct </span>ExampleJson {
         ree: String,
     }
@@ -755,16 +762,15 @@
                     .set(
                         <span class="string">""</span>,
                         <span class="string">"foo"</span>,
-                        RedisJson(ExampleJson {
+                        ExampleJson {
                             ree: <span class="string">"roo"</span>.to_string()
-                        }),
+                        },
                         <span class="prelude-val">None
                     </span>)
-                    .get::&lt;RedisJson&lt;ExampleJson&gt;&gt;(<span class="string">""</span>, <span class="string">"foo"</span>)
+                    .get::&lt;ExampleJson&gt;(<span class="string">""</span>, <span class="string">"foo"</span>)
                     .fire()
                     .<span class="kw">await
-                    </span>.flatten()
-                    .map(|x| x.<span class="number">0</span>),
+                    </span>.flatten(),
                 exp
             );
         }
@@ -781,12 +787,11 @@
                     conn.cached_fn(<span class="string">"my_fn_group"</span>, <span class="string">"foo"</span>, <span class="prelude-val">None</span>, || <span class="kw">async </span>{
                         <span class="comment">// Add one to the call count, should only be called once:
                         </span>called.fetch_add(<span class="number">1</span>, std::sync::atomic::Ordering::SeqCst);
-                        <span class="prelude-val">Ok</span>(RedisJson(ExampleJson {
+                        <span class="prelude-val">Ok</span>(ExampleJson {
                             ree: <span class="string">"roo"</span>.to_string(),
-                        }))
+                        })
                     })
-                    .<span class="kw">await</span><span class="question-mark">?
-                    </span>.<span class="number">0</span>,
+                    .<span class="kw">await</span><span class="question-mark">?</span>,
                     ExampleJson {
                         ree: <span class="string">"roo"</span>.to_string(),
                     },
@@ -810,13 +815,12 @@
                         || <span class="kw">async </span>{
                             <span class="comment">// Add one to the call count, should only be called once:
                             </span>called.fetch_add(<span class="number">1</span>, std::sync::atomic::Ordering::SeqCst);
-                            <span class="prelude-val">Ok</span>(RedisJson(ExampleJson {
+                            <span class="prelude-val">Ok</span>(ExampleJson {
                                 ree: <span class="string">"roo"</span>.to_string(),
-                            }))
+                            })
                         }
                     )
-                    .<span class="kw">await</span><span class="question-mark">?
-                    </span>.<span class="number">0</span>,
+                    .<span class="kw">await</span><span class="question-mark">?</span>,
                 ExampleJson {
                     ree: <span class="string">"roo"</span>.to_string(),
                 },

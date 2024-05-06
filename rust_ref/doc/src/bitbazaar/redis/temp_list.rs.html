@@ -842,6 +842,13 @@
 <a href="#842" id="842">842</a>
 <a href="#843" id="843">843</a>
 <a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     sync::{atomic::AtomicI64, Arc},
@@ -1386,7 +1393,14 @@
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .zrem(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, uids)
+            .zrem(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.key,
+                uids.into_iter()
+                    .map(Into::into)
+                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+                    .as_slice(),
+            )
             <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
             </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
             .fire()

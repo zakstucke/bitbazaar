@@ -1,0 +1,5 @@
+cargo::rustc-check-cfg=cfg(CHANNEL_STABLE, values(none()))
+cargo::rustc-check-cfg=cfg(CHANNEL_BETA, values(none()))
+cargo::rustc-check-cfg=cfg(CHANNEL_NIGHTLY, values(none()))
+cargo::rustc-check-cfg=cfg(CHANNEL_DEV, values(none()))
+cargo:rustc-cfg=CHANNEL_NIGHTLY
