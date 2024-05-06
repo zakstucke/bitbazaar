@@ -1,6 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9e1300b5663a8a03.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0-nightly (ab5bda1aa 2024-04-08)" data-channel="nightly" data-search-js="search-ffac13a0df2b1870.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c97aec732c613ca4.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
-            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
-    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-b21aa549bf6d91ff.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0-nightly (9c9b56879 2024-05-05)" data-channel="nightly" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -578,6 +576,56 @@
 <a href="#576" id="576">576</a>
 <a href="#577" id="577">577</a>
 <a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, marker::PhantomData};
 
 <span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
@@ -598,7 +646,7 @@
 ///
 /// Batched commands are run in order, but other commands from different sources may be interleaved.
 /// Note each command may be run twice, if scripts needed caching to redis.
-</span><span class="kw">pub struct </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ReturnType = ()&gt; {
+</span><span class="kw">pub struct </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, ReturnType&gt; {
     _returns: PhantomData&lt;ReturnType&gt;,
     redis_conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>RedisConn&lt;<span class="lifetime">'b</span>&gt;,
     pipe: Pipeline,
@@ -740,18 +788,23 @@
         }
     }
 
-    <span class="doccomment">/// remove an entry to an ordered set.
+    <span class="doccomment">/// remove an entries from an ordered set.
     /// https://redis.io/commands/zrem/
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
-    /// - `value`: The value of the entry. (values of sets must be strings)
-    </span><span class="kw">pub fn </span>zrem(<span class="kw-2">mut </span><span class="self">self</span>, set_namespace: <span class="kw-2">&amp;</span>str, set_key: <span class="kw-2">&amp;</span>str, value: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
+    /// - `values`: The values to remove as an iterator. (values of sets must be strings)
+    </span><span class="kw">pub fn </span>zrem&lt;S: Into&lt;String&gt;&gt;(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        set_namespace: <span class="kw-2">&amp;</span>str,
+        set_key: <span class="kw-2">&amp;</span>str,
+        values: <span class="kw">impl </span>IntoIterator&lt;Item = S&gt;,
+    ) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .zrem(
                 <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
-                value.as_ref(),
+                values.into_iter().map(Into::into).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
             )
             <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
             </span>.ignore();
@@ -770,7 +823,7 @@
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
     /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
-    /// - items: The scores and values of the entries. (set values must be strings)
+    /// - `items`: The scores and values of the entries. (set values must be strings)
     </span><span class="kw">pub fn </span>zadd_multi(
         <span class="kw-2">mut </span><span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,
@@ -830,11 +883,11 @@
     <span class="doccomment">/// Set a key to a value with an optional expiry.
     ///
     /// (expiry accurate to the millisecond)
-    </span><span class="kw">pub fn </span>set(
+    </span><span class="kw">pub fn </span>set&lt;T: ToRedisArgs&gt;(
         <span class="kw-2">mut </span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         key: <span class="kw-2">&amp;</span>str,
-        value: <span class="kw">impl </span>ToRedisArgs,
+        value: T,
         expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_key = <span class="self">self</span>.redis_conn.final_key(namespace, key.into());
@@ -1003,7 +1056,8 @@
         keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt;&gt;;
 
-    <span class="doccomment">/// Retrieve entries from an ordered set by score range. (range is inclusive)
+    <span class="doccomment">/// HIGHEST TO LOWEST SCORES.
+    /// Retrieve entries from an ordered set by score range. (range is inclusive)
     /// Items that cannot be decoded into the specified type are returned as `None`.
     ///
     /// VARIATIONS FROM DEFAULT:
@@ -1017,7 +1071,28 @@
     /// - `limit`: The maximum number of items to return.
     ///
     /// https://redis.io/commands/zrangebyscore/
-    </span><span class="kw">fn </span>zrangebyscore&lt;Value: FromRedisValue&gt;(
+    </span><span class="kw">fn </span>zrangebyscore_high_to_low&lt;Value: FromRedisValue&gt;(
+        <span class="self">self</span>,
+        set_namespace: <span class="kw-2">&amp;</span>str,
+        set_key: <span class="kw-2">&amp;</span>str,
+        min: i64,
+        max: i64,
+        limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, i64)&gt;&gt;;
+
+    <span class="doccomment">/// LOWEST TO HIGHEST SCORES.
+    /// Retrieve entries from an ordered set by score range. (range is inclusive)
+    /// Items that cannot be decoded into the specified type are returned as `None`.
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `min`: The minimum score.
+    /// - `max`: The maximum score.
+    /// - `limit`: The maximum number of items to return.
+    ///
+    /// https://redis.io/commands/zrangebyscore/
+    </span><span class="kw">fn </span>zrangebyscore_low_to_high&lt;Value: FromRedisValue&gt;(
         <span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
@@ -1101,7 +1176,7 @@
                 }
             }
 
-            <span class="kw">fn </span>zrangebyscore&lt;Value: FromRedisValue&gt;(
+            <span class="kw">fn </span>zrangebyscore_high_to_low&lt;Value: FromRedisValue&gt;(
                 <span class="kw-2">mut </span><span class="self">self</span>,
                 set_namespace: <span class="kw-2">&amp;</span>str,
                 set_key: <span class="kw-2">&amp;</span>str,
@@ -1113,6 +1188,29 @@
                     <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
                     max,
                     min,
+                    <span class="number">0</span>,
+                    limit.unwrap_or(isize::MAX)
+                );
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: <span class="self">self</span>.redis_conn,
+                    pipe: <span class="self">self</span>.pipe,
+                    used_scripts: <span class="self">self</span>.used_scripts,
+                }
+            }
+
+            <span class="kw">fn </span>zrangebyscore_low_to_high&lt;Value: FromRedisValue&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                set_namespace: <span class="kw-2">&amp;</span>str,
+                set_key: <span class="kw-2">&amp;</span>str,
+                min: i64,
+                max: i64,
+                limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(<span class="prelude-ty">Option</span>&lt;Value&gt;, i64)&gt;&gt; {
+                <span class="self">self</span>.pipe.zrangebyscore_limit_withscores(
+                    <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
+                    min,
+                    max,
                     <span class="number">0</span>,
                     limit.unwrap_or(isize::MAX)
                 );

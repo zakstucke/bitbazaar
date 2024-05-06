@@ -1,5 +1,5 @@
-; ModuleID = 'probe7.3156454e57542170-cgu.0'
-source_filename = "probe7.3156454e57542170-cgu.0"
+; ModuleID = 'probe7.1dc45e58710776c7-cgu.0'
+source_filename = "probe7.1dc45e58710776c7-cgu.0"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
@@ -8,10 +8,10 @@ target triple = "x86_64-unknown-linux-gnu"
 
 ; core::f64::<impl f64>::total_cmp
 ; Function Attrs: inlinehint nonlazybind uwtable
-define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h9bb532551059e396E"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
+define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17hb7d96cb9b7b9752dE"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
 start:
-  %right = alloca i64, align 8
-  %left = alloca i64, align 8
+  %right = alloca [8 x i8], align 8
+  %left = alloca [8 x i8], align 8
   %self1 = load double, ptr %self, align 8
   %_4 = bitcast double %self1 to i64
   store i64 %_4, ptr %left, align 8
@@ -42,10 +42,10 @@ start:
 
 ; probe7::probe
 ; Function Attrs: nonlazybind uwtable
-define void @_ZN6probe75probe17hc4451028d396facbE() unnamed_addr #1 {
+define void @_ZN6probe75probe17h3c7bd5b4eea76366E() unnamed_addr #1 {
 start:
 ; call core::f64::<impl f64>::total_cmp
-  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h9bb532551059e396E"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c)
+  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17hb7d96cb9b7b9752dE"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c)
   ret void
 }
 
@@ -57,4 +57,4 @@ attributes #1 = { nonlazybind uwtable "probe-stack"="inline-asm" "target-cpu"="x
 
 !0 = !{i32 8, !"PIC Level", i32 2}
 !1 = !{i32 2, !"RtLibUseGOT", i32 1}
-!2 = !{!"rustc version 1.79.0-nightly (ab5bda1aa 2024-04-08)"}
+!2 = !{!"rustc version 1.80.0-nightly (9c9b56879 2024-05-05)"}
