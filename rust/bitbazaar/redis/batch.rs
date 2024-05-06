@@ -18,7 +18,7 @@ static MSET_WITH_EXPIRY_SCRIPT: Lazy<RedisScript> =
 ///
 /// Batched commands are run in order, but other commands from different sources may be interleaved.
 /// Note each command may be run twice, if scripts needed caching to redis.
-pub struct RedisBatch<'a, 'b, 'c, ReturnType = ()> {
+pub struct RedisBatch<'a, 'b, 'c, ReturnType> {
     _returns: PhantomData<ReturnType>,
     redis_conn: &'a mut RedisConn<'b>,
     pipe: Pipeline,
@@ -160,18 +160,23 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         }
     }
 
-    /// remove an entry to an ordered set.
+    /// remove an entries from an ordered set.
     /// https://redis.io/commands/zrem/
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
-    /// - `value`: The value of the entry. (values of sets must be strings)
-    pub fn zrem(mut self, set_namespace: &str, set_key: &str, value: impl AsRef<str>) -> Self {
+    /// - `values`: The values to remove as an iterator. (values of sets must be strings)
+    pub fn zrem<S: Into<String>>(
+        mut self,
+        set_namespace: &str,
+        set_key: &str,
+        values: impl IntoIterator<Item = S>,
+    ) -> Self {
         self.pipe
             .zrem(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                value.as_ref(),
+                values.into_iter().map(Into::into).collect::<Vec<_>>(),
             )
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();
@@ -190,7 +195,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
     /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
-    /// - items: The scores and values of the entries. (set values must be strings)
+    /// - `items`: The scores and values of the entries. (set values must be strings)
     pub fn zadd_multi(
         mut self,
         set_namespace: &str,
@@ -423,6 +428,7 @@ pub trait RedisBatchReturningOps<'c> {
         keys: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Self::NextType<Vec<Option<Value>>>;
 
+    /// HIGHEST TO LOWEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
     /// Items that cannot be decoded into the specified type are returned as `None`.
     ///
@@ -437,7 +443,28 @@ pub trait RedisBatchReturningOps<'c> {
     /// - `limit`: The maximum number of items to return.
     ///
     /// https://redis.io/commands/zrangebyscore/
-    fn zrangebyscore<Value: FromRedisValue>(
+    fn zrangebyscore_high_to_low<Value: FromRedisValue>(
+        self,
+        set_namespace: &str,
+        set_key: &str,
+        min: i64,
+        max: i64,
+        limit: Option<isize>,
+    ) -> Self::NextType<Vec<(Option<Value>, i64)>>;
+
+    /// LOWEST TO HIGHEST SCORES.
+    /// Retrieve entries from an ordered set by score range. (range is inclusive)
+    /// Items that cannot be decoded into the specified type are returned as `None`.
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `min`: The minimum score.
+    /// - `max`: The maximum score.
+    /// - `limit`: The maximum number of items to return.
+    ///
+    /// https://redis.io/commands/zrangebyscore/
+    fn zrangebyscore_low_to_high<Value: FromRedisValue>(
         self,
         set_namespace: &str,
         set_key: &str,
@@ -521,7 +548,7 @@ macro_rules! impl_batch_ops {
                 }
             }
 
-            fn zrangebyscore<Value: FromRedisValue>(
+            fn zrangebyscore_high_to_low<Value: FromRedisValue>(
                 mut self,
                 set_namespace: &str,
                 set_key: &str,
@@ -533,6 +560,29 @@ macro_rules! impl_batch_ops {
                     self.redis_conn.final_key(set_namespace, set_key.into()),
                     max,
                     min,
+                    0,
+                    limit.unwrap_or(isize::MAX)
+                );
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: self.redis_conn,
+                    pipe: self.pipe,
+                    used_scripts: self.used_scripts,
+                }
+            }
+
+            fn zrangebyscore_low_to_high<Value: FromRedisValue>(
+                mut self,
+                set_namespace: &str,
+                set_key: &str,
+                min: i64,
+                max: i64,
+                limit: Option<isize>,
+            ) -> Self::NextType<Vec<(Option<Value>, i64)>> {
+                self.pipe.zrangebyscore_limit_withscores(
+                    self.redis_conn.final_key(set_namespace, set_key.into()),
+                    min,
+                    max,
                     0,
                     limit.unwrap_or(isize::MAX)
                 );

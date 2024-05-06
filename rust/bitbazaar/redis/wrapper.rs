@@ -61,7 +61,7 @@ impl Redis {
     /// - Each item in the list has it's own expiry, so the list is always clean of old items.
     /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
     /// - Returned items are returned newest/last-updated to oldest
-    /// This makes this distributed data structure perfect for e.g.:
+    /// This makes this distributed data structure perfect for stuff like:
     /// - recent/temporary logs/events of any sort.
     /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
     pub fn templist(

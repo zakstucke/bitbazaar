@@ -31,7 +31,7 @@ impl<'a> RedisConn<'a> {
     }
 
     /// Get a new [`RedisBatch`] for this connection that commands can be piped together with.
-    pub fn batch<'ref_lt>(&'ref_lt mut self) -> RedisBatch<'ref_lt, 'a, '_> {
+    pub fn batch<'ref_lt>(&'ref_lt mut self) -> RedisBatch<'ref_lt, 'a, '_, ()> {
         RedisBatch::new(self)
     }
 
