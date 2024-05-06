@@ -138,12 +138,12 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         set_key: &str,
         set_ttl: Option<std::time::Duration>,
         score: i64,
-        value: impl AsRef<str>,
+        value: impl ToRedisArgs,
     ) -> Self {
         self.pipe
             .zadd(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                value.as_ref(),
+                value,
                 score,
             )
             // Ignoring so it doesn't take up a space in the tuple response.
@@ -166,17 +166,17 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
     /// - `set_key`: The key of the set.
-    /// - `values`: The values to remove as an iterator. (values of sets must be strings)
-    pub fn zrem<S: Into<String>>(
+    /// - `values`: The values to remove as an iterator.
+    pub fn zrem<T: ToRedisArgs>(
         mut self,
         set_namespace: &str,
         set_key: &str,
-        values: impl IntoIterator<Item = S>,
+        values: impl IntoIterator<Item = T>,
     ) -> Self {
         self.pipe
             .zrem(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                values.into_iter().map(Into::into).collect::<Vec<_>>(),
+                values.into_iter().collect::<Vec<_>>(),
             )
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();
@@ -201,16 +201,12 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         set_namespace: &str,
         set_key: &str,
         set_ttl: Option<std::time::Duration>,
-        items: &[(i64, impl AsRef<str>)],
+        items: &[(i64, impl ToRedisArgs)],
     ) -> Self {
         self.pipe
             .zadd_multiple(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                items
-                    .iter()
-                    .map(|(score, value)| (*score, value.as_ref()))
-                    .collect::<Vec<_>>()
-                    .as_slice(),
+                items,
             )
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();

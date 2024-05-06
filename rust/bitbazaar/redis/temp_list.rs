@@ -542,7 +542,14 @@ impl RedisTempList {
                 i64::MIN,
                 chrono::Utc::now().timestamp_millis(),
             )
-            .zrem(&self.namespace, &self.key, uids)
+            .zrem(
+                &self.namespace,
+                &self.key,
+                uids.into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+            )
             // Unlike our zadd during setting, need to manually refresh the expire time of the list here:
             .expire(&self.namespace, &self.key, self.list_inactive_ttl)
             .fire()
