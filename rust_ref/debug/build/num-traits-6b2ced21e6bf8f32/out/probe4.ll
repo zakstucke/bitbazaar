@@ -1,5 +1,5 @@
-; ModuleID = 'probe4.6ef6ce85730d30e4-cgu.0'
-source_filename = "probe4.6ef6ce85730d30e4-cgu.0"
+; ModuleID = 'probe4.6ab1db7df7965691-cgu.0'
+source_filename = "probe4.6ab1db7df7965691-cgu.0"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
@@ -8,14 +8,14 @@ target triple = "x86_64-unknown-linux-gnu"
 
 ; probe4::probe
 ; Function Attrs: nonlazybind uwtable
-define void @_ZN6probe45probe17h08ede38ae35e1494E() unnamed_addr #0 {
+define void @_ZN6probe45probe17h263ad0b26e965fa1E() unnamed_addr #0 {
 start:
   ret void
 }
 
 ; core::panicking::panic_const::panic_const_div_by_zero
 ; Function Attrs: cold noinline noreturn nonlazybind uwtable
-declare void @_ZN4core9panicking11panic_const23panic_const_div_by_zero17h64725c7108a42befE(ptr align 8) unnamed_addr #1
+declare void @_ZN4core9panicking11panic_const23panic_const_div_by_zero17hd5e42698af232041E(ptr align 8) unnamed_addr #1
 
 attributes #0 = { nonlazybind uwtable "probe-stack"="inline-asm" "target-cpu"="x86-64" }
 attributes #1 = { cold noinline noreturn nonlazybind uwtable "probe-stack"="inline-asm" "target-cpu"="x86-64" }
@@ -25,4 +25,4 @@ attributes #1 = { cold noinline noreturn nonlazybind uwtable "probe-stack"="inli
 
 !0 = !{i32 8, !"PIC Level", i32 2}
 !1 = !{i32 2, !"RtLibUseGOT", i32 1}
-!2 = !{!"rustc version 1.80.0-nightly (9c9b56879 2024-05-05)"}
+!2 = !{!"rustc version 1.80.0-nightly (7d83a4c13 2024-05-06)"}

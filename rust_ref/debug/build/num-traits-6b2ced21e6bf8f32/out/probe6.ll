@@ -1,11 +1,11 @@
-; ModuleID = 'probe6.cad5b2d5316d0c17-cgu.0'
-source_filename = "probe6.cad5b2d5316d0c17-cgu.0"
+; ModuleID = 'probe6.b76ffa5af932c055-cgu.0'
+source_filename = "probe6.b76ffa5af932c055-cgu.0"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
 ; core::f64::<impl f64>::is_subnormal
 ; Function Attrs: inlinehint nonlazybind uwtable
-define internal zeroext i1 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$12is_subnormal17ha3de9b5ced8fcd47E"(double %self) unnamed_addr #0 {
+define internal zeroext i1 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$12is_subnormal17ha511b7ec1c11425eE"(double %self) unnamed_addr #0 {
 start:
   %_2 = alloca [1 x i8], align 1
   %_4 = fcmp une double %self, %self
@@ -60,10 +60,10 @@ bb3:                                              ; preds = %bb1, %bb4
 
 ; probe6::probe
 ; Function Attrs: nonlazybind uwtable
-define void @_ZN6probe65probe17h9938261b5ca852a6E() unnamed_addr #1 {
+define void @_ZN6probe65probe17hc4be4bc37bceb098E() unnamed_addr #1 {
 start:
 ; call core::f64::<impl f64>::is_subnormal
-  %_1 = call zeroext i1 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$12is_subnormal17ha3de9b5ced8fcd47E"(double 1.000000e+00)
+  %_1 = call zeroext i1 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$12is_subnormal17ha511b7ec1c11425eE"(double 1.000000e+00)
   ret void
 }
 
@@ -75,4 +75,4 @@ attributes #1 = { nonlazybind uwtable "probe-stack"="inline-asm" "target-cpu"="x
 
 !0 = !{i32 8, !"PIC Level", i32 2}
 !1 = !{i32 2, !"RtLibUseGOT", i32 1}
-!2 = !{!"rustc version 1.80.0-nightly (9c9b56879 2024-05-05)"}
+!2 = !{!"rustc version 1.80.0-nightly (7d83a4c13 2024-05-06)"}
