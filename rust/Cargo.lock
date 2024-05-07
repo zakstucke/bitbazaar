@@ -157,7 +157,6 @@ dependencies = [
  "deadpool-redis",
  "error-stack",
  "futures",
- "futures-timer",
  "homedir",
  "hostname",
  "http 1.0.0",

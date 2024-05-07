@@ -25,6 +25,7 @@ chrono = ['dep:chrono', 'dep:chrono-humanize']
 timing = ['dep:comfy-table', 'chrono']
 cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'chrono', 'dep:strum']
 redis = [
+  'dep:tokio',
   'dep:deadpool-redis',
   'dep:redis',
   "dep:redis-macros",
@@ -32,7 +33,6 @@ redis = [
   'dep:serde_json',
   'dep:rand',
   'dep:futures',
-  'dep:futures-timer',
   'chrono',
   'dep:uuid',
 ]
@@ -78,8 +78,8 @@ strum = { version = "0.25", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 rand = { version = "0.8", optional = true }
 futures = { version = "0.3", optional = true }
-futures-timer = { version = "3", optional = true }
 uuid = { version = "1.6", features = ["v4"], optional = true }
+tokio = { version = '1', optional = true }
 
 # FEAT: chrono: (but also sometimes enabled by other features)
 chrono = { version = '0.4', optional = true }
@@ -129,7 +129,7 @@ hostname = "0.3.1"
 rstest = "0.18"
 portpicker = '0.1.1'
 tempfile = '3.8'
-tokio = { version = '1.35', features = ["rt-multi-thread", "macros"] }
+tokio = { version = '1', features = ["rt-multi-thread", "macros"] }
 uuid = { version = "1.6", features = ["v4"] }
 regex = "1"
 serde_json = "1"
