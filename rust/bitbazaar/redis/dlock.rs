@@ -70,7 +70,7 @@ impl Context for RedisLockErr {}
 /// A distributed lock for Redis.
 pub struct RedisLock<'a> {
     redis: &'a super::Redis,
-    /// The resource to lock. Will be used as the key in Redis.
+    /// The resource to lock. A combination of the namespace with the lock_key. Will be used as the key in Redis.
     pub lock_id: Vec<u8>,
     /// The value for this lock.
     pub val: Vec<u8>,
@@ -82,7 +82,8 @@ impl<'a> RedisLock<'a> {
     /// Creates a new lock, use [`super::Redis::dlock`] instead.
     pub(crate) async fn new(
         redis: &'a super::Redis,
-        lock_id: &str,
+        namespace: &'static str,
+        lock_key: &str,
         ttl: Duration,
         wait_up_to: Option<Duration>,
     ) -> Result<RedisLock<'a>, RedisLockErr> {
@@ -95,7 +96,7 @@ impl<'a> RedisLock<'a> {
 
         let mut lock = RedisLock {
             redis,
-            lock_id: lock_id.as_bytes().to_vec(),
+            lock_id: format!("{}:{}", namespace, lock_key).as_bytes().to_vec(),
             val: get_unique_lock_id(),
             wait_up_to,
         };
@@ -286,10 +287,12 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
     assert_eq!(20, id2.len());
     assert_ne!(id1, id2);
 
+    static NS: &str = "test_lock";
+
     macro_rules! check_lockable {
         ($name:expr) => {{
             let mut lock = r
-                .dlock($name, Duration::from_secs(1), None)
+                .dlock(NS, $name, Duration::from_secs(1), None)
                 .await
                 .change_context(AnyErr)?;
             lock.unlock().await;
@@ -298,7 +301,7 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
 
     macro_rules! check_not_lockable {
         ($name:expr) => {{
-            if (r.dlock($name, Duration::from_secs(1), None).await).is_ok() {
+            if (r.dlock(NS, $name, Duration::from_secs(1), None).await).is_ok() {
                 return Err(anyerr!("Lock acquired, even though it should be locked"));
             }
         }};
@@ -306,7 +309,7 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
 
     // Manual unlock should work:
     let mut lock = r
-        .dlock("test_lock_lock_unlock", Duration::from_secs(1), None)
+        .dlock(NS, "test_lock_lock_unlock", Duration::from_secs(1), None)
         .await
         .change_context(AnyErr)?;
     // Should fail as instantly locked:
@@ -321,7 +324,7 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
 
     // Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
     let _ = r
-        .dlock("test_lock_autoexpire", Duration::from_millis(100), None)
+        .dlock(NS, "test_lock_autoexpire", Duration::from_millis(100), None)
         .await
         .change_context(AnyErr)?;
     // 50ms shouldn't be enough to unlock:
@@ -333,7 +336,7 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
 
     // New test, confirm extend does extend by expected amount:
     let mut lock = r
-        .dlock("test_lock_extend", Duration::from_millis(100), None)
+        .dlock(NS, "test_lock_extend", Duration::from_millis(100), None)
         .await
         .change_context(AnyErr)?;
     tokio::time::sleep(Duration::from_millis(50)).await;
@@ -350,13 +353,14 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
 
     // Confirm retries would work to wait for a lock:
     let _ = r
-        .dlock("test_lock_retry", Duration::from_millis(300), None)
+        .dlock(NS, "test_lock_retry", Duration::from_millis(300), None)
         .await
         .change_context(AnyErr)?;
     // This will fail as no wait:
     check_not_lockable!("test_lock_retry");
     // This will fail as only waiting 100ms:
     if r.dlock(
+        NS,
         "test_lock_retry",
         Duration::from_millis(100),
         Some(Duration::from_millis(100)),
@@ -368,6 +372,7 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
     }
     // This will succeed as waiting for another 250ms, which should easily hit the 300ms ttl:
     r.dlock(
+        NS,
         "test_lock_retry",
         Duration::from_millis(100),
         Some(Duration::from_millis(250)),
