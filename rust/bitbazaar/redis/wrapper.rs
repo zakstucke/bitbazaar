@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use deadpool_redis::{Config, Runtime};
+use futures::Future;
 
 use super::{RedisConn, RedisLock, RedisLockErr, RedisTempList};
 use crate::errors::prelude::*;
@@ -44,16 +45,48 @@ impl Redis {
     /// This lock will prevent others getting the lock, until it's time to live expires. Or the lock is manually released with [`RedisLock::unlock`].
     ///
     /// Arguments:
-    /// - `lock_id`: The resource to lock. Will be used as the key in Redis.
+    /// - `namespace`: The redis key namespace to use.
+    /// - `lock_key`: The resource to lock. Will be used as the key in Redis.
     /// - `ttl`: The time to live for this lock. After this time, the lock will be automatically released.
     /// - `wait_up_to`: if the lock is busy elsewhere, wait this long trying to get it, before giving up and returning [`RedisLockErr::Unavailable`].
     pub async fn dlock(
         &self,
-        lock_id: &str,
+        namespace: &'static str,
+        lock_key: &str,
         time_to_live: Duration,
         wait_up_to: Option<Duration>,
     ) -> Result<RedisLock<'_>, RedisLockErr> {
-        RedisLock::new(self, lock_id, time_to_live, wait_up_to).await
+        RedisLock::new(self, namespace, lock_key, time_to_live, wait_up_to).await
+    }
+
+    /// Get a distributed redis lock that is held for the duration of the closure.
+    /// The lock will be automatically released when the closure finishes.
+    ///
+    /// Arguments:
+    /// - `namespace`: The redis key namespace to use.
+    /// - `lock_key`: The resource to lock. Will be used as the key in Redis.
+    /// - `wait_up_to`: if the lock is busy elsewhere, wait this long trying to get it, before giving up and returning [`RedisLockErr::Unavailable`].
+    pub async fn dlock_for_fut<R, Fut: Future<Output = Result<R, AnyErr>>>(
+        &self,
+        namespace: &'static str,
+        lock_key: &str,
+        wait_up_to: Option<Duration>,
+        fut: Fut,
+    ) -> Result<R, RedisLockErr> {
+        let mut lock = RedisLock::new(
+            self,
+            namespace,
+            lock_key,
+            // 3 works well with hold_for_closure internals, means will lock again after 2 seconds, then 5, then double current processing time.
+            // (albeit only if the closure hasn't already finished)
+            Duration::from_secs(3),
+            wait_up_to,
+        )
+        .await?;
+        let result = lock.hold_for_fut(fut).await;
+        // Always unlock, would expire eventually, but allows others to access straight away:
+        lock.unlock().await;
+        result
     }
 
     /// Connect up to a magic redis list that:
