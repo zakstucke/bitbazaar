@@ -150,6 +150,7 @@ name = "bitbazaar"
 version = "0.0.49"
 dependencies = [
  "chrono",
+ "chrono-humanize",
  "colored",
  "comfy-table",
  "conch-parser",
@@ -244,6 +245,15 @@ dependencies = [
  "serde",
  "wasm-bindgen",
  "windows-targets 0.52.0",
+]
+
+[[package]]
+name = "chrono-humanize"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "799627e6b4d27827a814e837b9d8a504832086081806d45b1afa34dc982b023b"
+dependencies = [
+ "chrono",
 ]
 
 [[package]]

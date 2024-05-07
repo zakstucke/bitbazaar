@@ -11,6 +11,9 @@ mod prelude;
 /// Command line interface utilities.
 pub mod cli;
 
+#[cfg(feature = "chrono")]
+/// Chrono utilities
+pub mod chrono;
 /// Error handling utilities.
 pub mod errors;
 /// Hashing utilities.
