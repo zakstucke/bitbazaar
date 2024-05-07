@@ -173,10 +173,15 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         set_key: &str,
         values: impl IntoIterator<Item = T>,
     ) -> Self {
+        let members = values.into_iter().collect::<Vec<_>>();
+        // No-op if no members so skip (redis would actually error if empty anyway)
+        if members.is_empty() {
+            return self;
+        }
         self.pipe
             .zrem(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
-                values.into_iter().collect::<Vec<_>>(),
+                members,
             )
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();
