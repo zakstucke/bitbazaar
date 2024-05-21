@@ -15,7 +15,6 @@ path = "bitbazaar/lib.rs"
 rustc_version = "0.4.0"
 
 [package.metadata.docs.rs]
-# We use feature(doc_auto_cfg) so show which features needed for which code.
 # For the features to show in docs.rs, need to tell it to include them:
 all-features = true
 

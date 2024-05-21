@@ -76,14 +76,14 @@ repos:
       - id: cargo-fmt
         name: cargo-fmt
         description: "Format files with cargo fmt."
-        entry: cargo +nightly fmt
+        entry: cargo fmt
         language: rust
         types: [rust]
         args: [--manifest-path=./rust/Cargo.toml, --]
       - id: cargo-hack-check
         name: cargo-check-each-feature
         description: Check the package for errors.
-        entry: cargo +nightly hack check
+        entry: cargo hack check
         language: rust
         types: [rust]
         args: [--manifest-path=./rust/Cargo.toml, --each-feature, --no-dev-deps]
@@ -91,7 +91,7 @@ repos:
       - id: cargo-clippy
         name: cargo-clippy
         description: Lint rust sources
-        entry: cargo +nightly clippy
+        entry: cargo clippy
         language: rust
         args: ["--manifest-path", "./rust/Cargo.toml", "--all-features", "--", "-D", "warnings"]
         types: [rust]
@@ -103,14 +103,14 @@ repos:
       - id: cargo-fmt
         name: cargo-fmt
         description: "Format files with cargo fmt."
-        entry: cargo +nightly fmt
+        entry: cargo fmt
         language: rust
         types: [rust]
         args: [--manifest-path=./py_rust/Cargo.toml, --]
       - id: cargo-hack-check
         name: cargo-check-each-feature
         description: Check the package for errors.
-        entry: cargo +nightly hack check
+        entry: cargo hack check
         language: rust
         types: [rust]
         args: [--manifest-path=./py_rust/Cargo.toml, --each-feature, --no-dev-deps]
@@ -118,7 +118,7 @@ repos:
       - id: cargo-clippy
         name: cargo-clippy
         description: Lint rust sources
-        entry: cargo +nightly clippy
+        entry: cargo clippy
         language: rust
         args: ["--manifest-path", "./py_rust/Cargo.toml", "--all-features", "--", "-D", "warnings"]
         types: [rust]

@@ -1,7 +1,5 @@
 #![warn(clippy::disallowed_types)]
 #![warn(missing_docs)]
-// https://stackoverflow.com/questions/61417452/how-to-get-a-feature-requirement-tag-in-the-documentation-generated-by-cargo-do
-#![cfg_attr(all(doc, CHANNEL_NIGHTLY), feature(doc_auto_cfg))]
 
 //! bitbazaar - An assortment of publicly available cross-language utilities useful to my projects.
 
