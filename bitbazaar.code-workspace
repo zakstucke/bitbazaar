@@ -13,7 +13,7 @@
       "./rust/Cargo.toml",
       "./py_rust/Cargo.toml",
     ],
-    "rust-analyzer.rustfmt.extraArgs": ["+nightly"], // We use nightly rustfmt for extra features.
+    "rust-analyzer.rustfmt.extraArgs": [],
     "rust-analyzer.cargo.features": "all", // Enable all features in cargo.toml for type hinting
 
     "biome.lspBin": "/usr/local/bin/biome", // Path to the biome binary installed in initial_setup.sh

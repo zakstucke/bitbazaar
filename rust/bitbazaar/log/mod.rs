@@ -5,7 +5,32 @@ mod macros;
 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 mod ot_tracing_bridge;
 
+#[cfg(all(
+    feature = "system",
+    any(feature = "opentelemetry-grpc", feature = "opentelemetry-http")
+))]
+mod system_and_process_metrics;
 pub use global_log::{global_fns::*, GlobalLog, GlobalLogBuilder};
+#[cfg(all(
+    feature = "system",
+    any(feature = "opentelemetry-grpc", feature = "opentelemetry-http")
+))]
+pub use system_and_process_metrics::*;
+
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
+/// Opentelemetry types that might be needed downstream.
+/// The aim is to avoid the user having to depend on opentelemetry crates directly.
+pub mod otlp {
+    pub use opentelemetry::{Key, KeyValue, StringValue, Value};
+
+    /// Otlp metric types.
+    pub mod metrics {
+        pub use opentelemetry::metrics::{
+            Counter, Histogram, ObservableCounter, ObservableGauge, ObservableUpDownCounter,
+            SyncCounter, SyncHistogram, SyncUpDownCounter, Unit, UpDownCounter,
+        };
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -200,8 +200,6 @@ initial_setup () {
         _install_yaml_fmt $yamlfmt_req_ver
     fi
 
-    # Make sure nightly is installed as use nightly for formatting and checking:
-    rustup toolchain install nightly
     # Make sure nextest is installed:
     cargo install cargo-nextest --locked
 

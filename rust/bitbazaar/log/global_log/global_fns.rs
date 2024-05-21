@@ -23,10 +23,19 @@ pub fn record_exception(message: impl Into<String>, stacktrace: impl Into<String
 ///
 /// If the name is empty, then an implementation defined default name will
 /// be used instead.
-pub fn meter(
-    name: impl Into<std::borrow::Cow<'static, str>>,
-) -> Result<opentelemetry::metrics::Meter, AnyErr> {
-    get_global()?.meter(name)
+pub fn meter(name: impl Into<std::borrow::Cow<'static, str>>) -> opentelemetry::metrics::Meter {
+    opentelemetry::global::meter(name)
+}
+
+#[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
+/// Returns the default [`opentelemetry::metrics::Meter`] for the app, labelled "default".
+pub fn global_meter() -> &'static opentelemetry::metrics::Meter {
+    use once_cell::sync::Lazy;
+
+    static GLOBAL_METER: Lazy<opentelemetry::metrics::Meter> =
+        Lazy::new(|| opentelemetry::global::meter("default"));
+
+    &GLOBAL_METER
 }
 
 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]

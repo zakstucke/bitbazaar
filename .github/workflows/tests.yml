@@ -62,8 +62,7 @@ jobs:
           cd ./js
           bun install
 
-      # Formatting and checking uses nightly rather than stable:
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - name: "Install cargo-hack, used for feature checking in pre-commit."
@@ -97,8 +96,8 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install rust toolchain (doc builds use nightly features)
-        uses: dtolnay/rust-toolchain@nightly
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./rust -> target"

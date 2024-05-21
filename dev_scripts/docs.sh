@@ -15,8 +15,7 @@ js_sub_build () {
 
 # Builds the nested js site:
 rust_sub_build () {
-    # Nightly features used for docs (e.g. feature(doc_auto_cfg))
-    rm -rf ./docs/rust_ref && cargo +nightly doc --no-deps --manifest-path ./rust/Cargo.toml --target-dir ./docs/rust_ref --all-features
+    rm -rf ./docs/rust_ref && cargo doc --no-deps --manifest-path ./rust/Cargo.toml --target-dir ./docs/rust_ref --all-features
 }
 
 build () {
