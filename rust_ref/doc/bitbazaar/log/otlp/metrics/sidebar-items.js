@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Counter","Histogram","ObservableCounter","ObservableGauge","ObservableUpDownCounter","Unit","UpDownCounter"],"trait":["SyncCounter","SyncHistogram","SyncUpDownCounter"]};
