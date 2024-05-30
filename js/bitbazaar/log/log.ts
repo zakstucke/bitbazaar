@@ -18,7 +18,7 @@ import { registerInstrumentations } from "@opentelemetry/instrumentation";
 
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 
-import type { LogAttributes, Logger } from "@opentelemetry/api-logs";
+import type { Logger } from "@opentelemetry/api-logs";
 import { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
 
 import type { Meter, MeterOptions } from "@opentelemetry/api";
@@ -35,7 +35,7 @@ export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
 interface ConsoleArgs {
     level_from: LogLevel;
-    custom_out?: (message: string, ...optionalParams: any[]) => void;
+    custom_out?: (message: string) => void;
 }
 
 interface OltpArgs {
@@ -112,26 +112,33 @@ class GlobalLog {
     }
 
     /** Log a debug message. */
-    debug(message: string, attributes?: LogAttributes) {
-        this._log_inner("DEBUG", message, attributes);
+    debug(message: string, ...attrs: any[]) {
+        this._log_inner("DEBUG", message, ...attrs);
     }
 
     /** Log an info message. */
-    info(message: string, attributes?: LogAttributes) {
-        this._log_inner("INFO", message, attributes);
+    info(message: string, ...attrs: any[]) {
+        this._log_inner("INFO", message, ...attrs);
     }
 
     /** Log a warning message. */
-    warn(message: string, attributes?: LogAttributes) {
-        this._log_inner("WARN", message, attributes);
+    warn(message: string, ...attrs: any[]) {
+        this._log_inner("WARN", message, ...attrs);
     }
 
     /** Log an error message. */
-    error(message: string, attributes?: LogAttributes) {
-        this._log_inner("ERROR", message, attributes);
+    error(message: string, ...attrs: any[]) {
+        this._log_inner("ERROR", message, ...attrs);
     }
 
-    _log_inner(severityText: LogLevel, message: string, attributes: LogAttributes | undefined) {
+    _joined_msg_and_attrs(message: string, attrs: any[]) {
+        if (attrs.length === 0) {
+            return message;
+        }
+        return `${message} ${attrs.join(" ")}`;
+    }
+
+    _log_inner(severityText: LogLevel, message: string, ...attrs: any[]) {
         // Log to console if enabled:
         if (this.console) {
             let emit = false;
@@ -161,10 +168,7 @@ class GlobalLog {
 
             if (emit) {
                 if (this.console.custom_out) {
-                    emitter = this.console.custom_out;
-                }
-                if (attributes !== undefined) {
-                    emitter(message, attributes);
+                    this.console.custom_out(this._joined_msg_and_attrs(message, attrs));
                 } else {
                     emitter(message);
                 }
@@ -194,8 +198,7 @@ class GlobalLog {
         if (emitOltp) {
             this.logger.emit({
                 severityText,
-                body: message,
-                attributes,
+                body: this._joined_msg_and_attrs(message, attrs),
             });
         }
     }
