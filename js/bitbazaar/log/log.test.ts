@@ -17,7 +17,7 @@ describe("Logging/Tracing", () => {
                 console: level_from_or_null
                     ? {
                           level_from: level_from_or_null as LogLevel,
-                          custom_out: (message, ...extra) => {
+                          custom_out: (message) => {
                               logs.push(message);
                           },
                       }
@@ -49,6 +49,29 @@ describe("Logging/Tracing", () => {
             expect(logs).toEqual(expected_enabled);
         },
     );
+    it("Logs: multiple non string args should work", async () => {
+        const logs: string[] = [];
+        new GlobalLog({
+            console: {
+                level_from: "DEBUG",
+                custom_out: (message) => {
+                    logs.push(message);
+                },
+            },
+            otlp: {
+                endpoint: "http://localhost:4318",
+                level_from: "INFO",
+                service_name: "js-test",
+                service_version: "1.0.0",
+            },
+        });
+
+        LOG.debug("DEBUG", 1, 2, 3);
+        LOG.info("INFO", 1, 2, 3);
+        LOG.warn("WARN", 1, 2, 3);
+        LOG.error("ERROR", 1, 2, 3);
+        expect(logs).toEqual(["DEBUG 1 2 3", "INFO 1 2 3", "WARN 1 2 3", "ERROR 1 2 3"]);
+    });
     it("Logs: oltp", async () => {
         // Just confirm nothing errors, when trying to flush and measure output from tests etc seems to cause problems with bun test.
         new GlobalLog({
