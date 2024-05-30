@@ -32,7 +32,7 @@ exporters:
       stream-name: default
   # Writes all opentelemetry logs, traces, metrics to a file, useful for testing:
   file/debug_file_writing:
-    path: /Users/zak/z/code/bitbazaar/logs/otlp_telemetry_out.log
+    path: /home/runner/work/bitbazaar/bitbazaar/logs/otlp_telemetry_out.log
     rotation:
       max_megabytes: 10
       max_days: 3
