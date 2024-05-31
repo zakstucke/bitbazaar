@@ -22,8 +22,16 @@ const SYSTEM_CPU_FREQUENCY: &str = "system.cpu.frequency";
 // https://opentelemetry.io/docs/specs/semconv/system/system-metrics/#metric-systemmemoryusage
 const SYSTEM_MEMORY_USAGE: &str = "system.memory.usage";
 
+// (this is swap)
 // https://opentelemetry.io/docs/specs/semconv/system/system-metrics/#metric-systemmemoryutilization
 const SYSTEM_MEMORY_UTILIZATION: &str = "system.memory.utilization";
+
+// (this is swap)
+// https://opentelemetry.io/docs/specs/semconv/system/system-metrics/#metric-systempagingusage
+const SYSTEM_PAGING_USAGE: &str = "system.paging.usage";
+
+// https://opentelemetry.io/docs/specs/semconv/system/system-metrics/#metric-systempagingutilization
+const SYSTEM_PAGING_UTILIZATION: &str = "system.paging.utilization";
 
 // https://opentelemetry.io/docs/specs/semconv/system/system-metrics/#metric-systemnetworkio
 const SYSTEM_NETWORK_IO: &str = "system.network.io";
@@ -68,8 +76,10 @@ use crate::prelude::*;
 /// - system.cpu.logical.count
 /// - system.cpu.utilization
 /// - system.cpu.frequency
-/// - system.memory.usage
-/// - system.memory.utilization
+/// - system.memory.usage (RAM)
+/// - system.memory.utilization (RAM)
+/// - system.paging.usage (swap)
+/// - system.paging.utilization (swap)
 /// - system.network.io
 /// - system.filesystem.usage
 /// - system.filesystem.utilization
@@ -111,6 +121,18 @@ pub fn init_system_and_process_metrics(meter: &Meter) -> Result<(), AnyErr> {
     let system_memory_utilisation = meter
         .f64_observable_gauge(SYSTEM_MEMORY_UTILIZATION)
         .with_description("The total memory usage ratio.")
+        .with_unit(Unit::new("1"))
+        .init();
+
+    let system_paging_usage = meter
+        .u64_observable_gauge(SYSTEM_PAGING_USAGE)
+        .with_description("The total amount of swap in use.")
+        .with_unit(Unit::new("Bytes"))
+        .init();
+
+    let system_paging_utilisation = meter
+        .f64_observable_gauge(SYSTEM_PAGING_UTILIZATION)
+        .with_description("The total swap usage ratio.")
         .with_unit(Unit::new("1"))
         .init();
 
@@ -171,6 +193,8 @@ pub fn init_system_and_process_metrics(meter: &Meter) -> Result<(), AnyErr> {
                 system_cpu_frequency.as_any(),
                 system_memory_usage.as_any(),
                 system_memory_utilisation.as_any(),
+                system_paging_usage.as_any(),
+                system_paging_utilisation.as_any(),
                 system_network_io.as_any(),
                 system_filesystem_usage.as_any(),
                 system_filesystem_utilization.as_any(),
@@ -230,6 +254,16 @@ pub fn init_system_and_process_metrics(meter: &Meter) -> Result<(), AnyErr> {
                 context.observe_f64(
                     &system_memory_utilisation,
                     used_memory as f64 / sys.total_memory() as f64,
+                    &[],
+                );
+
+                // system.paging.usage
+                context.observe_u64(&system_paging_usage, sys.used_swap(), &[]);
+
+                // system.paging.utilization
+                context.observe_f64(
+                    &system_paging_utilisation,
+                    sys.used_swap() as f64 / sys.total_swap() as f64,
                     &[],
                 );
 
