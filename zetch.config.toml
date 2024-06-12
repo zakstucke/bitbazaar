@@ -7,20 +7,6 @@ exclude = []
 [engine]
 custom_extensions = []
 
-[[tasks.pre]]
-commands = [
-  "echo 'I do nothing!'",
-  # Bun i is super fast when no changes, shouldn't slow down too much, might be running scripts in cli vars:
-  "cd ./js && bun i && cd ..",
-]
-
-[[tasks.pre]]
-commands = [
-  "echo 'I do nothing!'",
-  # Bun i is super fast when no changes, shouldn't slow down too much, might be running scripts in cli vars:
-  "cd ./js && bun i && cd ..",
-]
-
 # Sync pkg versions in non templated files as a post task:
 [[tasks.post]]
 commands = ["./dev_scripts/pkg.sh update_versions"]
