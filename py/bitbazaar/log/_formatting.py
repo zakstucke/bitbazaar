@@ -258,7 +258,7 @@ def _fmt_where_parts(log: LogRecord, is_file: bool, show_sids: bool) -> str:
         else:
             return f"[dim italic]    where {parts_str}[/]\n"
     else:
-        return ""
+        return ""  # pragma: no cover
 
 
 def _format_duration(nanoseconds: int) -> str:  # pragma: no cover
