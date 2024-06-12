@@ -1,3 +1,6 @@
+Dockerfile
+Dockerfile.*
+
 # Ignore private folder and any file with private in the name:
 **/**/private/
 *private*

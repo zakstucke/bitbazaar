@@ -69,9 +69,9 @@ jobs:
       - name: Update Python version
         if: ${{ inputs.py_release }}
         run: |
-          zetch put zetch.config.toml context.static.PY_VERSION.value ${{ inputs.py_version }}
+          zetch put zetch.config.toml context.static.PY_VERSION ${{ inputs.py_version }}
 
-          # Js project
+        # Js project
       - name: Install Bun, no npm should be needed
         if: ${{ inputs.js_release }}
         uses: oven-sh/setup-bun@v1
@@ -85,27 +85,20 @@ jobs:
       - name: Update JS version
         if: ${{ inputs.js_release }}
         run: |
-          zetch put zetch.config.toml context.static.JS_VERSION.value ${{ inputs.js_version }}
+          zetch put zetch.config.toml context.static.JS_VERSION ${{ inputs.js_version }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/install-rust
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
-        with:
-          components: rustfmt, clippy
-
-      - name: Install cargo-hack, used for feature checking in pre-commit.
-        if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
-        uses: taiki-e/install-action@cargo-hack
-
 
       - name: Update Rust-backed Python version
         if: ${{ inputs.py_rust_release }}
         run: |
-          zetch put zetch.config.toml context.static.PY_RUST_VERSION.value ${{ inputs.py_rust_version }}
+          zetch put zetch.config.toml context.static.PY_RUST_VERSION ${{ inputs.py_rust_version }}
 
       - name: Update Rust version
         if: ${{ inputs.rust_release }}
         run: |
-          zetch put zetch.config.toml context.static.RUST_VERSION.value ${{ inputs.rust_version }}
+          zetch put zetch.config.toml context.static.RUST_VERSION ${{ inputs.rust_version }}
 
       - name: add and format added files with pre-commit
         # Running on staged change only as that's all that's needed, || true as don't want it to fail, just modify
@@ -160,13 +153,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ./rust -> target
-          cache-on-failure: 'true'
-          cache-all-crates: 'true'
+      - uses: ./.github/actions/install-rust
 
       - name: Build docs
         run: |
@@ -334,9 +321,7 @@ jobs:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
 
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
+      - uses: ./.github/actions/install-rust
       - name: upload to Crates.io
         run: |
           cd rust

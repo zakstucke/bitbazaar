@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Stop on error:
 set -e
@@ -8,13 +8,13 @@ all () {
     ./dev_scripts/test.sh qa
 
     echo "Python..."
-    ./dev_scripts/test.sh py
+    ./dev_scripts/test.sh py -n auto
 
     echo "Javascript..."
     ./dev_scripts/test.sh js
 
     echo "Python Rust..."
-    ./dev_scripts/test.sh py_rust
+    ./dev_scripts/test.sh py_rust -n auto
 
     echo "Rust..."
     ./dev_scripts/test.sh rust
@@ -60,17 +60,13 @@ qa () {
 }
 
 py () {
-    ./dev_scripts/run.sh collector # Needed for open telemetry tests in bitbazaar
-
     cd ./py/
     # Check for COVERAGE=False/false, which is set in some workflow runs to make faster:
     if [[ "$COVERAGE" == "False" ]] || [[ "$COVERAGE" == "false" ]]; then
         echo "COVERAGE=False/false, not running coverage"
         pdm run pytest $@
     else
-        pdm run coverage run --parallel -m pytest $@
-        pdm run coverage combine
-        pdm run coverage report
+        pdm run pytest --cov=./bitbazaar/ $@
     fi
     cd ..
 }
@@ -103,17 +99,35 @@ py_rust () {
     fi
 
     # Have to specify to compile in debug mode (meaning it will use the install_debug call above)
-    cargo nextest run --cargo-profile dev --all-features
+    cargo nextest run --all-features
     python -m pytest $@
 
     deactivate
     cd ..
 }
 
-rust () {
-    ./dev_scripts/run.sh collector # Needed for open telemetry tests in bitbazaar
+# Used internally by pre-commit:
+cargo_py_rust_check () {
+    # This will go through and check with no features, each feature on it's own, and all features respectively.
+    # Note: won't do unnecessary checks, e.g. if no features will only run cargo check once.
+    cargo hack check --manifest-path=./py_rust/Cargo.toml --each-feature
+}
 
-    cargo nextest run --cargo-profile dev --manifest-path ./rust/Cargo.toml --all-features $@
+rust () {
+
+    cargo nextest run --manifest-path ./rust/Cargo.toml --all-features $@
+}
+
+rust_bench () {
+
+    cargo bench --manifest-path ./rust/Cargo.toml --all-features $@
+}
+
+# Used internally by pre-commit:
+cargo_rust_check () {
+    # This will go through and check with no features, each feature on it's own, and all features respectively using cargo hack.
+    # Note: won't do unnecessary checks, e.g. if no features in this project will only run cargo check once.
+    cargo hack check --manifest-path=./rust/Cargo.toml --each-feature
 }
 
 docs () {

@@ -32,8 +32,7 @@
         "forceConsistentCasingInFileNames": true,
         "skipLibCheck": true,
         "downlevelIteration": true,
-        "allowSyntheticDefaultImports": true
-    },
+        "allowSyntheticDefaultImports": true    },
     "exclude": [
         "**/*.spec.(cjs|mjs|js|jsx|ts|tsx)",
         "**/*.test.(cjs|mjs|js|jsx|ts|tsx)",

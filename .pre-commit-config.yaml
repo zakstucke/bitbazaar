@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/zakstucke/zetch
-    rev: v0.0.10
+    rev: v0.0.16
     hooks:
       - id: zetch
 
@@ -48,6 +48,8 @@ repos:
         args:
           # Ignore don't error on specific words that always fail: (foo,bar,baz...)
           - -L=crate
+          - -L=numer
+          - -L=anull
 
   # Ruff: linting and formatting for python code:
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -76,23 +78,22 @@ repos:
       - id: cargo-fmt
         name: cargo-fmt
         description: "Format files with cargo fmt."
+        language: system
+        types: [rust]
         entry: cargo fmt
-        language: rust
-        types: [rust]
         args: [--manifest-path=./rust/Cargo.toml, --]
-      - id: cargo-hack-check
-        name: cargo-check-each-feature
-        description: Check the package for errors.
-        entry: cargo hack check
-        language: rust
+      - id: cargo-rust-check
+        name: cargo-rust-check
+        description: Check the rust package for errors using cargo check on needed targets and features.
+        entry: ./dev_scripts/test.sh cargo_rust_check
+        language: system
         types: [rust]
-        args: [--manifest-path=./rust/Cargo.toml, --each-feature, --no-dev-deps]
         pass_filenames: false
       - id: cargo-clippy
         name: cargo-clippy
         description: Lint rust sources
         entry: cargo clippy
-        language: rust
+        language: system
         args: ["--manifest-path", "./rust/Cargo.toml", "--all-features", "--", "-D", "warnings"]
         types: [rust]
         pass_filenames: false
@@ -104,22 +105,22 @@ repos:
         name: cargo-fmt
         description: "Format files with cargo fmt."
         entry: cargo fmt
-        language: rust
+        language: system
         types: [rust]
         args: [--manifest-path=./py_rust/Cargo.toml, --]
-      - id: cargo-hack-check
-        name: cargo-check-each-feature
-        description: Check the package for errors.
-        entry: cargo hack check
-        language: rust
+      - id: cargo-py-rust-check
+        name: cargo-py-rust-check
+        description: Check the rust-backed python package for errors using cargo check on needed targets
+          and features.
+        entry: ./dev_scripts/test.sh cargo_py_rust_check
+        language: system
         types: [rust]
-        args: [--manifest-path=./py_rust/Cargo.toml, --each-feature, --no-dev-deps]
         pass_filenames: false
       - id: cargo-clippy
         name: cargo-clippy
         description: Lint rust sources
         entry: cargo clippy
-        language: rust
+        language: system
         args: ["--manifest-path", "./py_rust/Cargo.toml", "--all-features", "--", "-D", "warnings"]
         types: [rust]
         pass_filenames: false

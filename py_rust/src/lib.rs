@@ -1,12 +1,15 @@
+#![allow(clippy::module_inception)]
+#![allow(clippy::type_complexity)]
 #![warn(clippy::disallowed_types)]
 
+use colored::Colorize;
 use pyo3::prelude::*;
 
 mod utils;
 
 #[pyfunction]
 pub fn hello() -> String {
-    "Hello, World!".to_string()
+    "Hello, World!".cyan().to_string()
 }
 
 /// A Python module implemented in Rust. The name of this function must match

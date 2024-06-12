@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/zakstucke/zetch/v0.0.10/py_rust/src/config/schema.json
+#:schema https://raw.githubusercontent.com/zakstucke/zetch/v0.0.16/py_rust/src/config/schema.json
 
 ignore_files = [".gitignore"]
 
@@ -7,19 +7,36 @@ exclude = []
 [engine]
 custom_extensions = []
 
+[[tasks.pre]]
+commands = [
+  "echo 'I do nothing!'",
+  # Bun i is super fast when no changes, shouldn't slow down too much, might be running scripts in cli vars:
+  "cd ./js && bun i && cd ..",
+]
+
+[[tasks.pre]]
+commands = [
+  "echo 'I do nothing!'",
+  # Bun i is super fast when no changes, shouldn't slow down too much, might be running scripts in cli vars:
+  "cd ./js && bun i && cd ..",
+]
+
 # Sync pkg versions in non templated files as a post task:
 [[tasks.post]]
 commands = ["./dev_scripts/pkg.sh update_versions"]
 
 [context.static]
-PY_VERSION = { value = "0.0.7" }
-JS_VERSION = { value = "0.0.29" }
-RUST_VERSION = { value = "0.0.52" }
-PY_RUST_VERSION = { value = "0.0.3" }
+PY_VERSION = "0.0.7"
+JS_VERSION = "0.0.29"
+RUST_VERSION = "0.0.52"
+PY_RUST_VERSION = "0.0.3"
 JS_ALIASES = { value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json" }
+# This will be updated manually in locations that need it: (using ./dev_scripts/utils.sh rand_id)
+BUILD_UNIQUE_ID = "foobar"
 
 [context.env]
 DEBUG = { default = true, coerce = "bool" }
+IN_DOCKER = { default = false, coerce = "bool" }
 OTLP_OO_ENDPOINT = { default = "http://localhost:5080/api/default/" }
 OTLP_OO_AUTH = { default = "Basic ZGV2QGRldi5jb206cGFzcw==" }         # Not security issue! This is just base64('dev@dev.com:pass')
 
