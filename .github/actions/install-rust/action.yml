@@ -13,12 +13,10 @@ runs:
   using: composite
   steps:
     - name: Install rust toolchain
-      shell: bash
       uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt, clippy
     - name: Run sccache-cache
-      shell: bash
       uses: mozilla-actions/sccache-action@v0.0.4
     - name: Set Rust caching env vars
       shell: bash
