@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["in_ci","is_tcp_port_listening"]};
+window.SIDEBAR_ITEMS = {"fn":["in_ci","is_tcp_port_listening"],"mod":["bytes"]};
