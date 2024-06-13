@@ -70,6 +70,9 @@ jobs:
         run: |
           ./dev_scripts/test.sh qa
 
+      - name: TMP SSCACHE
+        run: ${SCCACHE_PATH} --show-stats
+
   whos_changed:
     uses: ./.github/workflows/whos-changed.yml
 
