@@ -88,6 +88,8 @@ jobs:
 
       - uses: ./.github/actions/install-rust
         if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
+        with:
+          qa: true
 
       - name: Update Rust-backed Python version
         if: ${{ inputs.py_rust_release }}
