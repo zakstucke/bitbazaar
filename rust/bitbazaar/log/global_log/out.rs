@@ -65,7 +65,7 @@ impl GlobalLog {
     /// A managed wrapper on creation of the GlobalLog and registering it as the global logger.
     ///
     /// Sets up console logging only. Should only be used for quick logging, as an example and testing.
-    pub fn setup_quick_stdout_global_logging(level_from: Level) -> Result<(), AnyErr> {
+    pub fn setup_quick_stdout_global_logging(level_from: Level) -> RResult<(), AnyErr> {
         GlobalLog::builder()
             .stdout(true, false)
             .level_from(level_from)?
@@ -77,7 +77,7 @@ impl GlobalLog {
     /// Register the logger as the global logger/tracer/metric manager, can only be done once during the lifetime of the program.
     ///
     /// If you need temporary globality, use the [`GlobalLog::with_tmp_global`] method.
-    pub fn register_global(mut self) -> Result<(), AnyErr> {
+    pub fn register_global(mut self) -> RResult<(), AnyErr> {
         if let Some(dispatch) = self.dispatch.take() {
             // Make it global:
             GLOBAL_LOG.lock().replace(self);
@@ -93,7 +93,7 @@ impl GlobalLog {
     pub fn meter(
         &self,
         name: impl Into<std::borrow::Cow<'static, str>>,
-    ) -> Result<opentelemetry::metrics::Meter, AnyErr> {
+    ) -> RResult<opentelemetry::metrics::Meter, AnyErr> {
         use opentelemetry::metrics::MeterProvider;
 
         Ok(self.otlp_providers.meter_provider.meter(name))
@@ -105,7 +105,7 @@ impl GlobalLog {
         &self,
         span: &tracing::Span,
         headers: &http::HeaderMap,
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         use tracing_opentelemetry::OpenTelemetrySpanExt;
 
         use crate::log::global_log::http_headers::HeaderExtractor;
@@ -123,7 +123,7 @@ impl GlobalLog {
     pub fn set_response_headers_from_ctx<B>(
         &self,
         response: &mut http::Response<B>,
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         use tracing_opentelemetry::OpenTelemetrySpanExt;
 
         use crate::log::global_log::http_headers::HeaderInjector;
@@ -139,7 +139,7 @@ impl GlobalLog {
     /// Temporarily make the logger global, for the duration of the given closure.
     ///
     /// If you want to make the logger global permanently, use the [`GlobalLog::register_global`] method.
-    pub fn with_tmp_global<T>(&self, f: impl FnOnce() -> T) -> Result<T, AnyErr> {
+    pub fn with_tmp_global<T>(&self, f: impl FnOnce() -> T) -> RResult<T, AnyErr> {
         if let Some(dispatch) = &self.dispatch.as_ref() {
             Ok(tracing::dispatcher::with_default(dispatch, f))
         } else {
@@ -148,7 +148,7 @@ impl GlobalLog {
     }
 
     /// See [`super::global_fns::flush`]`
-    pub fn flush(&self) -> Result<(), AnyErr> {
+    pub fn flush(&self) -> RResult<(), AnyErr> {
         #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
         {
             if let Some(prov) = &self.otlp_providers.logger_provider {
@@ -166,7 +166,7 @@ impl GlobalLog {
     }
 
     /// See [`super::global_fns::shutdown`]`
-    pub fn shutdown(&mut self) -> Result<(), AnyErr> {
+    pub fn shutdown(&mut self) -> RResult<(), AnyErr> {
         #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
         {
             if let Some(prov) = &mut self.otlp_providers.logger_provider {

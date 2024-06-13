@@ -86,14 +86,14 @@ impl TimeRecorder {
     }
 
     /// Using from creation time rather than the specific durations recorded, to be sure to cover everything.
-    pub fn total_elapsed(&self) -> Result<std::time::Duration, AnyErr> {
+    pub fn total_elapsed(&self) -> RResult<std::time::Duration, AnyErr> {
         (chrono::Utc::now() - self.start)
             .to_std()
             .change_context(AnyErr)
     }
 
     /// Format the logs in a verbose, table format.
-    pub fn format_verbose(&self) -> Result<String, AnyErr> {
+    pub fn format_verbose(&self) -> RResult<String, AnyErr> {
         use comfy_table::*;
 
         // Printing should only happen at the end synchronously, shouldn't fail to acquire:

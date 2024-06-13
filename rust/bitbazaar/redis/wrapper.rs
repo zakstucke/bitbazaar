@@ -23,7 +23,7 @@ impl Redis {
     pub fn new<A: Into<String>, B: Into<String>>(
         redis_conn_str: A,
         prefix: B,
-    ) -> Result<Self, AnyErr> {
+    ) -> RResult<Self, AnyErr> {
         let cfg = Config::from_url(redis_conn_str);
         let pool = cfg
             .create_pool(Some(Runtime::Tokio1))
@@ -55,7 +55,7 @@ impl Redis {
         lock_key: &str,
         time_to_live: Duration,
         wait_up_to: Option<Duration>,
-    ) -> Result<RedisLock<'_>, RedisLockErr> {
+    ) -> RResult<RedisLock<'_>, RedisLockErr> {
         RedisLock::new(self, namespace, lock_key, time_to_live, wait_up_to).await
     }
 
@@ -66,13 +66,13 @@ impl Redis {
     /// - `namespace`: The redis key namespace to use.
     /// - `lock_key`: The resource to lock. Will be used as the key in Redis.
     /// - `wait_up_to`: if the lock is busy elsewhere, wait this long trying to get it, before giving up and returning [`RedisLockErr::Unavailable`].
-    pub async fn dlock_for_fut<R, Fut: Future<Output = Result<R, AnyErr>>>(
+    pub async fn dlock_for_fut<R, Fut: Future<Output = RResult<R, AnyErr>>>(
         &self,
         namespace: &'static str,
         lock_key: &str,
         wait_up_to: Option<Duration>,
         fut: Fut,
-    ) -> Result<R, RedisLockErr> {
+    ) -> RResult<R, RedisLockErr> {
         let mut lock = RedisLock::new(
             self,
             namespace,

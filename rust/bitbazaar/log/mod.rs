@@ -64,7 +64,7 @@ mod tests {
         // All combinations of:
         #[values(true, false)] include_timestamp: bool,
         #[values(true, false)] include_loc: bool,
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -80,7 +80,7 @@ mod tests {
             .build()?;
         log.with_tmp_global(log_all)?;
 
-        let chk_log = |lvl: Level, in_log: &str, out_log: &str| -> Result<(), AnyErr> {
+        let chk_log = |lvl: Level, in_log: &str, out_log: &str| -> RResult<(), AnyErr> {
             // Lvl should always be included:
             assert!(
                 out_log.contains(&lvl.to_string().to_uppercase()),
@@ -130,7 +130,7 @@ mod tests {
     fn test_log_matchers(
         #[case] loc_matcher: Option<regex::Regex>,
         #[case] expected_logs: Vec<&str>,
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -180,7 +180,7 @@ mod tests {
     fn test_log_filtering(
         #[case] level_from: Level,
         #[case] expected_found: Vec<&str>,
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -224,7 +224,7 @@ mod tests {
     /// - Confirm panic() is auto recorded as an exception event on active span.
     /// - Confirm both are recognised internally as exception events and use a custom formatter to give nice error messages.
     #[rstest]
-    fn test_exception_recording() -> Result<(), AnyErr> {
+    fn test_exception_recording() -> RResult<(), AnyErr> {
         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
@@ -272,7 +272,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_log_to_file() -> Result<(), AnyErr> {
+    fn test_log_to_file() -> RResult<(), AnyErr> {
         let temp_dir = tempdir().change_context(AnyErr)?;
 
         let log = GlobalLog::builder()
@@ -322,14 +322,14 @@ mod tests {
     #[cfg(feature = "opentelemetry-grpc")]
     #[rstest]
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_otlp_grpc() -> Result<(), AnyErr> {
+    async fn test_otlp_grpc() -> RResult<(), AnyErr> {
         _inner_test_opentelemetry(GlobalLog::builder().otlp_grpc(4317, "rust-test", "0.1.0")).await
     }
 
     #[cfg(feature = "opentelemetry-http")]
     #[rstest]
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_otlp_http() -> Result<(), AnyErr> {
+    async fn test_otlp_http() -> RResult<(), AnyErr> {
         _inner_test_opentelemetry(GlobalLog::builder().otlp_http(
             "http://localhost:4318",
             "rust-test",
@@ -338,7 +338,7 @@ mod tests {
         .await
     }
 
-    async fn _inner_test_opentelemetry(builder: GlobalLogBuilder) -> Result<(), AnyErr> {
+    async fn _inner_test_opentelemetry(builder: GlobalLogBuilder) -> RResult<(), AnyErr> {
         use std::path::PathBuf;
 
         use crate::misc::in_ci;

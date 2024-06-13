@@ -86,7 +86,7 @@ mod tests {
     /// Test functionality working as it should when redis up and running fine.
     #[rstest]
     #[tokio::test]
-    async fn test_redis_working(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+    async fn test_redis_working(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
         // Don't want to install redis in ci, just run this test locally:
         if in_ci() {
             return Ok(());

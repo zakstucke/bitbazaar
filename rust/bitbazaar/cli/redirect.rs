@@ -17,7 +17,7 @@ pub fn handle_redirect(
     shell: &mut Shell,
     last_out: Option<&mut RunnerBashOut>,
     redirect: ast::DefaultRedirect,
-) -> Result<RunnerBashOut, ShellErr> {
+) -> RResult<RunnerBashOut, ShellErr> {
     Ok(match redirect {
         ast::Redirect::Write(fd, name) => {
             let dest = Target::new(shell, name)?.set_write();
@@ -75,7 +75,7 @@ enum TargetVariant {
 }
 
 impl Target {
-    fn new(shell: &mut Shell, name: TopLevelWord<String>) -> Result<Self, ShellErr> {
+    fn new(shell: &mut Shell, name: TopLevelWord<String>) -> RResult<Self, ShellErr> {
         let name = shell.process_complex_word(&name.0)?;
 
         if name == "/dev/stdin" || name == "0" {
@@ -153,7 +153,7 @@ enum Data {
 }
 
 impl Data {
-    fn new(last: Option<&mut RunnerBashOut>, fd: Option<u16>) -> Result<Self, ShellErr> {
+    fn new(last: Option<&mut RunnerBashOut>, fd: Option<u16>) -> RResult<Self, ShellErr> {
         let fd = fd.unwrap_or(1);
 
         Ok(match fd {
@@ -204,7 +204,7 @@ impl Data {
         })
     }
 
-    fn submit(self, shell: &Shell, dest: Target) -> Result<RunnerBashOut, ShellErr> {
+    fn submit(self, shell: &Shell, dest: Target) -> RResult<RunnerBashOut, ShellErr> {
         let mut conc = ConcreteOutput::default();
 
         match dest.variant {
@@ -272,7 +272,7 @@ impl Data {
         Ok(RunnerBashOut::Concrete(conc))
     }
 
-    fn write(self, mut writer: impl Write) -> Result<(), ShellErr> {
+    fn write(self, mut writer: impl Write) -> RResult<(), ShellErr> {
         match self {
             Data::StdoutHandle(mut h) => {
                 std::io::copy(&mut h, &mut writer).change_context(ShellErr::InternalError)?;

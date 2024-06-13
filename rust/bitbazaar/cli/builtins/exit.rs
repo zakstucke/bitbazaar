@@ -9,7 +9,7 @@ use crate::{
 /// Exit the shell, returning a status of n to the shell's parent.
 /// If n is omitted, the exit status is that of the last command executed.
 /// Any trap on EXIT is executed before the shell terminates.
-pub fn exit(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+pub fn exit(shell: &mut Shell, args: &[String]) -> RResult<BashOut, BuiltinErr> {
     let exit_code = if args.is_empty() {
         // Last code
         shell.code()

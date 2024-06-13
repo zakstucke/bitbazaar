@@ -140,7 +140,7 @@ impl BashOut {
     }
 
     /// Throw an error if the last command run was not successful.
-    pub fn throw_on_bad_code<T: error_stack::Context>(&self, err_variant: T) -> Result<(), T> {
+    pub fn throw_on_bad_code<T: error_stack::Context>(&self, err_variant: T) -> RResult<(), T> {
         if self.success() {
             Ok(())
         } else {

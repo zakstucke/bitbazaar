@@ -83,7 +83,7 @@ pub struct GlobalLogBuilder {
 
 impl GlobalLogBuilder {
     /// Build the global log from the configured builder.
-    pub fn build(self) -> Result<GlobalLog, AnyErr> {
+    pub fn build(self) -> RResult<GlobalLog, AnyErr> {
         super::setup::builder_into_global_log(self)
     }
 
@@ -197,7 +197,7 @@ impl GlobalLogBuilder {
     /// Set the minimum level to log for.
     ///
     /// NOTE: Applies to the last set output type only.
-    pub fn level_from(mut self, level: Level) -> Result<Self, AnyErr> {
+    pub fn level_from(mut self, level: Level) -> RResult<Self, AnyErr> {
         let shared = self.get_active_shared()?;
         shared.level_from = level;
         Ok(self)
@@ -209,13 +209,13 @@ impl GlobalLogBuilder {
     /// Note that when None, will match all locations other than those matched by other layers with a loc_matcher.
     ///
     /// NOTE: Applies to the last set output type only.
-    pub fn loc_matcher(mut self, loc_matcher: regex::Regex) -> Result<Self, AnyErr> {
+    pub fn loc_matcher(mut self, loc_matcher: regex::Regex) -> RResult<Self, AnyErr> {
         let shared = self.get_active_shared()?;
         shared.loc_matcher = Some(loc_matcher);
         Ok(self)
     }
 
-    fn get_active_shared(&mut self) -> Result<&mut SharedOpts, AnyErr> {
+    fn get_active_shared(&mut self) -> RResult<&mut SharedOpts, AnyErr> {
         if let Some(output) = self.outputs.last_mut() {
             Ok(match output {
                 Output::Stdout(conf) => &mut conf.shared,

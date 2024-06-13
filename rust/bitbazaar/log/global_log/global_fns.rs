@@ -44,29 +44,29 @@ pub fn global_meter() -> &'static opentelemetry::metrics::Meter {
 pub fn set_span_parent_from_http_headers(
     span: &tracing::Span,
     headers: &http::HeaderMap,
-) -> Result<(), AnyErr> {
+) -> RResult<(), AnyErr> {
     get_global()?.set_span_parent_from_http_headers(span, headers)
 }
 
 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 /// Set the response headers from the current span context. So downstream services can continue the current trace.
-pub fn set_response_headers_from_ctx<B>(response: &mut http::Response<B>) -> Result<(), AnyErr> {
+pub fn set_response_headers_from_ctx<B>(response: &mut http::Response<B>) -> RResult<(), AnyErr> {
     get_global()?.set_response_headers_from_ctx(response)
 }
 
 /// Force through logs, traces and metrics, useful in e.g. testing.
 ///
 /// Note there doesn't seem to be an underlying interface to force through metrics.
-pub fn flush() -> Result<(), AnyErr> {
+pub fn flush() -> RResult<(), AnyErr> {
     get_global()?.flush()
 }
 
 /// Shutdown the logger, traces and metrics, should be called when the program is about to exit.
-pub fn shutdown() -> Result<(), AnyErr> {
+pub fn shutdown() -> RResult<(), AnyErr> {
     get_global()?.shutdown()
 }
 
-fn get_global<'a>() -> Result<MappedMutexGuard<'a, GlobalLog>, AnyErr> {
+fn get_global<'a>() -> RResult<MappedMutexGuard<'a, GlobalLog>, AnyErr> {
     if GLOBAL_LOG.lock().is_none() {
         return Err(anyerr!("GlobalLog not registered!"));
     }

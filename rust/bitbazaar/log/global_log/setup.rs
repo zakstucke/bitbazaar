@@ -26,7 +26,7 @@ impl<'writer> tracing_subscriber::fmt::MakeWriter<'writer> for super::builder::C
     }
 }
 
-pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, AnyErr> {
+pub fn builder_into_global_log(builder: GlobalLogBuilder) -> RResult<GlobalLog, AnyErr> {
     // Configure the program to automatically log panics as an error event on the current span:
     super::exceptions::auto_trace_panics();
 
@@ -115,10 +115,10 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> Result<GlobalLog, A
             super::builder::Output::File(file) => {
                 // Throw if dir is an existing file:
                 if file.dir.is_file() {
-                    bail!(report!(AnyErr).attach_printable(format!(
+                    return Err(anyerr!(
                         "Log directory is an existing file: {}",
                         file.dir.to_string_lossy()
-                    )));
+                    ));
                 }
 
                 // Create the dir if missing:
@@ -362,7 +362,7 @@ fn create_fmt_layer<S, W>(
     include_loc: bool,
     include_color: bool,
     writer: W,
-) -> Result<Box<dyn Layer<S> + Send + Sync + 'static>, AnyErr>
+) -> RResult<Box<dyn Layer<S> + Send + Sync + 'static>, AnyErr>
 where
     S: Subscriber + Send + Sync + 'static,
     for<'a> S: LookupSpan<'a>, // Each layer has a different type, so have to box for return
