@@ -112,10 +112,11 @@ pub async fn batch_futures_flat_stream_sync_cb<R, Fut: Future<Output = R>, E>(
 pub enum BatchLimit {
     /// The entrypoint, where the total limit is set.
     Direct(usize),
-    /// This level is limited by the parent's config.
     #[cfg(not(target_arch = "wasm32"))]
+    /// This level is limited by the parent's config.
     Parent(Arc<async_semaphore::Semaphore>),
     #[cfg(target_arch = "wasm32")]
+    /// This level is limited by the parent's config.
     Parent(Rc<async_semaphore::Semaphore>),
 }
 

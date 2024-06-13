@@ -12,6 +12,16 @@ pub struct RedisConn<'a> {
     conn: Option<deadpool_redis::Connection>,
 }
 
+impl std::fmt::Debug for RedisConn<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RedisConn")
+            .field("prefix", &self.prefix)
+            .field("pool", &self.pool)
+            .field("conn", &self.conn.is_some())
+            .finish()
+    }
+}
+
 /// Public methods for RedisConn.
 impl<'a> RedisConn<'a> {
     /// Get an internal connection from the pool, connections are kept in the pool for reuse.
@@ -61,7 +71,7 @@ impl<'a> RedisConn<'a> {
         key: K,
         expiry: Option<std::time::Duration>,
         cb: impl FnOnce() -> Fut,
-    ) -> Result<T, AnyErr>
+    ) -> RResult<T, AnyErr>
     where
         T: FromRedisValue + ToRedisArgs,
         Fut: Future<Output = Result<T, AnyErr>>,

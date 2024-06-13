@@ -4,40 +4,74 @@ use std::{
     time::Duration,
 };
 
+use futures::{future::BoxFuture, FutureExt};
+use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
+
 use super::{batch::*, RedisConn, RedisJson};
 #[cfg(test)]
 use crate::prelude::*;
-use crate::redis::RedisJsonBorrowed;
+use crate::{misc::FlexiLog, redis::RedisJsonBorrowed};
 
 /// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
+#[derive(Debug)]
 pub struct RedisTempListItemWithConn<'a, 'b, 'c, T> {
-    /// Mutref to the normal item holder.
-    item: &'a mut RedisTempListItem<T>,
-    /// Mutref to a redis conn.
-    pub conn: &'b mut RedisConn<'c>,
+    /// Mutexes to keep mutability internal.
+    item: Mutex<&'a mut RedisTempListItem<T>>,
+    conn: Mutex<&'b mut RedisConn<'c>>,
+}
+
+impl<T: FlexiLog + Send + Sync + serde::Serialize + for<'d> serde::Deserialize<'d>> FlexiLog
+    for RedisTempListItemWithConn<'_, '_, '_, T>
+{
+    async fn set_progress(&self, progress: f64) {
+        self.update_async(move |item| item.set_progress(progress).boxed())
+            .await;
+    }
+
+    async fn log_with_opts(&self, lvl: tracing::Level, msg: String, force_replace_prior: bool) {
+        self.update_async(move |item| item.log_with_opts(lvl, msg, force_replace_prior).boxed())
+            .await;
+    }
 }
 
 impl<'a, 'b, 'c, T: serde::Serialize + for<'d> serde::Deserialize<'d>>
     RedisTempListItemWithConn<'a, 'b, 'c, T>
 {
     /// See [`RedisTempListItem::update`]
-    pub async fn update(&mut self, updater: impl FnOnce(&mut T)) {
-        self.item.update(self.conn, updater).await;
+    pub async fn update(&self, updater: impl FnOnce(&mut T)) {
+        self.item
+            .lock()
+            .await
+            .update(*self.conn.lock().await, updater)
+            .await;
+    }
+
+    /// See [`RedisTempListItem::update_async`]
+    pub async fn update_async(&self, updater: impl for<'e> FnOnce(&'e mut T) -> BoxFuture<'e, ()>) {
+        self.item
+            .lock()
+            .await
+            .update_async(*self.conn.lock().await, updater)
+            .await;
     }
 
     /// See [`RedisTempListItem::replace`]
     pub async fn replace(&mut self, replacer: impl FnOnce() -> T) {
-        self.item.replace(self.conn, replacer).await;
+        self.item
+            .lock()
+            .await
+            .replace(*self.conn.lock().await, replacer)
+            .await;
     }
 
     /// See [`RedisTempListItem::uid`]
-    pub fn uid(&self) -> Option<&str> {
-        self.item.uid()
+    pub async fn uid(&self) -> MappedMutexGuard<Option<String>> {
+        MutexGuard::map(self.item.lock().await, |item| &mut item.maybe_uid)
     }
 
     /// See [`RedisTempListItem::item`]
-    pub fn item(&self) -> Option<&T> {
-        self.item.item()
+    pub async fn item(&self) -> MappedMutexGuard<Option<T>> {
+        MutexGuard::map(self.item.lock().await, |item| &mut item.maybe_item)
     }
 }
 
@@ -70,7 +104,10 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
         &'a mut self,
         conn: &'b mut RedisConn<'c>,
     ) -> RedisTempListItemWithConn<'a, 'b, 'c, T> {
-        RedisTempListItemWithConn { item: self, conn }
+        RedisTempListItemWithConn {
+            item: Mutex::new(self),
+            conn: Mutex::new(conn),
+        }
     }
 
     /// Create a new holder for a redis list item. All optional to encapsulate error paths if needed.
@@ -104,6 +141,39 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
             if let Some(item) = self.maybe_item.as_mut() {
                 // Run the user's callback to make all changes.
                 updater(item);
+                if let Some(uid) = &self.maybe_uid {
+                    // Sync those changes back to the list/redis:
+                    tmp_list.update(conn, uid, item).await;
+                } else {
+                    // Given we have the list but not the uid, we can just push it onto the list instead:
+                    try_push = true;
+                }
+            }
+        }
+
+        // For borrowing reasons doing separately to above:
+        if try_push {
+            if let Some(tmp_list) = self.maybe_tmp_list.clone() {
+                if let Some(item) = self.maybe_item.take() {
+                    *self = tmp_list.push(conn, item).await;
+                }
+            }
+        }
+    }
+
+    /// Fully manage the update of an item back to redis. (Async callback version)
+    /// This interface is designed to encapsulate all failure logic,
+    /// and not run the callback if the item wasn't needed, didn't exist etc.
+    pub async fn update_async(
+        &mut self,
+        conn: &mut RedisConn<'_>,
+        updater: impl for<'e> FnOnce(&'e mut T) -> BoxFuture<'e, ()>,
+    ) {
+        let mut try_push = false;
+        if let Some(tmp_list) = &self.maybe_tmp_list {
+            if let Some(item) = self.maybe_item.as_mut() {
+                // Run the user's callback to make all changes.
+                updater(item).await;
                 if let Some(uid) = &self.maybe_uid {
                     // Sync those changes back to the list/redis:
                     tmp_list.update(conn, uid, item).await;
