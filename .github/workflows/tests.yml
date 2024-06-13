@@ -38,7 +38,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - uses: ./.github/actions/install-pre-commit
 
       # Python project
       - name: Set up PDM
@@ -66,6 +65,7 @@ jobs:
         with:
           qa: true
 
+      - uses: ./.github/actions/install-pre-commit
       - name: Run QA
         run: |
           ./dev_scripts/test.sh qa

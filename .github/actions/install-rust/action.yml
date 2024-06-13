@@ -23,9 +23,12 @@ runs:
       run: |
         echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-    - name: Run sccache stat for check
-      shell: bash
-      run: ${SCCACHE_PATH} --show-stats
+    # Really this would need to be run as a post task to be of any use (to actually see hits),
+    # but post in composite action not currently supported:
+    # https://github.com/actions/runner/issues/1478
+    # - name: Run sccache stat for check
+    #   shell: bash
+    #   run: ${SCCACHE_PATH} --show-stats
     - name: "Install cargo-hack, used for feature checking in pre-commit."
       if: ${{ inputs.qa == 'true' }}
       uses: taiki-e/install-action@cargo-hack

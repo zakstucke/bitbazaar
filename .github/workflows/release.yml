@@ -54,7 +54,6 @@ jobs:
         with:
           token: ${{ secrets.VERSION_BOT_PAT }}
       - uses: actions/setup-python@v4
-      - uses: ./.github/actions/install-pre-commit
 
       - name: Install zetch
         run: pip install zetch
@@ -100,6 +99,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.RUST_VERSION ${{ inputs.rust_version }}
 
+      - uses: ./.github/actions/install-pre-commit
       - name: add and format added files with pre-commit
         # Running on staged change only as that's all that's needed, || true as don't want it to fail, just modify
         run: |
