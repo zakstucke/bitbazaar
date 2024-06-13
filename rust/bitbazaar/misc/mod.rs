@@ -1,3 +1,6 @@
+/// Byte manipulation utilities, e.g. transfer speed.
+pub mod bytes;
+
 mod in_ci;
 mod is_tcp_port_listening;
 
