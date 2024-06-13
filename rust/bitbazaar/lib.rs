@@ -25,6 +25,8 @@ pub mod misc;
 #[cfg(feature = "redis")]
 /// Redis utilities
 pub mod redis;
+/// Concurrency/parallelism utilities
+pub mod threads;
 #[cfg(feature = "timing")]
 /// Timing utilities
 pub mod timing;

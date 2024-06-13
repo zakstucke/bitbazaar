@@ -30,14 +30,15 @@ parking_lot = { version = "0.12", features = ["deadlock_detection", "serde"] }
 serde = { version = "1", features = ["derive", "rc"] }
 time = { version = "0.3", features = ["local-offset"] }
 colored = '2'
+futures = { version = "0.3", features = [] }
+async-semaphore = "1.2"
+gloo-timers = { version = "0.3", features = ["futures"] }
 
 # Not in default, but randomly useful in features:
 strum = { version = "0.25", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 rand = { version = "0.8", optional = true }
-futures = { version = "0.3", optional = true }
 uuid = { version = "1.6", features = ["v4"], optional = true }
-tokio = { version = '1', optional = true }
 
 # FEAT: chrono: (but also sometimes enabled by other features)
 chrono = { version = '0.4', optional = true }
@@ -83,19 +84,19 @@ sysinfo = { version = "0.30", optional = true }
 tracing-subscriber-wasm = "0.1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tracing-appender = '0.2' # This includes threading (non-blocking stuff that can't be used in wasm)
+tracing-appender = '0.2'                       # This includes threading (non-blocking stuff that can't be used in wasm)
 hostname = "0.3.1"
+tokio = { version = '1', features = ["time"] }
 
 [dev-dependencies]
 rstest = "0.18"
 criterion = { version = "0.3", features = ["html_reports", "async_futures"] }
 portpicker = '0.1.1'
 tempfile = '3.8'
-tokio = { version = '1', features = ["rt-multi-thread", "macros"] }
+tokio = { version = '1', features = ["time", "rt-multi-thread", "macros"] }
 uuid = { version = "1.6", features = ["v4"] }
 regex = "1"
 serde_json = "1"
-futures = "0.3"
 
 # When adding new benches, they should be added like this with the name of the file in benches/: (obviously uncommented)
 # [[bench]]
@@ -109,14 +110,12 @@ timing = ['dep:comfy-table', 'chrono']
 cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'chrono', 'dep:strum']
 system = ['dep:sysinfo']
 redis = [
-  'dep:tokio',
   'dep:deadpool-redis',
   'dep:redis',
   "dep:redis-macros",
   'dep:sha1_smol',
   'dep:serde_json',
   'dep:rand',
-  'dep:futures',
   'chrono',
   'dep:uuid',
 ]
