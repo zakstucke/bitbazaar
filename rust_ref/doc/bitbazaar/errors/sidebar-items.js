@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["AnyErr"]};
+window.SIDEBAR_ITEMS = {"struct":["AnyErr"],"type":["RResult"]};

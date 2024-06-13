@@ -216,14 +216,14 @@
     }
 
     <span class="doccomment">/// Using from creation time rather than the specific durations recorded, to be sure to cover everything.
-    </span><span class="kw">pub fn </span>total_elapsed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;std::time::Duration, AnyErr&gt; {
+    </span><span class="kw">pub fn </span>total_elapsed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RResult&lt;std::time::Duration, AnyErr&gt; {
         (chrono::Utc::now() - <span class="self">self</span>.start)
             .to_std()
             .change_context(AnyErr)
     }
 
     <span class="doccomment">/// Format the logs in a verbose, table format.
-    </span><span class="kw">pub fn </span>format_verbose(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, AnyErr&gt; {
+    </span><span class="kw">pub fn </span>format_verbose(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RResult&lt;String, AnyErr&gt; {
         <span class="kw">use </span>comfy_table::<span class="kw-2">*</span>;
 
         <span class="comment">// Printing should only happen at the end synchronously, shouldn't fail to acquire:

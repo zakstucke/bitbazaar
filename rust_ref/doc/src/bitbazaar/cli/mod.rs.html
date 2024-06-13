@@ -539,7 +539,7 @@
         </span><span class="attr">#[case] </span>exp_sterr: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,  <span class="comment">// Only check if Some()
         </span><span class="attr">#[case] </span>test_on_windows: bool,    <span class="comment">// Only check if Some()
         </span><span class="attr">#[allow(unused_variables)] </span>logging: (),
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">if </span><span class="macro">cfg!</span>(windows) &amp;&amp; !test_on_windows {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
@@ -573,7 +573,7 @@
         <span class="attr">#[case] </span>exp_std_all: S,
         <span class="attr">#[case] </span>code: i32,
         <span class="attr">#[allow(unused_variables)] </span>logging: (),
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>bash = Bash::new();
         <span class="kw">for </span>cmd <span class="kw">in </span>cmds.into() {
             bash = bash.cmd(cmd);
@@ -587,7 +587,7 @@
 
     <span class="doccomment">/// Confirm setting a custom working dir on the builder works plus when changing with cd in bash.
     </span><span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_run_dir(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">fn </span>test_run_dir(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">let </span>temp_dir = tempfile::tempdir().change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="comment">// normalise to make sure absolute (as pwd should always be absolute)
         </span><span class="kw">let </span>temp_dir_pb = temp_dir
@@ -628,7 +628,7 @@
 
     <span class="doccomment">/// Confirm setting env vars on the builder work.
     </span><span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_builder_env(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">fn </span>test_builder_env(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">let </span>res = Bash::new()
             .env(<span class="string">"FOO"</span>, <span class="string">"bar"</span>)
             .env(<span class="string">"BAZ"</span>, <span class="string">"qux"</span>)
@@ -642,7 +642,7 @@
 
     <span class="comment">// Confirm when both when doesn't error but not all commands run AND when Bash errors the final command that was attempted is accessible and printable.
     </span><span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_error_source_attached(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">fn </span>test_error_source_attached(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">let </span>err_cmd = <span class="string">"ab||][/?cd"</span>;
 
         <span class="comment">// Confirm that when bash itself fails (i.e. invalid syntax), the source is attached to the error:

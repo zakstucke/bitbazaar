@@ -339,7 +339,7 @@
 
 <span class="kw">impl </span>GlobalLogBuilder {
     <span class="doccomment">/// Build the global log from the configured builder.
-    </span><span class="kw">pub fn </span>build(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;GlobalLog, AnyErr&gt; {
+    </span><span class="kw">pub fn </span>build(<span class="self">self</span>) -&gt; RResult&lt;GlobalLog, AnyErr&gt; {
         <span class="kw">super</span>::setup::builder_into_global_log(<span class="self">self</span>)
     }
 
@@ -453,7 +453,7 @@
     <span class="doccomment">/// Set the minimum level to log for.
     ///
     /// NOTE: Applies to the last set output type only.
-    </span><span class="kw">pub fn </span>level_from(<span class="kw-2">mut </span><span class="self">self</span>, level: Level) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, AnyErr&gt; {
+    </span><span class="kw">pub fn </span>level_from(<span class="kw-2">mut </span><span class="self">self</span>, level: Level) -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
         <span class="kw">let </span>shared = <span class="self">self</span>.get_active_shared()<span class="question-mark">?</span>;
         shared.level_from = level;
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
@@ -465,13 +465,13 @@
     /// Note that when None, will match all locations other than those matched by other layers with a loc_matcher.
     ///
     /// NOTE: Applies to the last set output type only.
-    </span><span class="kw">pub fn </span>loc_matcher(<span class="kw-2">mut </span><span class="self">self</span>, loc_matcher: regex::Regex) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, AnyErr&gt; {
+    </span><span class="kw">pub fn </span>loc_matcher(<span class="kw-2">mut </span><span class="self">self</span>, loc_matcher: regex::Regex) -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
         <span class="kw">let </span>shared = <span class="self">self</span>.get_active_shared()<span class="question-mark">?</span>;
         shared.loc_matcher = <span class="prelude-val">Some</span>(loc_matcher);
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
     }
 
-    <span class="kw">fn </span>get_active_shared(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;mut </span>SharedOpts, AnyErr&gt; {
+    <span class="kw">fn </span>get_active_shared(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; RResult&lt;<span class="kw-2">&amp;mut </span>SharedOpts, AnyErr&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = <span class="self">self</span>.outputs.last_mut() {
             <span class="prelude-val">Ok</span>(<span class="kw">match </span>output {
                 Output::Stdout(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,

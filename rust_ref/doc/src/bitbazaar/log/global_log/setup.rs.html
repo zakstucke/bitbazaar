@@ -475,7 +475,7 @@
     }
 }
 
-<span class="kw">pub fn </span>builder_into_global_log(builder: GlobalLogBuilder) -&gt; <span class="prelude-ty">Result</span>&lt;GlobalLog, AnyErr&gt; {
+<span class="kw">pub fn </span>builder_into_global_log(builder: GlobalLogBuilder) -&gt; RResult&lt;GlobalLog, AnyErr&gt; {
     <span class="comment">// Configure the program to automatically log panics as an error event on the current span:
     </span><span class="kw">super</span>::exceptions::auto_trace_panics();
 
@@ -564,10 +564,10 @@
             </span><span class="kw">super</span>::builder::Output::File(file) =&gt; {
                 <span class="comment">// Throw if dir is an existing file:
                 </span><span class="kw">if </span>file.dir.is_file() {
-                    <span class="macro">bail!</span>(<span class="macro">report!</span>(AnyErr).attach_printable(<span class="macro">format!</span>(
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(
                         <span class="string">"Log directory is an existing file: {}"</span>,
                         file.dir.to_string_lossy()
-                    )));
+                    ));
                 }
 
                 <span class="comment">// Create the dir if missing:
@@ -811,7 +811,7 @@
     include_loc: bool,
     include_color: bool,
     writer: W,
-) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>Layer&lt;S&gt; + Send + Sync + <span class="lifetime">'static</span>&gt;, AnyErr&gt;
+) -&gt; RResult&lt;Box&lt;<span class="kw">dyn </span>Layer&lt;S&gt; + Send + Sync + <span class="lifetime">'static</span>&gt;, AnyErr&gt;
 <span class="kw">where
     </span>S: Subscriber + Send + Sync + <span class="lifetime">'static</span>,
     <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; S: LookupSpan&lt;<span class="lifetime">'a</span>&gt;, <span class="comment">// Each layer has a different type, so have to box for return

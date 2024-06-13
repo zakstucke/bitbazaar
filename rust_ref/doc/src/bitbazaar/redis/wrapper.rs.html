@@ -145,7 +145,7 @@
     </span><span class="kw">pub fn </span>new&lt;A: Into&lt;String&gt;, B: Into&lt;String&gt;&gt;(
         redis_conn_str: A,
         prefix: B,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, AnyErr&gt; {
+    ) -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
         <span class="kw">let </span>cfg = Config::from_url(redis_conn_str);
         <span class="kw">let </span>pool = cfg
             .create_pool(<span class="prelude-val">Some</span>(Runtime::Tokio1))
@@ -177,7 +177,7 @@
         lock_key: <span class="kw-2">&amp;</span>str,
         time_to_live: Duration,
         wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;RedisLock&lt;<span class="lifetime">'_</span>&gt;, RedisLockErr&gt; {
+    ) -&gt; RResult&lt;RedisLock&lt;<span class="lifetime">'_</span>&gt;, RedisLockErr&gt; {
         RedisLock::new(<span class="self">self</span>, namespace, lock_key, time_to_live, wait_up_to).<span class="kw">await
     </span>}
 
@@ -188,13 +188,13 @@
     /// - `namespace`: The redis key namespace to use.
     /// - `lock_key`: The resource to lock. Will be used as the key in Redis.
     /// - `wait_up_to`: if the lock is busy elsewhere, wait this long trying to get it, before giving up and returning [`RedisLockErr::Unavailable`].
-    </span><span class="kw">pub async fn </span>dlock_for_fut&lt;R, Fut: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;R, AnyErr&gt;&gt;&gt;(
+    </span><span class="kw">pub async fn </span>dlock_for_fut&lt;R, Fut: Future&lt;Output = RResult&lt;R, AnyErr&gt;&gt;&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
         lock_key: <span class="kw-2">&amp;</span>str,
         wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
         fut: Fut,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;R, RedisLockErr&gt; {
+    ) -&gt; RResult&lt;R, RedisLockErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>lock = RedisLock::new(
             <span class="self">self</span>,
             namespace,

@@ -303,7 +303,7 @@
 }
 
 <span class="kw">impl </span>RunnerBashOut {
-    <span class="kw">fn </span>into_shell(<span class="self">self</span>, shell: <span class="kw-2">&amp;mut </span>Shell) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">fn </span>into_shell(<span class="self">self</span>, shell: <span class="kw-2">&amp;mut </span>Shell) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="kw">match </span><span class="self">self </span>{
             RunnerBashOut::Concrete(conc) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(stdout) = conc.stdout {
@@ -350,7 +350,7 @@
 
 <span class="kw">impl </span>PipeRunner {
     <span class="doccomment">/// Add a new command to the runner.
-    </span><span class="kw">pub fn </span>add(<span class="kw-2">&amp;mut </span><span class="self">self</span>, args: Vec&lt;String&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    </span><span class="kw">pub fn </span>add(<span class="kw-2">&amp;mut </span><span class="self">self</span>, args: Vec&lt;String&gt;) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="kw">let </span>first_arg = args
             .first()
             .ok_or_else(|| <span class="macro">err!</span>(ShellErr::InternalError, <span class="string">"No command provided"</span>))<span class="question-mark">?
@@ -376,7 +376,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub fn </span>add_redirect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, redirect: <span class="kw-2">&amp;</span>ast::DefaultRedirect) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">pub fn </span>add_redirect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, redirect: <span class="kw-2">&amp;</span>ast::DefaultRedirect) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="self">self</span>.commands.push(VariCommand::Redirect(redirect.clone()));
         <span class="prelude-val">Ok</span>(())
     }
@@ -385,7 +385,7 @@
         <span class="self">self</span>.commands.push(VariCommand::PipedStdout(stdout));
     }
 
-    <span class="kw">pub fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>, shell: <span class="kw-2">&amp;mut </span>Shell) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">pub fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>, shell: <span class="kw-2">&amp;mut </span>Shell) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="kw">for </span>command <span class="kw">in </span><span class="self">self</span>.commands.into_iter() {
             <span class="kw">let </span>last_out = <span class="self">self</span>.outputs.last_mut();
             <span class="kw">let </span>next_out: RunnerBashOut = <span class="kw">match </span>command {

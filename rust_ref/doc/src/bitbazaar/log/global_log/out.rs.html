@@ -253,7 +253,7 @@
     <span class="doccomment">/// A managed wrapper on creation of the GlobalLog and registering it as the global logger.
     ///
     /// Sets up console logging only. Should only be used for quick logging, as an example and testing.
-    </span><span class="kw">pub fn </span>setup_quick_stdout_global_logging(level_from: Level) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">pub fn </span>setup_quick_stdout_global_logging(level_from: Level) -&gt; RResult&lt;(), AnyErr&gt; {
         GlobalLog::builder()
             .stdout(<span class="bool-val">true</span>, <span class="bool-val">false</span>)
             .level_from(level_from)<span class="question-mark">?
@@ -265,7 +265,7 @@
     <span class="doccomment">/// Register the logger as the global logger/tracer/metric manager, can only be done once during the lifetime of the program.
     ///
     /// If you need temporary globality, use the [`GlobalLog::with_tmp_global`] method.
-    </span><span class="kw">pub fn </span>register_global(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">pub fn </span>register_global(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(dispatch) = <span class="self">self</span>.dispatch.take() {
             <span class="comment">// Make it global:
             </span>GLOBAL_LOG.lock().replace(<span class="self">self</span>);
@@ -281,7 +281,7 @@
     </span><span class="kw">pub fn </span>meter(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         name: <span class="kw">impl </span>Into&lt;std::borrow::Cow&lt;<span class="lifetime">'static</span>, str&gt;&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;opentelemetry::metrics::Meter, AnyErr&gt; {
+    ) -&gt; RResult&lt;opentelemetry::metrics::Meter, AnyErr&gt; {
         <span class="kw">use </span>opentelemetry::metrics::MeterProvider;
 
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.otlp_providers.meter_provider.meter(name))
@@ -293,7 +293,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         span: <span class="kw-2">&amp;</span>tracing::Span,
         headers: <span class="kw-2">&amp;</span>http::HeaderMap,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">use </span>tracing_opentelemetry::OpenTelemetrySpanExt;
 
         <span class="kw">use </span><span class="kw">crate</span>::log::global_log::http_headers::HeaderExtractor;
@@ -311,7 +311,7 @@
     </span><span class="kw">pub fn </span>set_response_headers_from_ctx&lt;B&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         response: <span class="kw-2">&amp;mut </span>http::Response&lt;B&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">use </span>tracing_opentelemetry::OpenTelemetrySpanExt;
 
         <span class="kw">use </span><span class="kw">crate</span>::log::global_log::http_headers::HeaderInjector;
@@ -327,7 +327,7 @@
     <span class="doccomment">/// Temporarily make the logger global, for the duration of the given closure.
     ///
     /// If you want to make the logger global permanently, use the [`GlobalLog::register_global`] method.
-    </span><span class="kw">pub fn </span>with_tmp_global&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw">impl </span>FnOnce() -&gt; T) -&gt; <span class="prelude-ty">Result</span>&lt;T, AnyErr&gt; {
+    </span><span class="kw">pub fn </span>with_tmp_global&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw">impl </span>FnOnce() -&gt; T) -&gt; RResult&lt;T, AnyErr&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(dispatch) = <span class="kw-2">&amp;</span><span class="self">self</span>.dispatch.as_ref() {
             <span class="prelude-val">Ok</span>(tracing::dispatcher::with_default(dispatch, f))
         } <span class="kw">else </span>{
@@ -336,7 +336,7 @@
     }
 
     <span class="doccomment">/// See [`super::global_fns::flush`]`
-    </span><span class="kw">pub fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">pub fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
         </span>{
             <span class="kw">if let </span><span class="prelude-val">Some</span>(prov) = <span class="kw-2">&amp;</span><span class="self">self</span>.otlp_providers.logger_provider {
@@ -354,7 +354,7 @@
     }
 
     <span class="doccomment">/// See [`super::global_fns::shutdown`]`
-    </span><span class="kw">pub fn </span>shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">pub fn </span>shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
         </span>{
             <span class="kw">if let </span><span class="prelude-val">Some</span>(prov) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.otlp_providers.logger_provider {

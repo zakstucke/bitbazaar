@@ -632,7 +632,7 @@
         <span class="comment">// All combinations of:
         </span><span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_timestamp: bool,
         <span class="attr">#[values(<span class="bool-val">true</span>, <span class="bool-val">false</span>)] </span>include_loc: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -648,7 +648,7 @@
             </span>.build()<span class="question-mark">?</span>;
         log.with_tmp_global(log_all)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>chk_log = |lvl: Level, in_log: <span class="kw-2">&amp;</span>str, out_log: <span class="kw-2">&amp;</span>str| -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+        <span class="kw">let </span>chk_log = |lvl: Level, in_log: <span class="kw-2">&amp;</span>str, out_log: <span class="kw-2">&amp;</span>str| -&gt; RResult&lt;(), AnyErr&gt; {
             <span class="comment">// Lvl should always be included:
             </span><span class="macro">assert!</span>(
                 out_log.contains(<span class="kw-2">&amp;</span>lvl.to_string().to_uppercase()),
@@ -698,7 +698,7 @@
     <span class="kw">fn </span>test_log_matchers(
         <span class="attr">#[case] </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
         <span class="attr">#[case] </span>expected_logs: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -748,7 +748,7 @@
     <span class="kw">fn </span>test_log_filtering(
         <span class="attr">#[case] </span>level_from: Level,
         <span class="attr">#[case] </span>expected_found: Vec&lt;<span class="kw-2">&amp;</span>str&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -792,7 +792,7 @@
     /// - Confirm panic() is auto recorded as an exception event on active span.
     /// - Confirm both are recognised internally as exception events and use a custom formatter to give nice error messages.
     </span><span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_exception_recording() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">fn </span>test_exception_recording() -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">static </span>LOGS: Lazy&lt;Mutex&lt;Vec&lt;String&gt;&gt;&gt; = Lazy::new(Mutex::default);
         {
             <span class="comment">// Fn repeat usage so static needs clearing each time:
@@ -840,7 +840,7 @@
     }
 
     <span class="attr">#[rstest]
-    </span><span class="kw">fn </span>test_log_to_file() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">fn </span>test_log_to_file() -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">let </span>temp_dir = tempdir().change_context(AnyErr)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>log = GlobalLog::builder()
@@ -890,14 +890,14 @@
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
     #[rstest]
     #[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-    </span><span class="kw">async fn </span>test_otlp_grpc() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">async fn </span>test_otlp_grpc() -&gt; RResult&lt;(), AnyErr&gt; {
         _inner_test_opentelemetry(GlobalLog::builder().otlp_grpc(<span class="number">4317</span>, <span class="string">"rust-test"</span>, <span class="string">"0.1.0"</span>)).<span class="kw">await
     </span>}
 
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
     #[rstest]
     #[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-    </span><span class="kw">async fn </span>test_otlp_http() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">async fn </span>test_otlp_http() -&gt; RResult&lt;(), AnyErr&gt; {
         _inner_test_opentelemetry(GlobalLog::builder().otlp_http(
             <span class="string">"http://localhost:4318"</span>,
             <span class="string">"rust-test"</span>,
@@ -906,7 +906,7 @@
         .<span class="kw">await
     </span>}
 
-    <span class="kw">async fn </span>_inner_test_opentelemetry(builder: GlobalLogBuilder) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    <span class="kw">async fn </span>_inner_test_opentelemetry(builder: GlobalLogBuilder) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">use </span>std::path::PathBuf;
 
         <span class="kw">use </span><span class="kw">crate</span>::misc::in_ci;

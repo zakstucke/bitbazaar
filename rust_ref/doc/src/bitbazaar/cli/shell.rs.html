@@ -645,7 +645,7 @@
 }
 
 <span class="kw">impl </span>Shell {
-    <span class="kw">pub fn </span>new(env: HashMap&lt;String, String&gt;, root_dir: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ShellErr&gt; {
+    <span class="kw">pub fn </span>new(env: HashMap&lt;String, String&gt;, root_dir: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;) -&gt; RResult&lt;<span class="self">Self</span>, ShellErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>shell = <span class="self">Self </span>{
             cmd_results: Vec::new(),
             root_dir: <span class="prelude-val">None</span>,
@@ -666,7 +666,7 @@
         <span class="prelude-val">Ok</span>(shell)
     }
 
-    <span class="kw">pub fn </span>execute_command_strings(<span class="kw-2">&amp;mut </span><span class="self">self</span>, commands: Vec&lt;String&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">pub fn </span>execute_command_strings(<span class="kw-2">&amp;mut </span><span class="self">self</span>, commands: Vec&lt;String&gt;) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="comment">// Whilst all commands could be given to the parser together (newline separated),
         // and run internally by the shell in a single function call,
         // that mean's the source command string that causes an issues would be lost
@@ -688,7 +688,7 @@
 
             <span class="kw">let </span>parsed_top_cmds = parser
                 .into_iter()
-                .collect::&lt;core::result::Result&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()
+                .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()
                 .change_context(ShellErr::BashSyntaxError)<span class="question-mark">?</span>;
 
             <span class="comment">// Run the command:
@@ -745,7 +745,7 @@
         <span class="self">self</span>.code
     }
 
-    <span class="kw">pub fn </span>active_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PathBuf, ShellErr&gt; {
+    <span class="kw">pub fn </span>active_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RResult&lt;PathBuf, ShellErr&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(root_dir) = <span class="kw-2">&amp;</span><span class="self">self</span>.root_dir {
             <span class="prelude-val">Ok</span>(root_dir.clone())
         } <span class="kw">else </span>{
@@ -754,7 +754,7 @@
         }
     }
 
-    <span class="kw">pub fn </span>chdir(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_root_dir: PathBuf) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">pub fn </span>chdir(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_root_dir: PathBuf) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="comment">// normalise to ensure its absolute (to not break e.g. pwd)
         </span><span class="self">self</span>.root_dir = <span class="prelude-val">Some</span>(
             new_root_dir
@@ -776,7 +776,7 @@
         </span>}
     }
 
-    <span class="kw">fn </span>run_top_cmds(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cmds: Vec&lt;ast::TopLevelCommand&lt;String&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">fn </span>run_top_cmds(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cmds: Vec&lt;ast::TopLevelCommand&lt;String&gt;&gt;) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="comment">// Each res equates to a line in a multi line bash script. E.g. a single line command will only have one res.
         </span><span class="kw">for </span>cmd <span class="kw">in </span>cmds {
             <span class="kw">match </span>cmd.<span class="number">0 </span>{
@@ -819,7 +819,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>run_listable_command(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cmd: ast::DefaultListableCommand) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    <span class="kw">fn </span>run_listable_command(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cmd: ast::DefaultListableCommand) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>pipe_runner = PipeRunner::default();
 
         <span class="kw">match </span>cmd {
@@ -846,7 +846,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         pipe_runner: <span class="kw-2">&amp;mut </span>PipeRunner,
         cmd: <span class="kw-2">&amp;</span>ast::DefaultPipeableCommand,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    ) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="kw">match </span>cmd {
             ast::PipeableCommand::Simple(cmd) =&gt; <span class="self">self</span>.add_simple_command(pipe_runner, cmd)<span class="question-mark">?</span>,
             ast::PipeableCommand::Compound(compound) =&gt; {
@@ -909,7 +909,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         pipe_runner: <span class="kw-2">&amp;mut </span>PipeRunner,
         cmd: <span class="kw-2">&amp;</span>ast::DefaultSimpleCommand,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ShellErr&gt; {
+    ) -&gt; RResult&lt;(), ShellErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>env = Vec::&lt;(String, String)&gt;::new();
 
         <span class="kw">for </span>item <span class="kw">in </span>cmd.redirects_or_env_vars.iter() {
@@ -958,7 +958,7 @@
     <span class="kw">pub fn </span>process_complex_word(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         word: <span class="kw-2">&amp;</span>ast::DefaultComplexWord,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ShellErr&gt; {
+    ) -&gt; RResult&lt;String, ShellErr&gt; {
         <span class="kw">match </span>word {
             ast::ComplexWord::Single(word) =&gt; <span class="self">self</span>.process_word(word, <span class="prelude-val">None</span>, <span class="bool-val">false</span>),
             ast::ComplexWord::Concat(words) =&gt; {
@@ -971,7 +971,7 @@
                         concat_state.active = index;
                         <span class="self">self</span>.process_word(word, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>concat_state), <span class="bool-val">false</span>)
                     })
-                    .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?
+                    .collect::&lt;RResult&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?
                     </span>.join(<span class="string">""</span>);
                 <span class="prelude-val">Ok</span>(result)
             }
@@ -983,7 +983,7 @@
         word: <span class="kw-2">&amp;</span>ast::DefaultWord,
         concat_state: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'_ </span>WordConcatState&lt;<span class="lifetime">'_</span>&gt;&gt;,
         is_lookaround: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ShellErr&gt; {
+    ) -&gt; RResult&lt;String, ShellErr&gt; {
         <span class="prelude-val">Ok</span>(<span class="kw">match </span>word {
             <span class="comment">// Single quoted means no processing inside needed:
             </span>ast::Word::SingleQuoted(word) =&gt; word.to_string(),
@@ -993,14 +993,14 @@
             ast::Word::DoubleQuoted(words) =&gt; words
                 .iter()
                 .map(|word| <span class="self">self</span>.process_simple_word(word, concat_state, is_lookaround))
-                .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?
+                .collect::&lt;RResult&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?
                 </span>.into_iter()
                 .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
                 .join(<span class="string">""</span>),
         })
     }
 
-    <span class="kw">pub fn </span>home_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PathBuf, ShellErr&gt; {
+    <span class="kw">pub fn </span>home_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RResult&lt;PathBuf, ShellErr&gt; {
         homedir::get_my_home()
             .change_context(ShellErr::InternalError)<span class="question-mark">?
             </span>.ok_or_else(|| <span class="macro">err!</span>(ShellErr::InternalError))
@@ -1011,7 +1011,7 @@
         word: <span class="kw-2">&amp;</span>ast::DefaultSimpleWord,
         concat_state: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'_ </span>WordConcatState&lt;<span class="lifetime">'_</span>&gt;&gt;,
         is_lookaround: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ShellErr&gt; {
+    ) -&gt; RResult&lt;String, ShellErr&gt; {
         <span class="prelude-val">Ok</span>(<span class="kw">match </span>word {
             ast::SimpleWord::Literal(lit) =&gt; lit.to_string(),
             ast::SimpleWord::Escaped(a) =&gt; a.to_string(),
@@ -1042,7 +1042,7 @@
         })
     }
 
-    <span class="kw">fn </span>process_param(<span class="kw-2">&amp;mut </span><span class="self">self</span>, param: <span class="kw-2">&amp;</span>ast::DefaultParameter) -&gt; <span class="prelude-ty">Result</span>&lt;String, ShellErr&gt; {
+    <span class="kw">fn </span>process_param(<span class="kw-2">&amp;mut </span><span class="self">self</span>, param: <span class="kw-2">&amp;</span>ast::DefaultParameter) -&gt; RResult&lt;String, ShellErr&gt; {
         <span class="prelude-val">Ok</span>(<span class="kw">match </span>param {
             ast::Parameter::Var(var) =&gt; {
                 <span class="comment">// First try variables in current shell, otherwise try env:
@@ -1085,7 +1085,7 @@
     <span class="kw">fn </span>process_substitution(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         sub: <span class="kw-2">&amp;</span>ast::DefaultParameterSubstitution,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ShellErr&gt; {
+    ) -&gt; RResult&lt;String, ShellErr&gt; {
         <span class="kw">match </span>sub {
             ast::ParameterSubstitution::Command(cmds) =&gt; {
                 <span class="comment">// Run the nested command, from my tests with terminal:
@@ -1163,7 +1163,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         concat_state: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'_ </span>WordConcatState&lt;<span class="lifetime">'_</span>&gt;&gt;,
         is_lookaround: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, ShellErr&gt; {
+    ) -&gt; RResult&lt;bool, ShellErr&gt; {
         <span class="comment">// Handle infinite loop:
         </span><span class="kw">if </span>is_lookaround {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
@@ -1189,7 +1189,7 @@
 }
 
 <span class="doccomment">/// Helper to create unsupported error message.
-</span><span class="kw">fn </span>unsup(desc: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; error_stack::Report&lt;ShellErr&gt; {
+</span><span class="kw">fn </span>unsup(desc: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; Report&lt;ShellErr&gt; {
     <span class="macro">err!</span>(
         ShellErr::BashFeatureUnsupported,
         <span class="string">"Used valid bash syntax not implemented: {}"</span>,

@@ -65,7 +65,7 @@
 /// - Performance
 /// - Needs to implement the pseudo rust shell
 /// - Windows compatibility - all implement builtins conform to linux/mac/bash expected usage.
-</span><span class="kw">pub type </span>Builtin = <span class="kw">fn</span>(<span class="kw-2">&amp;mut </span>Shell, <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt;;
+</span><span class="kw">pub type </span>Builtin = <span class="kw">fn</span>(<span class="kw-2">&amp;mut </span>Shell, <span class="kw-2">&amp;</span>[String]) -&gt; RResult&lt;BashOut, BuiltinErr&gt;;
 
 <span class="doccomment">/// Helper for creating BashOut with an error code and writing to stderr.
 </span><span class="macro">macro_rules!</span> bad_call {
@@ -91,7 +91,7 @@
 });
 
 <span class="attr">#[cfg(test)]
-</span><span class="kw">fn </span>std_err_echo(_shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
+</span><span class="kw">fn </span>std_err_echo(_shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; RResult&lt;BashOut, BuiltinErr&gt; {
     <span class="kw">use </span><span class="kw">super</span>::CmdResult;
 
     <span class="prelude-val">Ok</span>(CmdResult::new(<span class="string">""</span>, <span class="number">0</span>, <span class="string">""</span>, args.join(<span class="string">" "</span>)).into())

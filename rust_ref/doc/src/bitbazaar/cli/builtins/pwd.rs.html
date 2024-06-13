@@ -64,7 +64,7 @@
 };
 
 <span class="doccomment">/// https://www.gnu.org/software/bash/manual/bash.html#index-pwd
-</span><span class="kw">pub fn </span>pwd(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BuiltinErr&gt; {
+</span><span class="kw">pub fn </span>pwd(shell: <span class="kw-2">&amp;mut </span>Shell, args: <span class="kw-2">&amp;</span>[String]) -&gt; RResult&lt;BashOut, BuiltinErr&gt; {
     <span class="kw">if </span>!args.is_empty() {
         <span class="kw">return </span><span class="prelude-val">Err</span>(
             <span class="macro">err!</span>(BuiltinErr::Unsupported).attach_printable(<span class="string">"pwd: options are not supported"</span>)

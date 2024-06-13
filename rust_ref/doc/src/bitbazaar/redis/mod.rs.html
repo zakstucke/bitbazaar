@@ -577,7 +577,7 @@
     <span class="doccomment">/// Test functionality working as it should when redis up and running fine.
     </span><span class="attr">#[rstest]
     #[tokio::test]
-    </span><span class="kw">async fn </span>test_redis_working(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+    </span><span class="kw">async fn </span>test_redis_working(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="comment">// Don't want to install redis in ci, just run this test locally:
         </span><span class="kw">if </span>in_ci() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());

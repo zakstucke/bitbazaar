@@ -120,29 +120,29 @@
 </span><span class="kw">pub fn </span>set_span_parent_from_http_headers(
     span: <span class="kw-2">&amp;</span>tracing::Span,
     headers: <span class="kw-2">&amp;</span>http::HeaderMap,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+) -&gt; RResult&lt;(), AnyErr&gt; {
     get_global()<span class="question-mark">?</span>.set_span_parent_from_http_headers(span, headers)
 }
 
 <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
 </span><span class="doccomment">/// Set the response headers from the current span context. So downstream services can continue the current trace.
-</span><span class="kw">pub fn </span>set_response_headers_from_ctx&lt;B&gt;(response: <span class="kw-2">&amp;mut </span>http::Response&lt;B&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+</span><span class="kw">pub fn </span>set_response_headers_from_ctx&lt;B&gt;(response: <span class="kw-2">&amp;mut </span>http::Response&lt;B&gt;) -&gt; RResult&lt;(), AnyErr&gt; {
     get_global()<span class="question-mark">?</span>.set_response_headers_from_ctx(response)
 }
 
 <span class="doccomment">/// Force through logs, traces and metrics, useful in e.g. testing.
 ///
 /// Note there doesn't seem to be an underlying interface to force through metrics.
-</span><span class="kw">pub fn </span>flush() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+</span><span class="kw">pub fn </span>flush() -&gt; RResult&lt;(), AnyErr&gt; {
     get_global()<span class="question-mark">?</span>.flush()
 }
 
 <span class="doccomment">/// Shutdown the logger, traces and metrics, should be called when the program is about to exit.
-</span><span class="kw">pub fn </span>shutdown() -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+</span><span class="kw">pub fn </span>shutdown() -&gt; RResult&lt;(), AnyErr&gt; {
     get_global()<span class="question-mark">?</span>.shutdown()
 }
 
-<span class="kw">fn </span>get_global&lt;<span class="lifetime">'a</span>&gt;() -&gt; <span class="prelude-ty">Result</span>&lt;MappedMutexGuard&lt;<span class="lifetime">'a</span>, GlobalLog&gt;, AnyErr&gt; {
+<span class="kw">fn </span>get_global&lt;<span class="lifetime">'a</span>&gt;() -&gt; RResult&lt;MappedMutexGuard&lt;<span class="lifetime">'a</span>, GlobalLog&gt;, AnyErr&gt; {
     <span class="kw">if </span>GLOBAL_LOG.lock().is_none() {
         <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"GlobalLog not registered!"</span>));
     }

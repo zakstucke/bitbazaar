@@ -227,7 +227,7 @@
     }
 
     <span class="doccomment">/// Execute the current contents of the bash script.
-    </span><span class="kw">pub fn </span>run(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;BashOut, BashErr&gt; {
+    </span><span class="kw">pub fn </span>run(<span class="self">self</span>) -&gt; RResult&lt;BashOut, BashErr&gt; {
         <span class="kw">if </span><span class="self">self</span>.cmds.is_empty() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(BashOut::empty());
         }

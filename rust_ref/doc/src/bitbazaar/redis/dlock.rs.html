@@ -631,7 +631,7 @@ end
         lock_key: <span class="kw-2">&amp;</span>str,
         ttl: Duration,
         wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;RedisLock&lt;<span class="lifetime">'a</span>&gt;, RedisLockErr&gt; {
+    ) -&gt; RResult&lt;RedisLock&lt;<span class="lifetime">'a</span>&gt;, RedisLockErr&gt; {
         <span class="kw">if </span>ttl &lt; Duration::from_millis(<span class="number">100</span>) {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
                 RedisLockErr::UserErr,
@@ -684,10 +684,10 @@ end
     ///
     /// Lock will start extending at the configured ttl,
     /// then slowly increase extension intervals (and ttls) automatically if the closure is long running, to reduce unnecessary redis calls.
-    </span><span class="kw">pub async fn </span>hold_for_fut&lt;R, Fut: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;R, AnyErr&gt;&gt;&gt;(
+    </span><span class="kw">pub async fn </span>hold_for_fut&lt;R, Fut: Future&lt;Output = RResult&lt;R, AnyErr&gt;&gt;&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         fut: Fut,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;R, RedisLockErr&gt; {
+    ) -&gt; RResult&lt;R, RedisLockErr&gt; {
         <span class="kw">if </span><span class="self">self</span>.expires_at - chrono::Utc::now() &lt; chrono::TimeDelta::zero() {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
                 RedisLockErr::UserErr,
@@ -754,7 +754,7 @@ end
     /// Returns:
     /// true: the lock was successfully extended.
     /// false: the lock could not be extended for some reason.
-    </span><span class="kw">pub async fn </span>extend(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_ttl: Duration) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RedisLockErr&gt; {
+    </span><span class="kw">pub async fn </span>extend(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_ttl: Duration) -&gt; RResult&lt;bool, RedisLockErr&gt; {
         <span class="kw">if </span>new_ttl &lt; Duration::from_millis(<span class="number">100</span>) {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
                 RedisLockErr::UserErr,
@@ -820,7 +820,7 @@ end
     }
 
     <span class="comment">// Error handling and retrying for a locking operation (lock/extend).
-    </span><span class="kw">async fn </span>exec_or_retry&lt;F, Fut&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ttl: Duration, cb: F) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RedisLockErr&gt;
+    </span><span class="kw">async fn </span>exec_or_retry&lt;F, Fut&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ttl: Duration, cb: F) -&gt; RResult&lt;bool, RedisLockErr&gt;
     <span class="kw">where
         </span>F: Fn(RedisConn&lt;<span class="lifetime">'a</span>&gt;) -&gt; Fut,
         Fut: Future&lt;Output = bool&gt;,
@@ -891,7 +891,7 @@ end
 
 <span class="doccomment">/// Run by the main tester that spawns up a redis process.
 </span><span class="attr">#[cfg(test)]
-</span><span class="kw">pub async fn </span>redis_dlock_tests(r: <span class="kw-2">&amp;</span><span class="kw">super</span>::Redis) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+</span><span class="kw">pub async fn </span>redis_dlock_tests(r: <span class="kw-2">&amp;</span><span class="kw">super</span>::Redis) -&gt; RResult&lt;(), AnyErr&gt; {
     <span class="kw">use </span>chrono::TimeDelta;
 
     <span class="kw">use </span><span class="kw">crate</span>::chrono::chrono_format_td;

@@ -446,7 +446,7 @@
 /// - process.memory.usage
 /// - process.memory.virtual
 /// - process.disk.io
-</span><span class="kw">pub fn </span>init_system_and_process_metrics(meter: <span class="kw-2">&amp;</span>Meter) -&gt; <span class="prelude-ty">Result</span>&lt;(), AnyErr&gt; {
+</span><span class="kw">pub fn </span>init_system_and_process_metrics(meter: <span class="kw-2">&amp;</span>Meter) -&gt; RResult&lt;(), AnyErr&gt; {
     <span class="kw">let </span>system_cpu_physical_count = meter
         .u64_observable_gauge(SYSTEM_CPU_PHYSICAL_COUNT)
         .with_description(<span class="string">"The number of physical CPUs."</span>)
