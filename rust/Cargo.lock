@@ -193,6 +193,7 @@ dependencies = [
  "parking_lot",
  "portpicker",
  "rand",
+ "rayon",
  "redis",
  "redis-macros",
  "regex",
