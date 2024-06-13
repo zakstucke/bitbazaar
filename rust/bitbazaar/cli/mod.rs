@@ -198,7 +198,7 @@ mod tests {
         #[case] exp_sterr: Option<&str>,  // Only check if Some()
         #[case] test_on_windows: bool,    // Only check if Some()
         #[allow(unused_variables)] logging: (),
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         if cfg!(windows) && !test_on_windows {
             return Ok(());
         }
@@ -232,7 +232,7 @@ mod tests {
         #[case] exp_std_all: S,
         #[case] code: i32,
         #[allow(unused_variables)] logging: (),
-    ) -> Result<(), AnyErr> {
+    ) -> RResult<(), AnyErr> {
         let mut bash = Bash::new();
         for cmd in cmds.into() {
             bash = bash.cmd(cmd);
@@ -246,7 +246,7 @@ mod tests {
 
     /// Confirm setting a custom working dir on the builder works plus when changing with cd in bash.
     #[rstest]
-    fn test_run_dir(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+    fn test_run_dir(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
         let temp_dir = tempfile::tempdir().change_context(AnyErr)?;
         // normalise to make sure absolute (as pwd should always be absolute)
         let temp_dir_pb = temp_dir
@@ -287,7 +287,7 @@ mod tests {
 
     /// Confirm setting env vars on the builder work.
     #[rstest]
-    fn test_builder_env(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+    fn test_builder_env(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
         let res = Bash::new()
             .env("FOO", "bar")
             .env("BAZ", "qux")
@@ -301,7 +301,7 @@ mod tests {
 
     // Confirm when both when doesn't error but not all commands run AND when Bash errors the final command that was attempted is accessible and printable.
     #[rstest]
-    fn test_error_source_attached(#[allow(unused_variables)] logging: ()) -> Result<(), AnyErr> {
+    fn test_error_source_attached(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
         let err_cmd = "ab||][/?cd";
 
         // Confirm that when bash itself fails (i.e. invalid syntax), the source is attached to the error:

@@ -45,7 +45,7 @@ impl From<Shell> for BashOut {
 }
 
 impl Shell {
-    pub fn new(env: HashMap<String, String>, root_dir: Option<PathBuf>) -> Result<Self, ShellErr> {
+    pub fn new(env: HashMap<String, String>, root_dir: Option<PathBuf>) -> RResult<Self, ShellErr> {
         let mut shell = Self {
             cmd_results: Vec::new(),
             root_dir: None,
@@ -66,7 +66,7 @@ impl Shell {
         Ok(shell)
     }
 
-    pub fn execute_command_strings(&mut self, commands: Vec<String>) -> Result<(), ShellErr> {
+    pub fn execute_command_strings(&mut self, commands: Vec<String>) -> RResult<(), ShellErr> {
         // Whilst all commands could be given to the parser together (newline separated),
         // and run internally by the shell in a single function call,
         // that mean's the source command string that causes an issues would be lost
@@ -88,7 +88,7 @@ impl Shell {
 
             let parsed_top_cmds = parser
                 .into_iter()
-                .collect::<core::result::Result<Vec<_>, _>>()
+                .collect::<Result<Vec<_>, _>>()
                 .change_context(ShellErr::BashSyntaxError)?;
 
             // Run the command:
@@ -145,7 +145,7 @@ impl Shell {
         self.code
     }
 
-    pub fn active_dir(&self) -> Result<PathBuf, ShellErr> {
+    pub fn active_dir(&self) -> RResult<PathBuf, ShellErr> {
         if let Some(root_dir) = &self.root_dir {
             Ok(root_dir.clone())
         } else {
@@ -154,7 +154,7 @@ impl Shell {
         }
     }
 
-    pub fn chdir(&mut self, new_root_dir: PathBuf) -> Result<(), ShellErr> {
+    pub fn chdir(&mut self, new_root_dir: PathBuf) -> RResult<(), ShellErr> {
         // normalise to ensure its absolute (to not break e.g. pwd)
         self.root_dir = Some(
             new_root_dir
@@ -176,7 +176,7 @@ impl Shell {
         }
     }
 
-    fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> Result<(), ShellErr> {
+    fn run_top_cmds(&mut self, cmds: Vec<ast::TopLevelCommand<String>>) -> RResult<(), ShellErr> {
         // Each res equates to a line in a multi line bash script. E.g. a single line command will only have one res.
         for cmd in cmds {
             match cmd.0 {
@@ -219,7 +219,7 @@ impl Shell {
         Ok(())
     }
 
-    fn run_listable_command(&mut self, cmd: ast::DefaultListableCommand) -> Result<(), ShellErr> {
+    fn run_listable_command(&mut self, cmd: ast::DefaultListableCommand) -> RResult<(), ShellErr> {
         let mut pipe_runner = PipeRunner::default();
 
         match cmd {
@@ -246,7 +246,7 @@ impl Shell {
         &mut self,
         pipe_runner: &mut PipeRunner,
         cmd: &ast::DefaultPipeableCommand,
-    ) -> Result<(), ShellErr> {
+    ) -> RResult<(), ShellErr> {
         match cmd {
             ast::PipeableCommand::Simple(cmd) => self.add_simple_command(pipe_runner, cmd)?,
             ast::PipeableCommand::Compound(compound) => {
@@ -309,7 +309,7 @@ impl Shell {
         &mut self,
         pipe_runner: &mut PipeRunner,
         cmd: &ast::DefaultSimpleCommand,
-    ) -> Result<(), ShellErr> {
+    ) -> RResult<(), ShellErr> {
         let mut env = Vec::<(String, String)>::new();
 
         for item in cmd.redirects_or_env_vars.iter() {
@@ -358,7 +358,7 @@ impl Shell {
     pub fn process_complex_word(
         &mut self,
         word: &ast::DefaultComplexWord,
-    ) -> Result<String, ShellErr> {
+    ) -> RResult<String, ShellErr> {
         match word {
             ast::ComplexWord::Single(word) => self.process_word(word, None, false),
             ast::ComplexWord::Concat(words) => {
@@ -371,7 +371,7 @@ impl Shell {
                         concat_state.active = index;
                         self.process_word(word, Some(&concat_state), false)
                     })
-                    .collect::<Result<Vec<_>, _>>()?
+                    .collect::<RResult<Vec<_>, _>>()?
                     .join("");
                 Ok(result)
             }
@@ -383,7 +383,7 @@ impl Shell {
         word: &ast::DefaultWord,
         concat_state: Option<&'_ WordConcatState<'_>>,
         is_lookaround: bool,
-    ) -> Result<String, ShellErr> {
+    ) -> RResult<String, ShellErr> {
         Ok(match word {
             // Single quoted means no processing inside needed:
             ast::Word::SingleQuoted(word) => word.to_string(),
@@ -393,14 +393,14 @@ impl Shell {
             ast::Word::DoubleQuoted(words) => words
                 .iter()
                 .map(|word| self.process_simple_word(word, concat_state, is_lookaround))
-                .collect::<Result<Vec<_>, _>>()?
+                .collect::<RResult<Vec<_>, _>>()?
                 .into_iter()
                 .collect::<Vec<_>>()
                 .join(""),
         })
     }
 
-    pub fn home_dir(&self) -> Result<PathBuf, ShellErr> {
+    pub fn home_dir(&self) -> RResult<PathBuf, ShellErr> {
         homedir::get_my_home()
             .change_context(ShellErr::InternalError)?
             .ok_or_else(|| err!(ShellErr::InternalError))
@@ -411,7 +411,7 @@ impl Shell {
         word: &ast::DefaultSimpleWord,
         concat_state: Option<&'_ WordConcatState<'_>>,
         is_lookaround: bool,
-    ) -> Result<String, ShellErr> {
+    ) -> RResult<String, ShellErr> {
         Ok(match word {
             ast::SimpleWord::Literal(lit) => lit.to_string(),
             ast::SimpleWord::Escaped(a) => a.to_string(),
@@ -442,7 +442,7 @@ impl Shell {
         })
     }
 
-    fn process_param(&mut self, param: &ast::DefaultParameter) -> Result<String, ShellErr> {
+    fn process_param(&mut self, param: &ast::DefaultParameter) -> RResult<String, ShellErr> {
         Ok(match param {
             ast::Parameter::Var(var) => {
                 // First try variables in current shell, otherwise try env:
@@ -485,7 +485,7 @@ impl Shell {
     fn process_substitution(
         &mut self,
         sub: &ast::DefaultParameterSubstitution,
-    ) -> Result<String, ShellErr> {
+    ) -> RResult<String, ShellErr> {
         match sub {
             ast::ParameterSubstitution::Command(cmds) => {
                 // Run the nested command, from my tests with terminal:
@@ -563,7 +563,7 @@ impl Shell {
         &mut self,
         concat_state: Option<&'_ WordConcatState<'_>>,
         is_lookaround: bool,
-    ) -> Result<bool, ShellErr> {
+    ) -> RResult<bool, ShellErr> {
         // Handle infinite loop:
         if is_lookaround {
             return Ok(false);
@@ -589,7 +589,7 @@ impl Shell {
 }
 
 /// Helper to create unsupported error message.
-fn unsup(desc: &'static str) -> error_stack::Report<ShellErr> {
+fn unsup(desc: &'static str) -> Report<ShellErr> {
     err!(
         ShellErr::BashFeatureUnsupported,
         "Used valid bash syntax not implemented: {}",

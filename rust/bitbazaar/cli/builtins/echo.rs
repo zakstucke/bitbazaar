@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// https://www.gnu.org/software/bash/manual/bash.html#index-echo
-pub fn echo(_shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+pub fn echo(_shell: &mut Shell, args: &[String]) -> RResult<BashOut, BuiltinErr> {
     let mut newline = true;
 
     let mut stdout = String::new();

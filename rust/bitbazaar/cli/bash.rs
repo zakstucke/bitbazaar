@@ -95,7 +95,7 @@ impl Bash {
     }
 
     /// Execute the current contents of the bash script.
-    pub fn run(self) -> Result<BashOut, BashErr> {
+    pub fn run(self) -> RResult<BashOut, BashErr> {
         if self.cmds.is_empty() {
             return Ok(BashOut::empty());
         }

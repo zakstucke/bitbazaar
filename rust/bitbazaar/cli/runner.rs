@@ -52,7 +52,7 @@ pub struct ConcreteOutput {
 }
 
 impl RunnerBashOut {
-    fn into_shell(self, shell: &mut Shell) -> Result<(), ShellErr> {
+    fn into_shell(self, shell: &mut Shell) -> RResult<(), ShellErr> {
         match self {
             RunnerBashOut::Concrete(conc) => {
                 if let Some(stdout) = conc.stdout {
@@ -99,7 +99,7 @@ impl From<BashOut> for RunnerBashOut {
 
 impl PipeRunner {
     /// Add a new command to the runner.
-    pub fn add(&mut self, args: Vec<String>) -> Result<(), ShellErr> {
+    pub fn add(&mut self, args: Vec<String>) -> RResult<(), ShellErr> {
         let first_arg = args
             .first()
             .ok_or_else(|| err!(ShellErr::InternalError, "No command provided"))?
@@ -125,7 +125,7 @@ impl PipeRunner {
         Ok(())
     }
 
-    pub fn add_redirect(&mut self, redirect: &ast::DefaultRedirect) -> Result<(), ShellErr> {
+    pub fn add_redirect(&mut self, redirect: &ast::DefaultRedirect) -> RResult<(), ShellErr> {
         self.commands.push(VariCommand::Redirect(redirect.clone()));
         Ok(())
     }
@@ -134,7 +134,7 @@ impl PipeRunner {
         self.commands.push(VariCommand::PipedStdout(stdout));
     }
 
-    pub fn run(mut self, shell: &mut Shell) -> Result<(), ShellErr> {
+    pub fn run(mut self, shell: &mut Shell) -> RResult<(), ShellErr> {
         for command in self.commands.into_iter() {
             let last_out = self.outputs.last_mut();
             let next_out: RunnerBashOut = match command {

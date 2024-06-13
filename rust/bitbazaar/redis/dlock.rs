@@ -90,7 +90,7 @@ impl<'a> RedisLock<'a> {
         lock_key: &str,
         ttl: Duration,
         wait_up_to: Option<Duration>,
-    ) -> Result<RedisLock<'a>, RedisLockErr> {
+    ) -> RResult<RedisLock<'a>, RedisLockErr> {
         if ttl < Duration::from_millis(100) {
             return Err(err!(
                 RedisLockErr::UserErr,
@@ -143,10 +143,10 @@ impl<'a> RedisLock<'a> {
     ///
     /// Lock will start extending at the configured ttl,
     /// then slowly increase extension intervals (and ttls) automatically if the closure is long running, to reduce unnecessary redis calls.
-    pub async fn hold_for_fut<R, Fut: Future<Output = Result<R, AnyErr>>>(
+    pub async fn hold_for_fut<R, Fut: Future<Output = RResult<R, AnyErr>>>(
         &mut self,
         fut: Fut,
-    ) -> Result<R, RedisLockErr> {
+    ) -> RResult<R, RedisLockErr> {
         if self.expires_at - chrono::Utc::now() < chrono::TimeDelta::zero() {
             return Err(err!(
                 RedisLockErr::UserErr,
@@ -213,7 +213,7 @@ impl<'a> RedisLock<'a> {
     /// Returns:
     /// true: the lock was successfully extended.
     /// false: the lock could not be extended for some reason.
-    pub async fn extend(&mut self, new_ttl: Duration) -> Result<bool, RedisLockErr> {
+    pub async fn extend(&mut self, new_ttl: Duration) -> RResult<bool, RedisLockErr> {
         if new_ttl < Duration::from_millis(100) {
             return Err(err!(
                 RedisLockErr::UserErr,
@@ -279,7 +279,7 @@ impl<'a> RedisLock<'a> {
     }
 
     // Error handling and retrying for a locking operation (lock/extend).
-    async fn exec_or_retry<F, Fut>(&mut self, ttl: Duration, cb: F) -> Result<bool, RedisLockErr>
+    async fn exec_or_retry<F, Fut>(&mut self, ttl: Duration, cb: F) -> RResult<bool, RedisLockErr>
     where
         F: Fn(RedisConn<'a>) -> Fut,
         Fut: Future<Output = bool>,
@@ -350,7 +350,7 @@ fn get_unique_lock_id() -> Vec<u8> {
 
 /// Run by the main tester that spawns up a redis process.
 #[cfg(test)]
-pub async fn redis_dlock_tests(r: &super::Redis) -> Result<(), AnyErr> {
+pub async fn redis_dlock_tests(r: &super::Redis) -> RResult<(), AnyErr> {
     use chrono::TimeDelta;
 
     use crate::chrono::chrono_format_td;

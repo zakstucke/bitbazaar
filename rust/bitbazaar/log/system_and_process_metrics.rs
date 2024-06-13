@@ -89,7 +89,7 @@ use crate::prelude::*;
 /// - process.memory.usage
 /// - process.memory.virtual
 /// - process.disk.io
-pub fn init_system_and_process_metrics(meter: &Meter) -> Result<(), AnyErr> {
+pub fn init_system_and_process_metrics(meter: &Meter) -> RResult<(), AnyErr> {
     let system_cpu_physical_count = meter
         .u64_observable_gauge(SYSTEM_CPU_PHYSICAL_COUNT)
         .with_description("The number of physical CPUs.")

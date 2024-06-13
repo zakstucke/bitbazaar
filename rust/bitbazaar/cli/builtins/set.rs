@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
-pub fn set(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+pub fn set(shell: &mut Shell, args: &[String]) -> RResult<BashOut, BuiltinErr> {
     if let Some(arg) = args.first() {
         match arg.as_str() {
             "+e" => {

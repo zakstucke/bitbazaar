@@ -15,7 +15,7 @@ use crate::prelude::*;
 /// - Performance
 /// - Needs to implement the pseudo rust shell
 /// - Windows compatibility - all implement builtins conform to linux/mac/bash expected usage.
-pub type Builtin = fn(&mut Shell, &[String]) -> Result<BashOut, BuiltinErr>;
+pub type Builtin = fn(&mut Shell, &[String]) -> RResult<BashOut, BuiltinErr>;
 
 /// Helper for creating BashOut with an error code and writing to stderr.
 macro_rules! bad_call {
@@ -41,7 +41,7 @@ pub static BUILTINS: Lazy<HashMap<&'static str, Builtin>> = Lazy::new(|| {
 });
 
 #[cfg(test)]
-fn std_err_echo(_shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+fn std_err_echo(_shell: &mut Shell, args: &[String]) -> RResult<BashOut, BuiltinErr> {
     use super::CmdResult;
 
     Ok(CmdResult::new("", 0, "", args.join(" ")).into())

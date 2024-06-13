@@ -6,7 +6,7 @@ use std::{
 use crate::prelude::*;
 
 /// Check if a port is listening for a given ipv4 address and port.
-pub fn is_tcp_port_listening(host: &str, port: u16) -> Result<bool, AnyErr> {
+pub fn is_tcp_port_listening(host: &str, port: u16) -> RResult<bool, AnyErr> {
     let timeout_duration = Duration::from_secs(1); // Timeout duration set to 1 second
 
     let ip = if host == "localhost" {

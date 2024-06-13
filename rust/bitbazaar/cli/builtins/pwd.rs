@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// https://www.gnu.org/software/bash/manual/bash.html#index-pwd
-pub fn pwd(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+pub fn pwd(shell: &mut Shell, args: &[String]) -> RResult<BashOut, BuiltinErr> {
     if !args.is_empty() {
         return Err(
             err!(BuiltinErr::Unsupported).attach_printable("pwd: options are not supported")

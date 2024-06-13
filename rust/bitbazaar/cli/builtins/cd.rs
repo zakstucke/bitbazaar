@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// https://www.gnu.org/software/bash/manual/bash.html#index-cd
-pub fn cd(shell: &mut Shell, args: &[String]) -> Result<BashOut, BuiltinErr> {
+pub fn cd(shell: &mut Shell, args: &[String]) -> RResult<BashOut, BuiltinErr> {
     macro_rules! hd {
         () => {
             if let Ok(hd) = shell.home_dir() {
