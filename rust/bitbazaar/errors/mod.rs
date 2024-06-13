@@ -6,7 +6,8 @@ pub use any::AnyErr;
 /// Shorthand for a [`Result`] with a [`Report`] as the error variant
 pub type RResult<T, C> = Result<T, error_stack::Report<C>>;
 
-pub(crate) mod prelude {
+/// Easily import all useful error items. Useful to put inside a crate prelude.
+pub mod prelude {
     #[allow(unused_imports)]
     pub use error_stack::{Report, ResultExt};
 
