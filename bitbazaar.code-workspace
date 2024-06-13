@@ -15,6 +15,14 @@
     ],
     "rust-analyzer.rustfmt.extraArgs": [],
     "rust-analyzer.cargo.features": "all", // Enable all features in cargo.toml for type hinting
+    // Use a separate target dir to prevent it messing with other processes (used to cause locks etc):
+    // https://github.com/rust-lang/rust-analyzer/issues/6007
+    "rust-analyzer.server.extraEnv": {
+      "CARGO_TARGET_DIR": "target/analyzer"
+    },
+    "rust-analyzer.check.extraArgs": [
+      "--target-dir=target/analyzer"
+    ],
 
     "biome.lspBin": "/usr/local/bin/biome", // Path to the biome binary installed in initial_setup.sh
     "editor.codeActionsOnSave": {
@@ -99,29 +107,6 @@
       "tag:yaml.org,2002:python/name:material.extensions.emoji.twemoji",
       "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format"
     ],
-    // For the tailwind extension if using:
-    // Note: biome class sorting should be possible soon: https://github.com/biomejs/biome/issues/1274
-    "tailwindCSS.experimental.classRegex": [
-      // Allows tailwind autocomplete to work in "classnames" function and "cx" shorthand for it.
-      // https://github.com/tailwindlabs/tailwindcss/issues/7553
-      ["(?:classnames|cx)\\(([^)]*)\\)", "\"([^\"]*)\""],
-      ["(?:classnames|cx)\\(([^)]*)\\)", "'([^']*')"],
-      ["(?:classnames|cx)\\(([^)]*)\\)", "`([^`]*`)"],
-
-      // Also allow it to work in any variable starting with Classes:
-      "Classes=\"([^\"]*)", // <div *.Classes="..." />
-      "Classes = \"([^\"]*)", // *.Classes = "..."
-      "Classes={\"([^\"}]*)", // <div *.Classes={"..."} />
-      "Classes={`([^`}]*)", // <div *.Classes={`...`} />
-      "Classes: \"([^\"]*)", // <div *.Classes: "..." />
-      "Classes: `([^`]*)" // <div *.Classes: `...` />
-    ],
-    "tailwindCSS.files.exclude": [
-      "**/.git/**",
-      "**/node_modules/**",
-      "**/venv/**",
-      "**/.venv/**"
-    ],
     "scss.lint.unknownAtRules": "ignore",
     "search.useIgnoreFiles": false, // Otherwise, things in .gitignore will not be searchable, its better to exclude them manually:
     "notebook.output.textLineLimit": 100,
@@ -141,7 +126,8 @@
       "**/.git/**": true,
       "**/ipynb_checkpoints/**": true,
       "**/.ipynb": true,
-      "**/target/**": true
+      "**/target/**": true,
+      "**/prof/**": true
     },
     "files.watcherExclude": {
       "**/.venv/**": true,

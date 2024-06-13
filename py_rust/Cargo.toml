@@ -14,19 +14,19 @@ path = "src/lib.rs"
 
 # Add your dependencies here
 [dependencies]
+colored = '2'
 tracing = "0.1"
 error-stack = "0.4"
-bitbazaar = { version = '0.0.31', features = ["opentelemetry"] }
+bitbazaar = { version = '0.0.52', features = ["timing", "opentelemetry-grpc"] }
 pyo3 = { version = '0.20.0', features = ['extension-module', 'chrono', 'generate-import-lib'] }
 parking_lot = { version = "0.12", features = ['deadlock_detection', 'serde'] }
 strum = { version = '0.25', features = ['derive'] }
+
+[profile.release]
+strip = "debuginfo" # Note: true or "symbols" seems to break static c linking e.g. with ffmpeg.
 
 [profile.profiler]
 inherits = "release" # Adds on top of the default release profile
 incremental = true
 debug = true
 strip = false
-
-# Modifying the test runtime (from release is just so much faster)
-[profile.test]
-inherits = "release" # Adds on top of the default release profile

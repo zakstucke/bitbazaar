@@ -38,7 +38,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - uses: ./.github/actions/install-pre-commit
 
       # Python project
       - name: Set up PDM
@@ -62,12 +61,11 @@ jobs:
           cd ./js
           bun install
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/install-rust
         with:
-          components: rustfmt, clippy
-      - name: "Install cargo-hack, used for feature checking in pre-commit."
-        uses: taiki-e/install-action@cargo-hack
+          qa: true
 
+      - uses: ./.github/actions/install-pre-commit
       - name: Run QA
         run: |
           ./dev_scripts/test.sh qa
@@ -96,13 +94,9 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-rust
         with:
-          workspaces: "./rust -> target"
-          cache-on-failure: "true"
-          cache-all-crates: "true"
+          qa: true
 
       - name: Install dependencies
         run: |
@@ -198,15 +192,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-rust
         with:
-          workspaces: "./py_rust -> target"
-          cache-on-failure: "true"
-          cache-all-crates: "true"
-      - name: Install nextest
-        uses: taiki-e/install-action@nextest
+          test: true
 
       - uses: actions/setup-python@v4
         with:
@@ -243,15 +231,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-rust
         with:
-          workspaces: "./rust -> target"
-          cache-on-failure: "true"
-          cache-all-crates: "true"
-      - name: Install nextest
-        uses: taiki-e/install-action@nextest
+          test: true
 
       - name: Run tests (linux)
         if: matrix.os == 'ubuntu-latest'

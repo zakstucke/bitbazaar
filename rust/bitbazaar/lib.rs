@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception)]
+#![allow(clippy::type_complexity)]
 #![warn(clippy::disallowed_types)]
 #![warn(missing_docs)]
 

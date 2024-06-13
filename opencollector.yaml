@@ -30,15 +30,6 @@ exporters:
     headers:
       Authorization: Basic ZGV2QGRldi5jb206cGFzcw==
       stream-name: default
-  # Writes all opentelemetry logs, traces, metrics to a file, useful for testing:
-  file/debug_file_writing:
-    path: /home/runner/work/bitbazaar/bitbazaar/logs/otlp_telemetry_out.log
-    rotation:
-      max_megabytes: 10
-      max_days: 3
-      max_backups: 3
-      localtime: true
-    flush_interval: 1  # Write every 1 seconds
 
 service:
   telemetry:
@@ -51,16 +42,13 @@ service:
       processors: [memory_limiter, batch]
       exporters:
         - otlphttp
-        - file/debug_file_writing
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters:
         - otlphttp
-        - file/debug_file_writing
     metrics:  # Don't bother with memory limiting for metrics, traces and logs will be the largest consumers of memory
       receivers: [otlp]
       processors: [batch]
       exporters:
         - otlphttp
-        - file/debug_file_writing

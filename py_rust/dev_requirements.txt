@@ -1,0 +1,6 @@
+maturin==1.4.0
+typing-extensions==4.9.0
+pyright==1.1.351
+pytest==8.0.1
+pytest-xdist==3.5.0
+pytest-profiling==1.7.0

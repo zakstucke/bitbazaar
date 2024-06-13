@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # If no function name provided, print a list of all the functions:
 if [ $# -eq 0 ]; then

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Stop on error:
 set -e
@@ -21,10 +21,8 @@ ensure_venv () {
         source ./py_rust/.venv/bin/activate
     fi
 
-    ./dev_scripts/utils.sh py_install_if_missing typing-extensions
-    ./dev_scripts/utils.sh py_install_if_missing maturin
-    ./dev_scripts/utils.sh py_install_if_missing pyright
-    ./dev_scripts/utils.sh py_install_if_missing pytest
+    # Install any dev requirements that aren't managed by maturin:
+    pip install -r ./py_rust/dev_requirements.txt
 
 }
 

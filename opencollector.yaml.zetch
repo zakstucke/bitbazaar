@@ -31,18 +31,6 @@ exporters:
       Authorization: {{ OTLP_OO_AUTH }}
       stream-name: default
 
-{%- if DEBUG %}
-  # Writes all opentelemetry logs, traces, metrics to a file, useful for testing:
-  file/debug_file_writing:
-    path: {{ ROOT_DIR }}/logs/otlp_telemetry_out.log
-    rotation:
-      max_megabytes: 10
-      max_days: 3
-      max_backups: 3
-      localtime: true
-    flush_interval: 1  # Write every 1 seconds
-{%- endif %}
-
 service:
   telemetry:
     logs:
@@ -54,22 +42,13 @@ service:
       processors: [memory_limiter, batch]
       exporters:
         - otlphttp
-        {%- if DEBUG %}
-        - file/debug_file_writing
-        {%- endif %}
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters:
         - otlphttp
-        {%- if DEBUG %}
-        - file/debug_file_writing
-        {%- endif %}
     metrics:  # Don't bother with memory limiting for metrics, traces and logs will be the largest consumers of memory
       receivers: [otlp]
       processors: [batch]
       exporters:
         - otlphttp
-        {%- if DEBUG %}
-        - file/debug_file_writing
-        {%- endif %}

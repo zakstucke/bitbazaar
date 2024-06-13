@@ -2,24 +2,29 @@
   "name": "bitbazaar",
   "version": "0.0.29",
   "description": "An assortment of publicly available cross-language utilities useful to my projects.",
-  "scripts": { "build": "tsup && node ./build_standalone_cdn_log.js" },
+  "scripts": {
+    "prep": "bun i ",
+    "build": "bun run prep && bun run --bun tsup"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zakstucke/bitbazaar.git"
   },
   "author": "zakstucke@gmail.com",
   "license": "MIT",
+
   "type": "module",
   "main": "index.cjs",
   "module": "index.js",
   "types": "index.d.ts",
   "sideEffects": false,
   "devDependencies": {
-    "@happy-dom/global-registrator": "13.3.8",
-    "bun-types": ">=1.0.15",
     "tsup": ">=7.2.0",
+    "bun-types": ">=1.0.15",
     "typescript": ">=5.2.2",
+    "@happy-dom/global-registrator": "13.3.8",
     "@testing-library/react": "^14.1.2",
+    "wouter": "<3.2.0",
     "@types/chroma-js": "^2.4.2",
     "@types/html-minifier-terser": "7.0.1",
     "@types/react": "^18.2.31",
@@ -30,7 +35,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "vite": "^5.0.11",
-    "wouter": "^3.0.0-rc.1"
+    "wouter": "^3.2.0"
   },
   "dependencies": {
     "install": "^0.13.0",

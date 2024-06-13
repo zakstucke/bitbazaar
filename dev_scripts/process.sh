@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Stop on error:
 set -e
@@ -104,25 +104,23 @@ list() {
 # Terminate a process and all of its child processes
 terminate() {
     local parent_pid="$1"
-    local IS_CHILD=$2
 
     # Terminate the child processes of the parent PID
     local child_pids=$(pgrep -P "$parent_pid")
     for pid in $child_pids; do
-        terminate "$pid" "true"
+        terminate "$pid"
     done
 
     # Terminate the parent PID
     if ps -p "$parent_pid" > /dev/null; then
-        if [ "$IS_CHILD" = "true" ]; then
-            echo "Terminating child: $parent_pid"
-        else
-            echo "Terminating root: $parent_pid"
-        fi
-        # Or true to not error if the process is already dead:
-        kill -9 "$parent_pid" > /dev/null 2>&1 || true
+        # The || true to ignore when the pid is already dead:
+        # Send SIGTERM and SIGHUP, then if it's still alive after 15 seconds, send SIGKILL
+        kill -15 "$parent_pid" 2>/dev/null || true
+        kill -1 "$parent_pid" 2>/dev/null || true
+        { sleep 15; kill -9 "$parent_pid" 2>/dev/null || true; } &
     fi
 }
+
 
 # Has to come at the end of these files:
 source ./dev_scripts/_scr_setup/setup.sh "$@"
