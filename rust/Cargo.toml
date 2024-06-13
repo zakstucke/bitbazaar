@@ -80,13 +80,17 @@ opentelemetry-semantic-conventions = { version = "0.13.0", optional = true }
 # FEAT: system:
 sysinfo = { version = "0.30", optional = true }
 
+# FEAT: rayon:
+rayon = { version = "1", optional = true }
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tracing-subscriber-wasm = "0.1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tracing-appender = '0.2'                       # This includes threading (non-blocking stuff that can't be used in wasm)
+# This includes threading (non-blocking stuff that can't be used in wasm)
+tracing-appender = '0.2'
 hostname = "0.3.1"
-tokio = { version = '1', features = ["time"] }
+tokio = { version = '1', features = ["time", "sync"] }
 
 [dev-dependencies]
 rstest = "0.18"
@@ -143,6 +147,7 @@ opentelemetry-http = [ # In general there's no point with this currently, made f
   'opentelemetry-otlp/http-proto',
   'opentelemetry-otlp/reqwest-client',
 ]
+rayon = ['dep:rayon']
 
 [profile.release]
 strip = "debuginfo" # Note: true or "symbols" seems to break static c linking e.g. with ffmpeg.
