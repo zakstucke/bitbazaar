@@ -26,5 +26,5 @@ pub fn bytes_to_pretty_1024(bytes: u64) -> String {
 
 /// Convert bytes to megabits per second.
 pub fn bytes_to_mbps(bytes: u64) -> f64 {
-    bytes as f64 / 1024.0 / 1024.0 * 8.0
+    bytes as f64 / 1000.0 / 1000.0 * 8.0
 }
