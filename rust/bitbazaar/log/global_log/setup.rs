@@ -27,6 +27,10 @@ impl<'writer> tracing_subscriber::fmt::MakeWriter<'writer> for super::builder::C
 }
 
 pub fn builder_into_global_log(builder: GlobalLogBuilder) -> RResult<GlobalLog, AnyErr> {
+    #[cfg(windows)]
+    // When on windows, this might be needed to fix colored output:
+    let _ = colored::control::set_virtual_terminal(true);
+
     // Configure the program to automatically log panics as an error event on the current span:
     super::exceptions::auto_trace_panics();
 
