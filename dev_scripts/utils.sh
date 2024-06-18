@@ -119,9 +119,9 @@ ensure_redis () {
 in_ci () {
     # Check if any of the CI/CD environment variables are set
     if [ -n "$GITHUB_ACTIONS" ] || [ -n "$TRAVIS" ] || [ -n "$CIRCLECI" ] || [ -n "$GITLAB_CI" ]; then
-        0
+        return 0 # Return true
     else
-        1
+        return 1 # Return false
     fi
 }
 
