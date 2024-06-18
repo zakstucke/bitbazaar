@@ -4,21 +4,20 @@
     "CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
     "CONTRIBUTING.zetch.md": "bace46dc064746b54cf472eba960d934d705c2f83120b865a4b47032ff1552c5",
     "LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "README.zetch.md": "34d3875459133b4e4e6d3b1c09bf38d1b1ebddbf4725c33ba2bad16d33cf27e4",
+    "README.zetch.md": "b23b0699324fef5f546902607143e06214c868d50e3da1aad5cdffbaf6bf5e7d",
     "docs/CODE_OF_CONDUCT.zetch.md": "bf106326ffc75f5167cfde27c997c77c6b97c843a9e392b564355d0e70e50b97",
     "docs/CONTRIBUTING.zetch.md": "bace46dc064746b54cf472eba960d934d705c2f83120b865a4b47032ff1552c5",
     "docs/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "docs/index.zetch.md": "87cafdb1efbe0cb35282f8908089552692f2607e4c8eaf772dc66981f711a205",
+    "docs/index.zetch.md": "f54b7051c655e05221e6a47a7f8a4d4d4b03ccc7a9bc38d6ad9b4be7d68a7984",
     "js/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "js/README.zetch.md": "87cafdb1efbe0cb35282f8908089552692f2607e4c8eaf772dc66981f711a205",
+    "js/README.zetch.md": "f54b7051c655e05221e6a47a7f8a4d4d4b03ccc7a9bc38d6ad9b4be7d68a7984",
     "js/tsconfig.zetch.json": "20974867286079e9cff0945f28efa3d77b49a7d75ab4f7106969c44239df97c6",
     "opencollector.yaml.zetch": "7bc57cf34798098de165251bee40b14905e46189e781f38597ed5debb1dfd4f7",
     "py/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "py/README.zetch.md": "87cafdb1efbe0cb35282f8908089552692f2607e4c8eaf772dc66981f711a205",
+    "py/README.zetch.md": "f54b7051c655e05221e6a47a7f8a4d4d4b03ccc7a9bc38d6ad9b4be7d68a7984",
     "py_rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "py_rust/README.zetch.md": "87cafdb1efbe0cb35282f8908089552692f2607e4c8eaf772dc66981f711a205",
+    "py_rust/README.zetch.md": "f54b7051c655e05221e6a47a7f8a4d4d4b03ccc7a9bc38d6ad9b4be7d68a7984",
     "rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "rust/README.zetch.md": "87cafdb1efbe0cb35282f8908089552692f2607e4c8eaf772dc66981f711a205",
-    "rust/pkg/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b"
+    "rust/README.zetch.md": "f54b7051c655e05221e6a47a7f8a4d4d4b03ccc7a9bc38d6ad9b4be7d68a7984"
   }
 }

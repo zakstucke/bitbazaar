@@ -37,7 +37,7 @@ on:
         default: false
       rust_version:
         description: Rust Version
-        default: 0.0.59
+        default: 0.0.60
 
 jobs:
   commit_versions:
@@ -54,7 +54,7 @@ jobs:
         with:
           token: ${{ secrets.VERSION_BOT_PAT }}
 
-        # Always installing python and bun, quick and so often randomly needed:
+          # Always installing python and bun, quick and so often randomly needed:
       - uses: ./.github/actions/install-python
         with:
           pdm: true
@@ -69,7 +69,7 @@ jobs:
           secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
           qa: true
 
-        # Need to checkout with PAT again, in-case above custom actions checked out with unpermissioned token
+          # Need to checkout with PAT again, in-case above custom actions checked out with unpermissioned token
       - name: Checks out repo with a token that allows pushing to main without PR
         uses: actions/checkout@v4
         with:
@@ -80,7 +80,7 @@ jobs:
         run: |
           zetch put zetch.config.toml context.static.PY_VERSION ${{ inputs.py_version }}
 
-        # Js project
+          # Js project
       - name: Install js dependencies
         if: ${{ inputs.js_release }}
         run: |
@@ -139,7 +139,7 @@ jobs:
         with:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
 
-        # Basic python always needed:
+          # Basic python always needed:
       - uses: ./.github/actions/install-python
         with:
           pdm: false
@@ -329,7 +329,7 @@ jobs:
         with:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
 
-        # Basic python always needed:
+          # Basic python always needed:
       - uses: ./.github/actions/install-python
         with:
           pdm: false
@@ -340,7 +340,7 @@ jobs:
         with:
           secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
 
-        # Doing again as default checkout might have happened in one of the actions:
+          # Doing again as default checkout might have happened in one of the actions:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
