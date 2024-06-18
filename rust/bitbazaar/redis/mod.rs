@@ -77,6 +77,11 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_redis_working(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        // Redis can't be run on windows, skip if so:
+        if cfg!(windows) {
+            return Ok(());
+        }
+
         let rs = RedisStandalone::new().await?;
 
         let work_r = rs.instance()?;

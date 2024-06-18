@@ -95,7 +95,8 @@ replace_text () {
 # Make sure redis is up and running:
 ensure_redis () {
     # In ci redis should be spun up as needed for tests manually.
-    if in_ci; then
+    # (windows also can't run redis, so skip it there too)
+    if in_ci || is_windows; then
         return
     fi
 
@@ -109,13 +110,32 @@ ensure_redis () {
 }
 
 
-# Returns "true" if looks like in_ci, "false" otherwise:
+# Returns true/0 if looks like in_ci, false/1 otherwise:
+# if in_ci; then
+#     echo "in ci"
+# else
+#     echo "not in ci"
+# fi
 in_ci () {
     # Check if any of the CI/CD environment variables are set
     if [ -n "$GITHUB_ACTIONS" ] || [ -n "$TRAVIS" ] || [ -n "$CIRCLECI" ] || [ -n "$GITLAB_CI" ]; then
-        echo "true"
+        0
     else
-        echo "false"
+        1
+    fi
+}
+
+# Useful for platform matching, can use like:
+# if is_windows; then
+#     echo "windows"
+# else
+#     echo "not windows"
+# fi
+is_windows() {
+    if [ "$(expr substr $(uname -s) 1 5)" == "MINGW" ]; then
+        return 0  # Return true
+    else
+        return 1  # Return false
     fi
 }
 
