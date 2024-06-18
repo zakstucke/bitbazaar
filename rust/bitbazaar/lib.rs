@@ -34,3 +34,6 @@ pub mod threads;
 #[cfg(feature = "timing")]
 /// Timing utilities
 pub mod timing;
+
+#[cfg(test)]
+mod testing;

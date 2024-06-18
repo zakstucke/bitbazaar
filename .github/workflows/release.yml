@@ -53,29 +53,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.VERSION_BOT_PAT }}
-      - uses: actions/setup-python@v4
 
-      - name: Install zetch
-        run: pip install zetch
-
-      - name: Set up PDM
-        if: ${{ inputs.py_release }}
-        uses: pdm-project/setup-pdm@v3
+        # Always installing python and bun, quick and so often randomly needed:
+      - uses: ./.github/actions/install-python
         with:
-          python-version: '3.12'
-          cache: true
-          cache-dependency-path: py/pdm.lock
+          pdm: true
+      - name: Install Bun, no npm should be needed
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - uses: ./.github/actions/install-rust
+        if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
+        with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
+          qa: true
+
+        # Need to checkout with PAT again, in-case above custom actions checked out with unpermissioned token
+      - name: Checks out repo with a token that allows pushing to main without PR
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.VERSION_BOT_PAT }}
+
       - name: Update Python version
         if: ${{ inputs.py_release }}
         run: |
           zetch put zetch.config.toml context.static.PY_VERSION ${{ inputs.py_version }}
 
-          # Js project
-      - name: Install Bun, no npm should be needed
-        if: ${{ inputs.js_release }}
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
+        # Js project
       - name: Install js dependencies
         if: ${{ inputs.js_release }}
         run: |
@@ -85,11 +90,6 @@ jobs:
         if: ${{ inputs.js_release }}
         run: |
           zetch put zetch.config.toml context.static.JS_VERSION ${{ inputs.js_version }}
-
-      - uses: ./.github/actions/install-rust
-        if: ${{ inputs.py_rust_release }} || ${{ inputs.rust_release }}
-        with:
-          qa: true
 
       - name: Update Rust-backed Python version
         if: ${{ inputs.py_rust_release }}
@@ -139,6 +139,11 @@ jobs:
         with:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
 
+        # Basic python always needed:
+      - uses: ./.github/actions/install-python
+        with:
+          pdm: false
+
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
         with:
@@ -156,6 +161,8 @@ jobs:
           node-version: '20'
 
       - uses: ./.github/actions/install-rust
+        with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
 
       - name: Build docs
         run: |
@@ -284,9 +291,9 @@ jobs:
           name: py_rust_build_files
           path: py_rust/dist
 
-      - uses: actions/setup-python@v4
+      - uses: ./.github/actions/install-python
         with:
-          python-version: '3.12'
+          pdm: false
       - run: pip install twine
 
       - name: Make sure release contents seem valid
@@ -322,8 +329,22 @@ jobs:
         with:
           ref: ${{ needs.commit_versions.outputs.new-sha }}
 
+        # Basic python always needed:
+      - uses: ./.github/actions/install-python
+        with:
+          pdm: false
+      - name: Install zetch
+        run: pip install zetch
 
       - uses: ./.github/actions/install-rust
+        with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
+
+        # Doing again as default checkout might have happened in one of the actions:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.commit_versions.outputs.new-sha }}
+
       - name: upload to Crates.io
         run: |
           cd rust

@@ -18,7 +18,10 @@ jobs:
     strategy:
       fail-fast: true  # Want release to cancel if any fail, so may as well fail fast to save some minutes
       matrix:
-        os: [linux, macos, windows]
+        os:
+          - linux
+          - macos
+          - windows
         target: [x86_64, aarch64]
         manylinux: [auto]
         include:

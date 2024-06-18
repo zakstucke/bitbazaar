@@ -34,23 +34,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: ./.github/actions/install-python
         with:
-          python-version: "3.12"
-          cache: pip
-
-      # Python project
-      - name: Set up PDM
-        uses: pdm-project/setup-pdm@v3
-        with:
-          python-version: "3.12"
-          cache: true
-          cache-dependency-path: 'py/pdm.lock'
-
-      - name: Install dependencies
-        run: |
-          pdm sync -p ./py -G:all
-
+          pdm: true
       # Js project
       - name: "Install Bun, no npm should be needed"
         uses: oven-sh/setup-bun@v1
@@ -63,6 +49,7 @@ jobs:
 
       - uses: ./.github/actions/install-rust
         with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
           qa: true
 
       - uses: ./.github/actions/install-pre-commit
@@ -82,6 +69,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Basic python always needed:
+      - uses: ./.github/actions/install-python
+        with:
+          pdm: false
+
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
         with:
@@ -96,6 +88,7 @@ jobs:
 
       - uses: ./.github/actions/install-rust
         with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
           qa: true
 
       - name: Install dependencies
@@ -125,6 +118,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
 
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
@@ -157,6 +151,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
 
       # Js project
       - name: "Install Bun, no npm should be needed"
@@ -192,13 +187,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/install-rust
-        with:
-          test: true
 
       - uses: actions/setup-python@v4
         with:
           python-version: "${{ matrix.python }}"
+
+      - uses: ./.github/actions/install-rust
+        with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
+          test: true
 
       - name: Setup venv (problems with the automatic creating in scripts as it uses pipx and for some
           reason ends with wrong py version)
@@ -227,12 +224,21 @@ jobs:
       matrix:
         # Run on both linux and windows (dev testing on mac and much more expensive in terms of build minutes),
         # windows most likely to fail unexpectedly.
-        os: [ubuntu-latest, windows-latest]
+        os:
+          - ubuntu-latest
+          - windows-latest
     steps:
       - uses: actions/checkout@v4
 
+
+      # Basic python always needed:
+      - uses: ./.github/actions/install-python
+        with:
+          pdm: false
+
       - uses: ./.github/actions/install-rust
         with:
+          secret_config_toml: ${{ secrets.CUSTOM_RUST_CONFIG_TOML }}
           test: true
 
       - name: Run tests (linux)
