@@ -14,8 +14,12 @@ pub mod cli;
 #[cfg(feature = "chrono")]
 /// Chrono utilities
 pub mod chrono;
+#[cfg(feature = "cookies")]
+/// Setting/getting cookies in frontend or ssr.
+pub mod cookies;
 /// Error handling utilities.
 pub mod errors;
+#[cfg(feature = "hash")]
 /// Hashing utilities.
 pub mod hash;
 /// Logging utilities

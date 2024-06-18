@@ -14,6 +14,7 @@ pub struct SharedOpts {
     #[cfg(feature = "log-filter")]
     pub loc_matcher: Option<regex::Regex>,
     #[cfg(not(feature = "log-filter"))]
+    #[allow(dead_code)]
     pub loc_matcher: Option<bool>,
 }
 
