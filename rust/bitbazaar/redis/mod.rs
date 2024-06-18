@@ -6,6 +6,10 @@ mod script;
 mod temp_list;
 mod wrapper;
 
+mod standalone;
+
+pub use standalone::*;
+
 pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::RedisConn;
 pub use dlock::{RedisLock, RedisLockErr};
@@ -22,32 +26,18 @@ pub use wrapper::Redis;
 #[cfg(test)]
 mod tests {
     use std::{
-        process::{Child, Command},
         sync::{atomic::AtomicU8, Arc},
         time::Duration,
     };
 
-    use portpicker::is_free;
     use rstest::*;
 
     use super::*;
     use crate::{
         errors::prelude::*,
         log::GlobalLog,
-        misc::in_ci,
         redis::{dlock::redis_dlock_tests, temp_list::redis_temp_list_tests},
     };
-
-    struct ChildGuard(Child);
-
-    impl Drop for ChildGuard {
-        fn drop(&mut self) {
-            match self.0.kill() {
-                Err(e) => println!("Could not kill child process: {}", e),
-                Ok(_) => println!("Successfully killed child process"),
-            }
-        }
-    }
 
     #[derive(
         PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
@@ -87,31 +77,19 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_redis_working(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
-        // Don't want to install redis in ci, just run this test locally:
-        if in_ci() {
+        // Redis can't be run on windows, skip if so:
+        if cfg!(windows) {
             return Ok(());
         }
 
-        // Make sure redis is running on port 6379, starting it otherwise. (this means you must have redis installed)
-        let mut _redis_guard: Option<ChildGuard> = None;
-        if is_free(6379) {
-            _redis_guard = Some(ChildGuard(
-                Command::new("redis-server")
-                    .arg("--port")
-                    .arg("6379")
-                    .spawn()
-                    .unwrap(),
-            ));
-            // sleep for 50ms to give redis time to start:
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        }
+        let rs = RedisStandalone::new().await?;
 
-        let work_r = Redis::new("redis://localhost:6379", uuid::Uuid::new_v4().to_string())?;
+        let work_r = rs.instance()?;
         let mut work_conn = work_r.conn();
 
         // Also create a fake version on a random port, this will be used to check failure cases.
         let fail_r = Redis::new(
-            "redis://localhost:6372",
+            "redis://FAKKEEEE:6372",
             format!("test_{}", uuid::Uuid::new_v4()),
         )?;
         let mut fail_conn = fail_r.conn();

@@ -40,6 +40,18 @@ impl<'a> RedisConn<'a> {
         self.conn.as_mut()
     }
 
+    /// Ping redis, returning true if it's up.
+    pub async fn ping(&mut self) -> bool {
+        if let Some(conn) = self.get_inner_conn().await {
+            redis::cmd("PING")
+                .query_async::<_, String>(conn)
+                .await
+                .is_ok()
+        } else {
+            false
+        }
+    }
+
     /// Get a new [`RedisBatch`] for this connection that commands can be piped together with.
     pub fn batch<'ref_lt>(&'ref_lt mut self) -> RedisBatch<'ref_lt, 'a, '_, ()> {
         RedisBatch::new(self)

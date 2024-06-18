@@ -92,15 +92,50 @@ replace_text () {
     awk "{sub(\"$1\",\"$2\")} {print}" $3 > temp.txt && mv temp.txt $3
 }
 
+# Make sure redis is up and running:
+ensure_redis () {
+    # In ci redis should be spun up as needed for tests manually.
+    # (windows also can't run redis, so skip it there too)
+    if in_ci || is_windows; then
+        return
+    fi
+
+    if ! redis-cli ping; then
+        if [ "$(uname)" == "Darwin" ]; then
+            brew services start redis
+        elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            sudo systemctl restart redis-server
+        fi
+    fi
+}
 
 
-# Returns "true" if looks like in_ci, "false" otherwise:
+# Returns true/0 if looks like in_ci, false/1 otherwise:
+# if in_ci; then
+#     echo "in ci"
+# else
+#     echo "not in ci"
+# fi
 in_ci () {
     # Check if any of the CI/CD environment variables are set
     if [ -n "$GITHUB_ACTIONS" ] || [ -n "$TRAVIS" ] || [ -n "$CIRCLECI" ] || [ -n "$GITLAB_CI" ]; then
-        echo "true"
+        return 0 # Return true
     else
-        echo "false"
+        return 1 # Return false
+    fi
+}
+
+# Useful for platform matching, can use like:
+# if is_windows; then
+#     echo "windows"
+# else
+#     echo "not windows"
+# fi
+is_windows() {
+    if [ "$(expr substr $(uname -s) 1 5)" == "MINGW" ]; then
+        return 0  # Return true
+    else
+        return 1  # Return false
     fi
 }
 

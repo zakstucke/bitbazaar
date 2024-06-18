@@ -1,6 +1,8 @@
 name: Setup Rust
 description: "Installs latest stable rust, and sets up sscache for caching."
 inputs:
+  secret_config_toml:
+    description: "The CUSTOM_RUST_CONFIG_TOML secret if it exists."
   qa:
     description: "Whether things like cargo-hack need installing."
     required: false
@@ -16,6 +18,8 @@ runs:
       uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt, clippy
+    # This will store compiled crates, allowing them to be reused between runs.
+    # The action caller will have a post job setup that will print a summary of sccache usage during the run.
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.4
     - name: Set Rust caching env vars
@@ -23,15 +27,24 @@ runs:
       run: |
         echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-    # Really this would need to be run as a post task to be of any use (to actually see hits),
-    # but post in composite action not currently supported:
-    # https://github.com/actions/runner/issues/1478
-    # - name: Run sccache stat for check
-    #   shell: bash
-    #   run: ${SCCACHE_PATH} --show-stats
     - name: "Install cargo-hack, used for feature checking in pre-commit."
       if: ${{ inputs.qa == 'true' }}
       uses: taiki-e/install-action@cargo-hack
     - name: Install nextest
       if: ${{ inputs.test == 'true' }}
       uses: taiki-e/install-action@nextest
+    - name: Setup default global config.toml
+      shell: bash
+      if: ${{ inputs.secret_config_toml == '' }}
+      run: |
+        mkdir -p ~/.cargo
+        echo '[build]' > ~/.cargo/config.toml
+        echo '[registries]' >> ~/.cargo/config.toml
+    # If CUSTOM_RUST_CONFIG_TOML is set, it will be copied to the global config.toml
+    - name: Setup custom global config.toml
+      shell: bash
+      if: ${{ inputs.secret_config_toml != '' }}
+      run: |
+        mkdir -p ~/.cargo
+        echo '${{ inputs.secret_config_toml }}' > ~/.cargo/config.toml
+

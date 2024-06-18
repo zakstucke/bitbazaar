@@ -1,0 +1,54 @@
+name: Setup Python
+description: "Installs python, setting up caching."
+inputs:
+  pdm:
+    description: "Whether pdm/python packages need installing as well as base python or not."
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Hack setup-python cache
+      # Create an empty requirements.txt if this file (or pyproject.toml) doesn't exist.
+      # This work around and issue with setup-python for non-Python projects, which ends up with ends up
+      # with this error:
+      #
+      #   Run actions/setup-python@v5.0.0
+      #     with:
+      #       python-version: 3.12
+      #       cache: pip
+      #   Installed versions
+      #     Successfully set up CPython (3.12.1)
+      #   Error: No file in /home/runner/work/awesome-iam/awesome-iam matched to
+      #   [**/requirements.txt or **/pyproject.toml], make sure you have checked out the target repository
+      #
+      # This has been reported at: https://github.com/actions/setup-python/issues/807
+      # In the future this might be addressed by: https://github.com/actions/setup-python/pull/762
+      # or https://github.com/actions/setup-python/issues/751
+      if: hashFiles('**/requirements.txt', '**/pyproject.toml') == ''
+      shell: bash
+      run: |
+        touch ./requirements.txt
+    - name: Get python binary
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+        cache: pip
+    - name: Always install zetch
+      shell: bash
+      run: |
+        pip install zetch
+    - uses: actions/checkout@v4
+      if: ${{ inputs.pdm == 'true' }}
+    - name: Set up PDM
+      if: ${{ inputs.pdm == 'true' }}
+      uses: pdm-project/setup-pdm@v3
+      with:
+        python-version: "3.12"
+        cache: true
+        cache-dependency-path: 'py/pdm.lock'
+    - name: Install dependencies
+      if: ${{ inputs.pdm == 'true' }}
+      shell: bash
+      run: |
+        pdm sync -p ./py -G:all

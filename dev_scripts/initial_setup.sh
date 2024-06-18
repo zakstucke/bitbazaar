@@ -332,6 +332,17 @@ initial_setup () {
     ./dev_scripts/py_rust.sh ensure_venv
 
 
+    echo "Make sure redis installed..."
+    if command -v redis-server > /dev/null 2>&1; then
+        echo "redis-server already installed"
+    else
+        echo "redis-server could not be found, installing..."
+        if [ "$(uname)" == "Darwin" ]; then
+            brew install redis
+        elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            sudo apt-get install redis-server
+        fi
+    fi
 
 }
 

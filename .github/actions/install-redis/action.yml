@@ -1,0 +1,10 @@
+name: install redis
+description: "install redis without starting a server (ONLY IF NOT WINDOWS)"
+runs:
+  using: composite
+  steps:
+    - uses: shogo82148/actions-setup-redis@v1
+      if: runner.os != 'Windows'
+      with:
+        redis-version: "latest"
+        auto-start: false
