@@ -252,6 +252,7 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>tracing::Level;
@@ -268,6 +269,7 @@
     </span><span class="attr">#[cfg(feature = <span class="string">"log-filter"</span>)]
     </span><span class="kw">pub </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;regex::Regex&gt;,
     <span class="attr">#[cfg(not(feature = <span class="string">"log-filter"</span>))]
+    #[allow(dead_code)]
     </span><span class="kw">pub </span>loc_matcher: <span class="prelude-ty">Option</span>&lt;bool&gt;,
 }
 

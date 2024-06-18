@@ -104,6 +104,18 @@
 <a href="#104" id="104">104</a>
 <a href="#105" id="105">105</a>
 <a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{borrow::Cow, future::Future};
 
 <span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
@@ -144,6 +156,18 @@
             }
         }
         <span class="self">self</span>.conn.as_mut()
+    }
+
+    <span class="doccomment">/// Ping redis, returning true if it's up.
+    </span><span class="kw">pub async fn </span>ping(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; bool {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = <span class="self">self</span>.get_inner_conn().<span class="kw">await </span>{
+            redis::cmd(<span class="string">"PING"</span>)
+                .query_async::&lt;<span class="kw">_</span>, String&gt;(conn)
+                .<span class="kw">await
+                </span>.is_ok()
+        } <span class="kw">else </span>{
+            <span class="bool-val">false
+        </span>}
     }
 
     <span class="doccomment">/// Get a new [`RedisBatch`] for this connection that commands can be piped together with.

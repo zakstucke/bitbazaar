@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["fnv1a"]};
+window.SIDEBAR_ITEMS = {"fn":["fnv1a","sha256"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SameSite"],"fn":["delete_cookie","get_cookie","get_cookie_raw","set_cookie","set_cookie_raw"],"struct":["CookieOptions"]};

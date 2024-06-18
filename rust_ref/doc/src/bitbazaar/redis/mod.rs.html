@@ -465,28 +465,6 @@
 <a href="#465" id="465">465</a>
 <a href="#466" id="466">466</a>
 <a href="#467" id="467">467</a>
-<a href="#468" id="468">468</a>
-<a href="#469" id="469">469</a>
-<a href="#470" id="470">470</a>
-<a href="#471" id="471">471</a>
-<a href="#472" id="472">472</a>
-<a href="#473" id="473">473</a>
-<a href="#474" id="474">474</a>
-<a href="#475" id="475">475</a>
-<a href="#476" id="476">476</a>
-<a href="#477" id="477">477</a>
-<a href="#478" id="478">478</a>
-<a href="#479" id="479">479</a>
-<a href="#480" id="480">480</a>
-<a href="#481" id="481">481</a>
-<a href="#482" id="482">482</a>
-<a href="#483" id="483">483</a>
-<a href="#484" id="484">484</a>
-<a href="#485" id="485">485</a>
-<a href="#486" id="486">486</a>
-<a href="#487" id="487">487</a>
-<a href="#488" id="488">488</a>
-<a href="#489" id="489">489</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>batch;
 <span class="kw">mod </span>conn;
 <span class="kw">mod </span>dlock;
@@ -494,6 +472,10 @@
 <span class="kw">mod </span>script;
 <span class="kw">mod </span>temp_list;
 <span class="kw">mod </span>wrapper;
+
+<span class="kw">mod </span>standalone;
+
+<span class="kw">pub use </span>standalone::<span class="kw-2">*</span>;
 
 <span class="kw">pub use </span>batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 <span class="kw">pub use </span>conn::RedisConn;
@@ -511,32 +493,18 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>std::{
-        process::{Child, Command},
         sync::{atomic::AtomicU8, Arc},
         time::Duration,
     };
 
-    <span class="kw">use </span>portpicker::is_free;
     <span class="kw">use </span>rstest::<span class="kw-2">*</span>;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use crate</span>::{
         errors::prelude::<span class="kw-2">*</span>,
         log::GlobalLog,
-        misc::in_ci,
         redis::{dlock::redis_dlock_tests, temp_list::redis_temp_list_tests},
     };
-
-    <span class="kw">struct </span>ChildGuard(Child);
-
-    <span class="kw">impl </span>Drop <span class="kw">for </span>ChildGuard {
-        <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-            <span class="kw">match </span><span class="self">self</span>.<span class="number">0</span>.kill() {
-                <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">println!</span>(<span class="string">"Could not kill child process: {}"</span>, e),
-                <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">println!</span>(<span class="string">"Successfully killed child process"</span>),
-            }
-        }
-    }
 
     <span class="attr">#[derive(
         PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
@@ -576,31 +544,19 @@
     </span><span class="attr">#[rstest]
     #[tokio::test]
     </span><span class="kw">async fn </span>test_redis_working(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
-        <span class="comment">// Don't want to install redis in ci, just run this test locally:
-        </span><span class="kw">if </span>in_ci() {
+        <span class="comment">// Redis can't be run on windows, skip if so:
+        </span><span class="kw">if </span><span class="macro">cfg!</span>(windows) {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
 
-        <span class="comment">// Make sure redis is running on port 6379, starting it otherwise. (this means you must have redis installed)
-        </span><span class="kw">let </span><span class="kw-2">mut </span>_redis_guard: <span class="prelude-ty">Option</span>&lt;ChildGuard&gt; = <span class="prelude-val">None</span>;
-        <span class="kw">if </span>is_free(<span class="number">6379</span>) {
-            _redis_guard = <span class="prelude-val">Some</span>(ChildGuard(
-                Command::new(<span class="string">"redis-server"</span>)
-                    .arg(<span class="string">"--port"</span>)
-                    .arg(<span class="string">"6379"</span>)
-                    .spawn()
-                    .unwrap(),
-            ));
-            <span class="comment">// sleep for 50ms to give redis time to start:
-            </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-        }
+        <span class="kw">let </span>rs = RedisStandalone::new().<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>work_r = Redis::new(<span class="string">"redis://localhost:6379"</span>, uuid::Uuid::new_v4().to_string())<span class="question-mark">?</span>;
+        <span class="kw">let </span>work_r = rs.instance()<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>work_conn = work_r.conn();
 
         <span class="comment">// Also create a fake version on a random port, this will be used to check failure cases.
         </span><span class="kw">let </span>fail_r = Redis::new(
-            <span class="string">"redis://localhost:6372"</span>,
+            <span class="string">"redis://FAKKEEEE:6372"</span>,
             <span class="macro">format!</span>(<span class="string">"test_{}"</span>, uuid::Uuid::new_v4()),
         )<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>fail_conn = fail_r.conn();
