@@ -92,6 +92,16 @@ replace_text () {
     awk "{sub(\"$1\",\"$2\")} {print}" $3 > temp.txt && mv temp.txt $3
 }
 
+# Make sure redis is up and running:
+ensure_redis () {
+    if ! redis-cli ping; then
+        if [ "$(uname)" == "Darwin" ]; then
+            brew services start redis
+        elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            sudo systemctl restart redis-server
+        fi
+    fi
+}
 
 
 # Returns "true" if looks like in_ci, "false" otherwise:

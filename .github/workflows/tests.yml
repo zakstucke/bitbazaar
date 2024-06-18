@@ -119,6 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ./.github/actions/install-redis
 
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
@@ -152,6 +153,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ./.github/actions/install-redis
 
       # Js project
       - name: "Install Bun, no npm should be needed"
@@ -187,6 +189,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ./.github/actions/install-redis
 
       - uses: actions/setup-python@v4
         with:
@@ -230,6 +233,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ./.github/actions/install-redis
 
       # Basic python always needed:
       - uses: ./.github/actions/install-python

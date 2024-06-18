@@ -114,11 +114,13 @@ cargo_py_rust_check () {
 }
 
 rust () {
+    ./dev_scripts/utils.sh ensure_redis
 
     cargo nextest run --manifest-path ./rust/Cargo.toml --all-features $@
 }
 
 rust_bench () {
+    ./dev_scripts/utils.sh ensure_redis
 
     cargo bench --manifest-path ./rust/Cargo.toml --all-features $@
 }

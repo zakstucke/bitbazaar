@@ -44,6 +44,7 @@ axum-extra = { version = "0.9", features = [], optional = true }
 leptos = { version = "0.6", optional = true }
 leptos_axum = { version = "0.6", optional = true }
 http = { version = "1", optional = true }
+portpicker = { version = '0.1', optional = true }
 
 # FEAT: hash:
 sha2 = { version = "0.10", optional = true }
@@ -105,7 +106,6 @@ tokio = { version = '1', features = ["time", "sync"] }
 [dev-dependencies]
 rstest = "0.18"
 criterion = { version = "0.3", features = ["html_reports", "async_tokio"] }
-portpicker = '0.1.1'
 tempfile = '3.8'
 tokio = { version = '1', features = ["full"] }
 
@@ -130,6 +130,7 @@ redis = [
   'dep:rand',
   'chrono',
   'dep:uuid',
+  'dep:portpicker',
 ]
 opentelemetry-grpc = [
   'dep:tracing-log',
