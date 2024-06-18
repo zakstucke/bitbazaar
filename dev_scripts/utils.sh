@@ -94,6 +94,11 @@ replace_text () {
 
 # Make sure redis is up and running:
 ensure_redis () {
+    # In ci redis should be spun up as needed for tests manually.
+    if in_ci; then
+        return
+    fi
+
     if ! redis-cli ping; then
         if [ "$(uname)" == "Darwin" ]; then
             brew services start redis
