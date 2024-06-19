@@ -8,13 +8,15 @@
 <a href="#8" id="8">8</a>
 <a href="#9" id="9">9</a>
 <a href="#10" id="10">10</a>
+<a href="#11" id="11">11</a>
 </pre></div><pre class="rust"><code><span class="doccomment">/// Sleep for a duration, compatible with both WASM and native targets.
 ///
 /// Wasm: uses gloo_timers::future::TimeoutFuture
 /// Native: uses tokio::time::sleep
 </span><span class="kw">pub async fn </span>sleep_compat(duration: std::time::Duration) {
     <span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
-    </span>gloo_timers::future::TimeoutFuture::new(duration.as_millis()).<span class="kw">await</span>;
+    </span>gloo_timers::future::TimeoutFuture::new(duration.as_millis().min(u32::MAX <span class="kw">as </span>u128) <span class="kw">as </span>u32)
+        .<span class="kw">await</span>;
     <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
     </span>tokio::time::sleep(duration).<span class="kw">await</span>;
 }
