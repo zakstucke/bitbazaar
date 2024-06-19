@@ -62,10 +62,14 @@
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
 <a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>futures::Future;
 <span class="kw">use </span>itertools::Either;
+
+<span class="kw">use </span><span class="kw">crate</span>::misc::sleep_compat;
 
 <span class="doccomment">/// Will attempt execute the fn's returned future according to the entered spec.
 ///
@@ -95,7 +99,7 @@
         .enumerate()
     {
         <span class="kw">if </span>delay.as_nanos() &gt; <span class="number">0 </span>{
-            tokio::time::sleep(<span class="kw-2">*</span>delay).<span class="kw">await</span>;
+            sleep_compat(<span class="kw-2">*</span>delay).<span class="kw">await</span>;
         }
         <span class="kw">match </span>fallible().<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(r) =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(r),

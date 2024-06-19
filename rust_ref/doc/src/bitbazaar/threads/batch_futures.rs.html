@@ -276,7 +276,6 @@
 <a href="#276" id="276">276</a>
 <a href="#277" id="277">277</a>
 <a href="#278" id="278">278</a>
-<a href="#279" id="279">279</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
 </span><span class="kw">use </span>std::rc::Rc;
@@ -289,6 +288,8 @@
     stream::{FuturesOrdered, FuturesUnordered},
     Future, FutureExt, StreamExt,
 };
+
+<span class="kw">use </span><span class="kw">crate</span>::misc::sleep_compat;
 
 <span class="macro">macro_rules!</span> batch_futures_flat_impl {
     (<span class="macro-nonterminal">$limit</span>:expr, <span class="macro-nonterminal">$fut_cbs</span>:expr, |<span class="macro-nonterminal">$result</span>:ident| <span class="macro-nonterminal">$call_cb</span>:expr) =&gt; {{
@@ -463,10 +464,7 @@
                                 // Doing 100ms and the error!() log so we know if this isn't true and our understanding is incorrect. 100ms is slow enough to not cause performance issues.
                                 </span>seen_stream_empty = <span class="bool-val">true</span>;
 
-                                <span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
-                                </span>gloo_timers::future::TimeoutFuture::new(<span class="number">100</span>).<span class="kw">await</span>;
-                                <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
-                                </span>tokio::time::sleep(tokio::time::Duration::from_millis(<span class="number">100</span>)).<span class="kw">await</span>;
+                                sleep_compat(std::time::Duration::from_millis(<span class="number">100</span>)).<span class="kw">await</span>;
                             }
                         }
                         <span class="attr">#[allow(unreachable_code)]
