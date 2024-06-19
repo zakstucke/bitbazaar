@@ -1,7 +1,7 @@
 [package]
 name = "bitbazaar"
 description = "An assortment of publicly available cross-language utilities useful to my projects."
-version = "0.0.61"
+version = "0.0.62"
 edition = "2021"
 readme = "README.md"
 license = "MIT"
