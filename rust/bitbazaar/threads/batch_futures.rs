@@ -11,6 +11,8 @@ use futures::{
     Future, FutureExt, StreamExt,
 };
 
+use crate::misc::sleep_compat;
+
 macro_rules! batch_futures_flat_impl {
     ($limit:expr, $fut_cbs:expr, |$result:ident| $call_cb:expr) => {{
         let mut return_index = 0;
@@ -184,10 +186,7 @@ macro_rules! batch_futures_descendants_impl {
                                 // Doing 100ms and the error!() log so we know if this isn't true and our understanding is incorrect. 100ms is slow enough to not cause performance issues.
                                 seen_stream_empty = true;
 
-                                #[cfg(target_arch = "wasm32")]
-                                gloo_timers::future::TimeoutFuture::new(100).await;
-                                #[cfg(not(target_arch = "wasm32"))]
-                                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                                sleep_compat(std::time::Duration::from_millis(100)).await;
                             }
                         }
                         #[allow(unreachable_code)]

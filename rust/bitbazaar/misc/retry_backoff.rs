@@ -3,6 +3,8 @@ use std::time::Duration;
 use futures::Future;
 use itertools::Either;
 
+use crate::misc::sleep_compat;
+
 /// Will attempt execute the fn's returned future according to the entered spec.
 ///
 /// # Arguments
@@ -31,7 +33,7 @@ pub async fn retry_backoff<R, E, Fut: Future<Output = Result<R, E>>>(
         .enumerate()
     {
         if delay.as_nanos() > 0 {
-            tokio::time::sleep(*delay).await;
+            sleep_compat(*delay).await;
         }
         match fallible().await {
             Ok(r) => return Ok(r),
