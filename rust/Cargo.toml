@@ -159,8 +159,7 @@ opentelemetry-http = [ # In general there's no point with this currently, made f
 rayon = ['dep:rayon']
 
 # Cookie deps depending on wasm or not:
-[target.'cfg(not(target_arch = "wasm32"))'.features]
-cookies = [
+cookies_ssr = [
   'dep:http',
   'dep:serde_json',
   'dep:axum-extra',
@@ -168,8 +167,7 @@ cookies = [
   'dep:leptos',
   'dep:leptos_axum',
 ]
-[target.'cfg(target_arch = "wasm32")'.features]
-cookies = ['dep:http', 'dep:serde_json', 'dep:wasm-cookies']
+cookies_wasm = ['dep:http', 'dep:serde_json', 'dep:wasm-cookies']
 
 [profile.release]
 strip = "debuginfo" # Note: true or "symbols" seems to break static c linking e.g. with ffmpeg.

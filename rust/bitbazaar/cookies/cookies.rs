@@ -46,7 +46,7 @@ pub fn set_cookie(name: &str, value: &impl serde::Serialize, options: CookieOpti
 /// Get the raw value of a cookie.
 /// If the cookie isn't found, returns None.
 pub fn get_cookie_raw(name: &str) -> Option<String> {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "cookies_ssr"))]
     {
         use axum_extra::extract::cookie::CookieJar;
         if let Some(req) = leptos::use_context::<http::request::Parts>() {
@@ -55,27 +55,30 @@ pub fn get_cookie_raw(name: &str) -> Option<String> {
                 return Some(cookie.value().to_string());
             }
         }
-        None
+        return None;
     }
 
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(all(target_arch = "wasm32", feature = "cookies_wasm"))]
     {
         if let Some(Ok(value)) = wasm_cookies::get(name) {
-            Some(value)
+            return Some(value);
         } else {
-            None
+            return None;
         }
     }
+
+    #[allow(unreachable_code)]
+    None
 }
 
 /// Set a new cookie with the given name and raw value.
 pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(all(target_arch = "wasm32", feature = "cookies_wasm"))]
     {
         wasm_cookies::set(name, value, &options.into())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "cookies_ssr"))]
     {
         use axum_extra::extract::cookie::Cookie;
 
@@ -155,7 +158,7 @@ impl Default for SameSite {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "cookies_wasm"))]
 /// Conversion to the wasm_cookies which was originally created from:
 impl<'a> From<CookieOptions<'a>> for wasm_cookies::CookieOptions<'a> {
     fn from(options: CookieOptions<'a>) -> Self {

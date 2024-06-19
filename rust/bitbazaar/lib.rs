@@ -14,8 +14,8 @@ pub mod cli;
 #[cfg(feature = "chrono")]
 /// Chrono utilities
 pub mod chrono;
-#[cfg(feature = "cookies")]
-/// Setting/getting cookies in frontend or ssr.
+#[cfg(any(feature = "cookies_ssr", feature = "cookies_wasm"))]
+/// Setting/getting cookies in wasm or ssr.
 pub mod cookies;
 /// Error handling utilities.
 pub mod errors;
