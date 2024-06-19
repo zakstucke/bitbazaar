@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "bitbazaar"
-version = "0.0.60"
+version = "0.0.61"
 dependencies = [
  "async-semaphore",
  "axum-extra",
