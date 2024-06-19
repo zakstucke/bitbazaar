@@ -53,8 +53,8 @@
 <span class="attr">#[cfg(feature = <span class="string">"chrono"</span>)]
 </span><span class="doccomment">/// Chrono utilities
 </span><span class="kw">pub mod </span>chrono;
-<span class="attr">#[cfg(feature = <span class="string">"cookies"</span>)]
-</span><span class="doccomment">/// Setting/getting cookies in frontend or ssr.
+<span class="attr">#[cfg(any(feature = <span class="string">"cookies_ssr"</span>, feature = <span class="string">"cookies_wasm"</span>))]
+</span><span class="doccomment">/// Setting/getting cookies in wasm or ssr.
 </span><span class="kw">pub mod </span>cookies;
 <span class="doccomment">/// Error handling utilities.
 </span><span class="kw">pub mod </span>errors;
