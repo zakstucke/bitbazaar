@@ -157,15 +157,19 @@ opentelemetry-http = [ # In general there's no point with this currently, made f
   'opentelemetry-otlp/reqwest-client',
 ]
 rayon = ['dep:rayon']
+
+# Cookie deps depending on wasm or not:
+[target.'cfg(not(target_arch = "wasm32"))'.features]
 cookies = [
-  'dep:wasm-cookies',
+  'dep:http',
+  'dep:serde_json',
   'dep:axum-extra',
   'axum-extra/cookie',
   'dep:leptos',
   'dep:leptos_axum',
-  'dep:http',
-  'dep:serde_json',
 ]
+[target.'cfg(target_arch = "wasm32")'.features]
+cookies = ['dep:http', 'dep:serde_json', 'dep:wasm-cookies']
 
 [profile.release]
 strip = "debuginfo" # Note: true or "symbols" seems to break static c linking e.g. with ffmpeg.
