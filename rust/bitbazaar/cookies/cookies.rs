@@ -20,16 +20,12 @@ pub fn get_cookie<T: for<'a> Deserialize<'a>>(name: &str) -> Option<T> {
 }
 
 /// Delete a cookie if it exists.
-pub fn delete_cookie(name: &str) {
-    // Easiest way to delete is to just set with instant expiry:
-    set_cookie(
-        name,
-        &"",
-        CookieOptions {
-            expires: Some(std::time::Duration::from_secs(0)),
-            ..Default::default()
-        },
-    );
+/// Cookies might not delete if path or domain are different, if not deleting pass the same options.
+pub fn delete_cookie(name: &str, options: Option<CookieOptions<'_>>) {
+    // Easiest way to delete is to just set with an expiry in the past:
+    let mut options = options.unwrap_or_default();
+    options.expires = Some(chrono::Duration::seconds(-1));
+    set_cookie(name, &"", options);
 }
 
 /// Set a new cookie with the given name and serializable value.
@@ -82,6 +78,8 @@ pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
     {
         use axum_extra::extract::cookie::Cookie;
 
+        use crate::prelude::*;
+
         let axum_response = leptos::expect_context::<leptos_axum::ResponseOptions>();
         let mut cookie = Cookie::build((name, value)).http_only(options.http_only);
         if let Some(path) = options.path {
@@ -91,7 +89,7 @@ pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
             cookie = cookie.domain(domain);
         }
         if let Some(expires) = options.expires {
-            cookie = cookie.max_age(time::Duration::seconds(expires.as_secs() as i64));
+            cookie = cookie.max_age(time::Duration::milliseconds(expires.num_milliseconds()));
         }
         if options.secure {
             cookie = cookie.secure(true);
@@ -101,8 +99,14 @@ pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
             SameSite::Strict => cookie.same_site(axum_extra::extract::cookie::SameSite::Strict),
             SameSite::None => cookie.same_site(axum_extra::extract::cookie::SameSite::None),
         };
-        if let Ok(cookie) = http::HeaderValue::from_str(&cookie.to_string()) {
-            axum_response.insert_header(http::header::SET_COOKIE, cookie);
+
+        match http::HeaderValue::from_str(&cookie.to_string()).change_context(AnyErr) {
+            Ok(cookie) => {
+                axum_response.append_header(http::header::SET_COOKIE, cookie);
+            }
+            Err(e) => {
+                record_exception("Failed to set cookie.", format!("{:?}", e));
+            }
         }
     }
 }
@@ -110,16 +114,16 @@ pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
 /// Cookies options (see [https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie](https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie)).
 ///
 /// You can create it by calling `CookieOptions::default()`.
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct CookieOptions<'a> {
-    /// If `None`, defaults to the current path of the current document location.
+    /// If `None`, uses the current path, will default to Some("/").
     pub path: Option<&'a str>,
 
     /// If `None`, defaults to the host portion of the current document location.
     pub domain: Option<&'a str>,
 
     /// If `None`, the cookie will expire at the end of session.
-    pub expires: Option<std::time::Duration>,
+    pub expires: Option<chrono::Duration>,
 
     /// If true, the cookie will only be transmitted over secure protocol as HTTPS.
     /// The default value is false.
@@ -131,6 +135,19 @@ pub struct CookieOptions<'a> {
 
     /// Only applicable to sever cookies. When true js/wasm cannot access the cookie.
     pub http_only: bool,
+}
+
+impl<'a> Default for CookieOptions<'a> {
+    fn default() -> Self {
+        Self {
+            path: Some("/"),
+            domain: None,
+            expires: None,
+            secure: false,
+            same_site: SameSite::Lax,
+            http_only: false,
+        }
+    }
 }
 
 /// SameSite value for [CookieOptions](struct.CookieOptions.html).
@@ -152,11 +169,6 @@ pub enum SameSite {
     /// The cookie will be sent in all requests - both cross-site and same-site.
     None,
 }
-impl Default for SameSite {
-    fn default() -> Self {
-        Self::Lax
-    }
-}
 
 #[cfg(all(target_arch = "wasm32", feature = "cookies_wasm"))]
 /// Conversion to the wasm_cookies which was originally created from:
@@ -166,7 +178,9 @@ impl<'a> From<CookieOptions<'a>> for wasm_cookies::CookieOptions<'a> {
         inner.path = options.path;
         inner.domain = options.domain;
         if let Some(expires) = options.expires {
-            inner = inner.expires_after(expires);
+            inner = inner.expires_after(std::time::Duration::from_secs(
+                expires.num_seconds().max(0) as u64,
+            ));
         }
         inner.secure = options.secure;
         inner.same_site = match options.same_site {
