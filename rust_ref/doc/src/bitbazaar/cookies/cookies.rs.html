@@ -177,6 +177,20 @@
 <a href="#177" id="177">177</a>
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>serde::Deserialize;
 
 <span class="kw">use </span><span class="kw">crate</span>::log::record_exception;
@@ -199,16 +213,12 @@
 }
 
 <span class="doccomment">/// Delete a cookie if it exists.
-</span><span class="kw">pub fn </span>delete_cookie(name: <span class="kw-2">&amp;</span>str) {
-    <span class="comment">// Easiest way to delete is to just set with instant expiry:
-    </span>set_cookie(
-        name,
-        <span class="kw-2">&amp;</span><span class="string">""</span>,
-        CookieOptions {
-            expires: <span class="prelude-val">Some</span>(std::time::Duration::from_secs(<span class="number">0</span>)),
-            ..Default::default()
-        },
-    );
+/// Cookies might not delete if path or domain are different, if not deleting pass the same options.
+</span><span class="kw">pub fn </span>delete_cookie(name: <span class="kw-2">&amp;</span>str, options: <span class="prelude-ty">Option</span>&lt;CookieOptions&lt;<span class="lifetime">'_</span>&gt;&gt;) {
+    <span class="comment">// Easiest way to delete is to just set with an expiry in the past:
+    </span><span class="kw">let </span><span class="kw-2">mut </span>options = options.unwrap_or_default();
+    options.expires = <span class="prelude-val">Some</span>(chrono::Duration::seconds(-<span class="number">1</span>));
+    set_cookie(name, <span class="kw-2">&amp;</span><span class="string">""</span>, options);
 }
 
 <span class="doccomment">/// Set a new cookie with the given name and serializable value.
@@ -261,6 +271,8 @@
     </span>{
         <span class="kw">use </span>axum_extra::extract::cookie::Cookie;
 
+        <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
+
         <span class="kw">let </span>axum_response = leptos::expect_context::&lt;leptos_axum::ResponseOptions&gt;();
         <span class="kw">let </span><span class="kw-2">mut </span>cookie = Cookie::build((name, value)).http_only(options.http_only);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = options.path {
@@ -270,7 +282,7 @@
             cookie = cookie.domain(domain);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(expires) = options.expires {
-            cookie = cookie.max_age(time::Duration::seconds(expires.as_secs() <span class="kw">as </span>i64));
+            cookie = cookie.max_age(time::Duration::milliseconds(expires.num_milliseconds()));
         }
         <span class="kw">if </span>options.secure {
             cookie = cookie.secure(<span class="bool-val">true</span>);
@@ -280,8 +292,14 @@
             SameSite::Strict =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::Strict),
             SameSite::None =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::None),
         };
-        <span class="kw">if let </span><span class="prelude-val">Ok</span>(cookie) = http::HeaderValue::from_str(<span class="kw-2">&amp;</span>cookie.to_string()) {
-            axum_response.insert_header(http::header::SET_COOKIE, cookie);
+
+        <span class="kw">match </span>http::HeaderValue::from_str(<span class="kw-2">&amp;</span>cookie.to_string()).change_context(AnyErr) {
+            <span class="prelude-val">Ok</span>(cookie) =&gt; {
+                axum_response.append_header(http::header::SET_COOKIE, cookie);
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                record_exception(<span class="string">"Failed to set cookie."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
+            }
         }
     }
 }
@@ -289,16 +307,16 @@
 <span class="doccomment">/// Cookies options (see [https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie](https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie)).
 ///
 /// You can create it by calling `CookieOptions::default()`.
-</span><span class="attr">#[derive(Default, Clone, Debug)]
+</span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>CookieOptions&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="doccomment">/// If `None`, defaults to the current path of the current document location.
+    <span class="doccomment">/// If `None`, uses the current path, will default to Some("/").
     </span><span class="kw">pub </span>path: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
 
     <span class="doccomment">/// If `None`, defaults to the host portion of the current document location.
     </span><span class="kw">pub </span>domain: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
 
     <span class="doccomment">/// If `None`, the cookie will expire at the end of session.
-    </span><span class="kw">pub </span>expires: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+    </span><span class="kw">pub </span>expires: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
 
     <span class="doccomment">/// If true, the cookie will only be transmitted over secure protocol as HTTPS.
     /// The default value is false.
@@ -310,6 +328,19 @@
 
     <span class="doccomment">/// Only applicable to sever cookies. When true js/wasm cannot access the cookie.
     </span><span class="kw">pub </span>http_only: bool,
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Default <span class="kw">for </span>CookieOptions&lt;<span class="lifetime">'a</span>&gt; {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            path: <span class="prelude-val">Some</span>(<span class="string">"/"</span>),
+            domain: <span class="prelude-val">None</span>,
+            expires: <span class="prelude-val">None</span>,
+            secure: <span class="bool-val">false</span>,
+            same_site: SameSite::Lax,
+            http_only: <span class="bool-val">false</span>,
+        }
+    }
 }
 
 <span class="doccomment">/// SameSite value for [CookieOptions](struct.CookieOptions.html).
@@ -331,11 +362,6 @@
     /// The cookie will be sent in all requests - both cross-site and same-site.
     </span><span class="prelude-val">None</span>,
 }
-<span class="kw">impl </span>Default <span class="kw">for </span>SameSite {
-    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-        <span class="self">Self</span>::Lax
-    }
-}
 
 <span class="attr">#[cfg(all(target_arch = <span class="string">"wasm32"</span>, feature = <span class="string">"cookies_wasm"</span>))]
 </span><span class="doccomment">/// Conversion to the wasm_cookies which was originally created from:
@@ -345,7 +371,9 @@
         inner.path = options.path;
         inner.domain = options.domain;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(expires) = options.expires {
-            inner = inner.expires_after(expires);
+            inner = inner.expires_after(std::time::Duration::from_secs(
+                expires.num_seconds().max(<span class="number">0</span>) <span class="kw">as </span>u64,
+            ));
         }
         inner.secure = options.secure;
         inner.same_site = <span class="kw">match </span>options.same_site {
