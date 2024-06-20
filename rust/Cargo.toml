@@ -160,6 +160,7 @@ rayon = ['dep:rayon']
 
 # Cookie deps depending on wasm or not:
 cookies_ssr = [
+  'chrono',
   'dep:http',
   'dep:serde_json',
   'dep:axum-extra',
@@ -167,7 +168,7 @@ cookies_ssr = [
   'dep:leptos',
   'dep:leptos_axum',
 ]
-cookies_wasm = ['dep:http', 'dep:serde_json', 'dep:wasm-cookies']
+cookies_wasm = ['chrono', 'dep:http', 'dep:serde_json', 'dep:wasm-cookies']
 
 [profile.release]
 strip = "debuginfo" # Note: true or "symbols" seems to break static c linking e.g. with ffmpeg.
