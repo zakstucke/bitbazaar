@@ -36,6 +36,7 @@ itertools = "0.12"
 tracing-core = "0.1"
 chrono = { version = '0.4' }
 chrono-humanize = { version = "0.2" }
+arc-swap = "1"
 
 # Not in default, but randomly useful in features:
 strum = { version = "0.25", features = ["derive"], optional = true }
