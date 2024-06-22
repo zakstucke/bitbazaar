@@ -11,7 +11,6 @@ mod prelude;
 /// Command line interface utilities.
 pub mod cli;
 
-#[cfg(feature = "chrono")]
 /// Chrono utilities
 pub mod chrono;
 #[cfg(any(feature = "cookies_ssr", feature = "cookies_wasm"))]

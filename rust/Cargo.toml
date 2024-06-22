@@ -34,6 +34,8 @@ async-semaphore = "1.2"
 gloo-timers = { version = "0.3", features = ["futures"] }
 itertools = "0.12"
 tracing-core = "0.1"
+chrono = { version = '0.4' }
+chrono-humanize = { version = "0.2" }
 
 # Not in default, but randomly useful in features:
 strum = { version = "0.25", features = ["derive"], optional = true }
@@ -53,10 +55,6 @@ sha2 = { version = "0.10", optional = true }
 aes-gcm-siv = { version = "0.11", optional = true }
 rust-argon2 = { version = "2", optional = true }
 bincode = { version = "1", optional = true }
-
-# FEAT: chrono: (but also sometimes enabled by other features)
-chrono = { version = '0.4', optional = true }
-chrono-humanize = { version = "0.2", optional = true }
 
 # FEAT: log-filter:
 regex = { version = '1', optional = true }
@@ -123,9 +121,8 @@ tokio = { version = '1', features = ["full"] }
 log-filter = ["dep:regex"]
 hash = ['dep:sha2']
 encrypt = ['dep:aes-gcm-siv', 'dep:rust-argon2', 'dep:bincode']
-chrono = ['dep:chrono', 'dep:chrono-humanize']
-timing = ['dep:comfy-table', 'chrono']
-cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'chrono', 'dep:strum']
+timing = ['dep:comfy-table']
+cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'dep:strum']
 system = ['dep:sysinfo']
 redis = [
   'dep:deadpool-redis',
@@ -134,7 +131,6 @@ redis = [
   'dep:sha1_smol',
   'dep:serde_json',
   'dep:rand',
-  'chrono',
   'dep:uuid',
   'dep:portpicker',
 ]
@@ -166,7 +162,6 @@ rayon = ['dep:rayon']
 
 # Cookie deps depending on wasm or not:
 cookies_ssr = [
-  'chrono',
   'dep:http',
   'dep:serde_json',
   'dep:axum-extra',
@@ -174,7 +169,7 @@ cookies_ssr = [
   'dep:leptos',
   'dep:leptos_axum',
 ]
-cookies_wasm = ['chrono', 'dep:http', 'dep:serde_json', 'dep:wasm-cookies']
+cookies_wasm = ['dep:http', 'dep:serde_json', 'dep:wasm-cookies']
 
 [profile.release]
 strip = "debuginfo" # Note: true or "symbols" seems to break static c linking e.g. with ffmpeg.
