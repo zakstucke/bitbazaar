@@ -3,6 +3,8 @@ use std::sync::{atomic::AtomicU64, Arc};
 use arc_swap::ArcSwap;
 use futures::Future;
 
+pub use arc_swap::Guard as RefreshableGuard;
+
 use crate::prelude::*;
 
 /// A data wrapper that automatically updates the data given out when deemed stale.
@@ -52,7 +54,7 @@ impl<T, Fut: Future<Output = RResult<T, AnyErr>>, F: Fn() -> Fut> Refreshable<T,
     ///
     /// NOTE: the implementation of the guards means not too many should be alive at once, and keeping across await points should be discouraged.
     /// If you need long access to the underlying data, consider cloning it.
-    pub async fn get(&self) -> RResult<arc_swap::Guard<Arc<T>>, AnyErr> {
+    pub async fn get(&self) -> RResult<RefreshableGuard<Arc<T>>, AnyErr> {
         // Refresh if now stale:
         if utc_now_ms()
             - self
