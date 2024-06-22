@@ -21,12 +21,12 @@ struct PrecryptorFile {
 /// ```no_run
 /// use bitbazaar::encrypt;
 ///
-/// let encrypted_data = encrypt::encrypt(b"example text", b"example password").expect("Failed to encrypt");
+/// let encrypted_data = encrypt::encrypt_aes256(b"example text", b"example password").expect("Failed to encrypt");
 /// // and now you can write it to a file:
 /// // fs::write("encrypted_text.txt", encrypted_data).expect("Failed to write to file");
 /// ```
 ///
-pub fn encrypt(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> {
+pub fn encrypt_aes256(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> {
     // Generating salt:
     let mut salt = [0u8; 32];
     OsRng.fill_bytes(&mut salt);
@@ -71,16 +71,16 @@ pub fn encrypt(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> {
 /// ```no_run
 /// use bitbazaar::encrypt;
 ///
-/// let encrypted_data = encrypt::encrypt(b"example text", b"example password").expect("Failed to encrypt");
+/// let encrypted_data = encrypt::encrypt_aes256(b"example text", b"example password").expect("Failed to encrypt");
 ///
-/// let data = encrypt::decrypt(&encrypted_data, b"example password").expect("Failed to decrypt");
+/// let data = encrypt::decrypt_aes256(&encrypted_data, b"example password").expect("Failed to decrypt");
 /// // and now you can print it to stdout:
 /// // println!("data: {}", String::from_utf8(data.clone()).expect("Data is not a utf8 string"));
 /// // or you can write it to a file:
 /// // fs::write("text.txt", data).expect("Failed to write to file");
 /// ```
 ///
-pub fn decrypt(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> {
+pub fn decrypt_aes256(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> {
     // Decoding:
     let decoded: PrecryptorFile = bincode::deserialize(data).change_context(AnyErr)?;
 
@@ -110,24 +110,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_encrypt_decrypt() -> RResult<(), AnyErr> {
+    fn test_encrypt_decrypt_aes256() -> RResult<(), AnyErr> {
         let data = b"example text";
         let password_1 = b"example password";
         let password_2 = b"example password 2";
 
         // 1. Simple encrypt/decrypt works.
-        let encrypted_data = encrypt(data, password_1)?;
-        let decrypted_data = decrypt(&encrypted_data, password_1)?;
+        let encrypted_data = encrypt_aes256(data, password_1)?;
+        let decrypted_data = decrypt_aes256(&encrypted_data, password_1)?;
         assert_eq!(data, decrypted_data.as_slice());
 
         // 2. Wrong password fails to decrypt.
-        let decrypted_data = decrypt(&encrypted_data, password_2);
+        let decrypted_data = decrypt_aes256(&encrypted_data, password_2);
         assert!(decrypted_data.is_err());
 
         // 3. Different passwords using same content leads to different encrypted data.
-        let encrypted_data_2 = encrypt(data, password_2)?;
+        let encrypted_data_2 = encrypt_aes256(data, password_2)?;
         assert_ne!(encrypted_data, encrypted_data_2);
-        assert_eq!(data, decrypt(&encrypted_data_2, password_2)?.as_slice());
+        assert_eq!(
+            data,
+            decrypt_aes256(&encrypted_data_2, password_2)?.as_slice()
+        );
 
         Ok(())
     }
