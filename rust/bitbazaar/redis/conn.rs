@@ -1,9 +1,10 @@
 use std::{borrow::Cow, future::Future};
 
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
+use once_cell::sync::Lazy;
 
 use super::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
-use crate::errors::prelude::*;
+use crate::{errors::prelude::*, redis::RedisScript};
 
 /// Wrapper around a lazy redis connection.
 pub struct RedisConn<'a> {
@@ -52,6 +53,57 @@ impl<'a> RedisConn<'a> {
         }
     }
 
+    /// A simple ratelimit/backoff helper.
+    /// Can be used to protect against repeated attempts in quick succession.
+    /// Once `start_delaying_after_attempt` is hit, the operation delay will multiplied by the multiplier each time.
+    /// Only once no call is made for the duration of the current delay (so current delay doubled) will the attempt number reset to zero.
+    ///
+    /// Arguments:
+    /// - `namespace`: A unique identifier for the endpoint, e.g. user-login.
+    /// - `caller_identifier`: A unique identifier for the caller, e.g. a user id.
+    /// - `start_delaying_after_attempt`: The number of attempts before the delays start being imposed.
+    /// - `initial_delay`: The initial delay to impose.
+    /// - `multiplier`: The multiplier to apply, `(attempt-start_delaying_after_attempt) * multiplier * initial_delay = delay`.
+    ///
+    /// Returns:
+    /// - `None`: Continue with the operation.
+    /// - `Some<chrono::Duration>`: Retry after the duration.
+    pub async fn backoff_protector(
+        &mut self,
+        namespace: &str,
+        caller_identifier: &str,
+        start_delaying_after_attempt: usize,
+        initial_delay: chrono::Duration,
+        multiplier: f64,
+    ) -> Option<chrono::Duration> {
+        static LUA_BACKOFF_SCRIPT: Lazy<RedisScript> =
+            Lazy::new(|| RedisScript::new(include_str!("lua_scripts/backoff_protector.lua")));
+
+        let final_key = self.final_key(namespace, caller_identifier.into());
+        let result = self
+            .batch()
+            .script::<i64>(
+                LUA_BACKOFF_SCRIPT
+                    .invoker()
+                    .key(final_key)
+                    .arg(start_delaying_after_attempt)
+                    .arg(initial_delay.num_milliseconds())
+                    .arg(multiplier),
+            )
+            .fire()
+            .await;
+
+        if let Some(result) = result {
+            if result > 0 {
+                Some(chrono::Duration::milliseconds(result))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
     /// Get a new [`RedisBatch`] for this connection that commands can be piped together with.
     pub fn batch<'ref_lt>(&'ref_lt mut self) -> RedisBatch<'ref_lt, 'a, '_, ()> {
         RedisBatch::new(self)
@@ -81,7 +133,7 @@ impl<'a> RedisConn<'a> {
         &mut self,
         namespace: &str,
         key: K,
-        expiry: Option<std::time::Duration>,
+        expiry: Option<chrono::Duration>,
         cb: impl FnOnce() -> Fut,
     ) -> RResult<T, AnyErr>
     where

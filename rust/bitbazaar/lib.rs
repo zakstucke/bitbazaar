@@ -11,17 +11,16 @@ mod prelude;
 /// Command line interface utilities.
 pub mod cli;
 
-#[cfg(feature = "chrono")]
 /// Chrono utilities
 pub mod chrono;
 #[cfg(any(feature = "cookies_ssr", feature = "cookies_wasm"))]
 /// Setting/getting cookies in wasm or ssr.
 pub mod cookies;
+#[cfg(feature = "crypto")]
+/// Hashing & encryption utilities.
+pub mod crypto;
 /// Error handling utilities.
 pub mod errors;
-#[cfg(feature = "hash")]
-/// Hashing utilities.
-pub mod hash;
 /// Logging utilities
 pub mod log;
 /// Completely miscellaneous utilities

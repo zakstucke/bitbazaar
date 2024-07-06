@@ -86,7 +86,7 @@ impl<'a> RedisLock<'a> {
     /// Creates a new lock, use [`super::Redis::dlock`] instead.
     pub(crate) async fn new(
         redis: &'a super::Redis,
-        namespace: &'static str,
+        namespace: &str,
         lock_key: &str,
         ttl: Duration,
         wait_up_to: Option<Duration>,
@@ -389,7 +389,7 @@ pub async fn redis_dlock_tests(r: &super::Redis) -> RResult<(), AnyErr> {
     macro_rules! assert_td_in_range {
         ($td:expr, $range:expr) => {
             assert!(
-                $range.contains(&$td),
+                $td >= $range.start && $td <= $range.end,
                 "Expected '{}' to be in range '{}' - '{}'.",
                 chrono_format_td($td, true),
                 chrono_format_td($range.start, true),
