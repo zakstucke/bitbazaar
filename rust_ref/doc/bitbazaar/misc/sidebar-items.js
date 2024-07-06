@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["binary_search_exact","binary_search_soft","in_ci","is_tcp_port_listening","retry_backoff","sleep_compat"],"mod":["bytes"],"struct":["PeriodicUpdater","RetryBackoffInfo"],"trait":["FlexiLog"]};
+window.SIDEBAR_ITEMS = {"fn":["binary_search_exact","binary_search_exact_with_siblings","binary_search_soft","in_ci","is_tcp_port_listening","retry_backoff","sleep_compat"],"mod":["bytes"],"struct":["PeriodicUpdater","Refreshable","RefreshableGuard","RetryBackoffInfo"],"trait":["BinarySearchable","FlexiLog","SerdeMigratable"]};

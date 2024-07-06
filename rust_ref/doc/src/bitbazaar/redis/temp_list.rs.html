@@ -919,10 +919,16 @@
 <a href="#919" id="919">919</a>
 <a href="#920" id="920">920</a>
 <a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     sync::{atomic::AtomicI64, Arc},
-    time::Duration,
 };
 
 <span class="kw">use </span>futures::{future::BoxFuture, FutureExt};
@@ -1183,31 +1189,31 @@
     </span><span class="kw">pub </span>key: String,
 
     <span class="doccomment">/// If the list hasn't been read or written to in this time, it will be expired.
-    </span><span class="kw">pub </span>list_inactive_ttl: Duration,
+    </span><span class="kw">pub </span>list_inactive_ttl: std::time::Duration,
 
     <span class="doccomment">/// If an item hasn't been read or written to in this time, it will be expired.
-    </span><span class="kw">pub </span>item_inactive_ttl: Duration,
+    </span><span class="kw">pub </span>item_inactive_ttl: std::time::Duration,
 
     <span class="doccomment">/// Used to prevent overlap between push() and extend() calls using the same ts by accident.
     </span><span class="attr">#[serde(skip)]
     </span>last_extension_ts_millis: Arc&lt;AtomicI64&gt;,
 }
 
-<span class="doccomment">/// A managed list entry in redis that will:
-/// - Auto expire on inactivity
-/// - Return items newest to oldest
-/// - Items are set with their own ttl, so the members themselves expire separate from the full list
-/// - Optionally prevents duplicate values. When enabled, if a duplicate is added, the item will be bumped to the front &amp; old discarded.
-</span><span class="kw">impl </span>RedisTempList {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
+<span class="kw">impl </span>RedisTempList {
+    <span class="doccomment">/// Create/connect to a managed list entry in redis that will:
+    /// - Auto expire on inactivity
+    /// - Return items newest to oldest
+    /// - Items are set with their own ttl, so the members themselves expire separate from the full list
+    /// - Optionally prevents duplicate values. When enabled, if a duplicate is added, the item will be bumped to the front &amp; old discarded.
+    </span><span class="kw">pub fn </span>new(
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-        key: String,
-        list_inactive_ttl: Duration,
-        item_inactive_ttl: Duration,
+        key: <span class="kw">impl </span>Into&lt;String&gt;,
+        list_inactive_ttl: std::time::Duration,
+        item_inactive_ttl: std::time::Duration,
     ) -&gt; Arc&lt;<span class="self">Self</span>&gt; {
         Arc::new(<span class="self">Self </span>{
             namespace: Cow::Borrowed(namespace),
-            key,
+            key: key.into(),
             list_inactive_ttl,
             item_inactive_ttl,
             last_extension_ts_millis: Arc::new(AtomicI64::new(<span class="number">0</span>)),
@@ -1262,7 +1268,7 @@
             </span>.zadd_multi(
                 <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
-                <span class="prelude-val">Some</span>(<span class="self">self</span>.list_inactive_ttl), <span class="comment">// This will auto reset the expire time of the list as a whole
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.list_inactive_ttl_chrono()), <span class="comment">// This will auto reset the expire time of the list as a whole
                 </span>items_with_uids
                     .iter()
                     .map(|(uid, <span class="kw">_</span>)| (score, uid))
@@ -1275,7 +1281,7 @@
                 items_with_uids
                     .into_iter()
                     .map(|(uid, item)| (uid, RedisJsonBorrowed(item))),
-                <span class="prelude-val">Some</span>(<span class="self">self</span>.item_inactive_ttl),
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.item_inactive_ttl_chrono()),
             )
             <span class="comment">// Cleanup old members that have now expired:
             // (set member expiry is a logical process, not currently part of redis but could be soon)
@@ -1415,7 +1421,7 @@
                         <span class="kw-2">&amp;</span>item_info.iter().map(|(uid, <span class="kw">_</span>)| uid).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
                     )
                     <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-                    </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
+                    </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl_chrono())
                     .fire()
                     .<span class="kw">await</span>;
 
@@ -1491,7 +1497,7 @@
             )
             .get::&lt;RedisJson&lt;T&gt;&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, uid)
             <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-            </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
+            </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl_chrono())
             .fire()
             .<span class="kw">await</span>;
 
@@ -1542,7 +1548,7 @@
                     .as_slice(),
             )
             <span class="comment">// Unlike our zadd during setting, need to manually refresh the expire time of the list here:
-            </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl)
+            </span>.expire(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.key, <span class="self">self</span>.list_inactive_ttl_chrono())
             .fire()
             .<span class="kw">await</span>;
     }
@@ -1567,7 +1573,7 @@
             </span>.zadd(
                 <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.key,
-                <span class="prelude-val">Some</span>(<span class="self">self</span>.list_inactive_ttl),
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.list_inactive_ttl_chrono()),
                 new_score,
                 uid,
             )
@@ -1576,7 +1582,7 @@
                 <span class="kw-2">&amp;</span><span class="self">self</span>.namespace,
                 uid,
                 RedisJsonBorrowed(item),
-                <span class="prelude-val">Some</span>(<span class="self">self</span>.item_inactive_ttl),
+                <span class="prelude-val">Some</span>(<span class="self">self</span>.item_inactive_ttl_chrono()),
             )
             <span class="comment">// Cleanup old members that have now expired:
             // (member expiry is a logical process, not currently part of redis but could be soon)
@@ -1600,6 +1606,14 @@
             .fire()
             .<span class="kw">await</span>;
     }
+
+    <span class="kw">fn </span>list_inactive_ttl_chrono(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; chrono::Duration {
+        chrono::Duration::milliseconds(<span class="self">self</span>.list_inactive_ttl.as_millis() <span class="kw">as </span>i64)
+    }
+
+    <span class="kw">fn </span>item_inactive_ttl_chrono(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; chrono::Duration {
+        chrono::Duration::milliseconds(<span class="self">self</span>.item_inactive_ttl.as_millis() <span class="kw">as </span>i64)
+    }
 }
 
 <span class="attr">#[cfg(test)]
@@ -1620,20 +1634,20 @@
 
     <span class="kw">static </span>NS: <span class="kw-2">&amp;</span>str = <span class="string">"templist_tests"</span>;
 
-    <span class="kw">let </span>li1 = r.templist(
+    <span class="kw">let </span>li1 = RedisTempList::new(
         NS,
         <span class="string">"t1"</span>,
-        Duration::from_millis(<span class="number">100</span>),
-        Duration::from_millis(<span class="number">60</span>),
+        std::time::Duration::from_millis(<span class="number">100</span>),
+        std::time::Duration::from_millis(<span class="number">60</span>),
     );
     li1.extend(
         <span class="kw-2">&amp;mut </span>conn,
         <span class="macro">vec!</span>[<span class="string">"i1"</span>.to_string(), <span class="string">"i2"</span>.to_string(), <span class="string">"i3"</span>.to_string()],
     )
     .<span class="kw">await</span>;
-    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
     li1.push(<span class="kw-2">&amp;mut </span>conn, <span class="string">"i4"</span>.to_string()).<span class="kw">await</span>;
-    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
     li1.push(<span class="kw-2">&amp;mut </span>conn, <span class="string">"i5"</span>.to_string()).<span class="kw">await</span>;
     <span class="comment">// Keys are ordered from recent to old:
     </span><span class="macro">assert_eq!</span>(
@@ -1645,20 +1659,20 @@
         RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">Some</span>(<span class="number">3</span>)).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>, <span class="string">"i3"</span>]
     );
-    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
     <span class="comment">// First batch should have expired now (3 20ms waits)
     // i4 should be expired, it had a ttl of 20ms:
     </span><span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>]
     );
-    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
     <span class="comment">// i4 should be gone now:
     </span><span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i5"</span>]
     );
-    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
     <span class="comment">// i5 should be gone now:
     </span><span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li1.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
@@ -1666,34 +1680,34 @@
     );
 
     <span class="comment">// Let's create a strange list, one with a short list lifetime but effectively infinite item lifetime:
-    </span><span class="kw">let </span>li2 = r.templist(
+    </span><span class="kw">let </span>li2 = RedisTempList::new(
         NS,
         <span class="string">"t2"</span>,
-        Duration::from_millis(<span class="number">50</span>),
-        Duration::from_millis(<span class="number">1000</span>),
+        std::time::Duration::from_millis(<span class="number">50</span>),
+        std::time::Duration::from_millis(<span class="number">1000</span>),
     );
-    tokio::time::sleep(Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">20</span>)).<span class="kw">await</span>;
     <span class="kw">let </span>i1 = li2.push(<span class="kw-2">&amp;mut </span>conn, <span class="string">"i1"</span>.to_string()).<span class="kw">await</span>;
     <span class="comment">// Li should still be there after another 40ms, as the last push should have updated the list's ttl:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i1"</span>]
     );
-    tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     li2.extend(
         <span class="kw-2">&amp;mut </span>conn,
         <span class="macro">vec!</span>[<span class="string">"i2"</span>.to_string(), <span class="string">"i3"</span>.to_string(), <span class="string">"i4"</span>.to_string()],
     )
     .<span class="kw">await</span>;
     <span class="comment">// Li should still be there after another 40ms, as the last push should have updated the list's ttl:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i4"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>, <span class="string">"i1"</span>]
     );
     <span class="comment">// Above read_multi should have also updated the list's ttl, so should be there after another 40ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         li2.read::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, i1.uid().unwrap())
             .<span class="kw">await
@@ -1701,7 +1715,7 @@
         <span class="prelude-val">Some</span>(<span class="string">"i1"</span>.to_string())
     );
     <span class="comment">// Above direct read should have also updated the list's ttl, so should be there after another 40ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         li2.read::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, i1.uid().unwrap())
             .<span class="kw">await
@@ -1709,19 +1723,19 @@
         <span class="prelude-val">Some</span>(<span class="string">"i1"</span>.to_string())
     );
     <span class="kw">let </span>i5 = li2.push(<span class="kw-2">&amp;mut </span>conn, <span class="string">"i5"</span>.to_string()).<span class="kw">await</span>;
-    tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     li2.delete(<span class="kw-2">&amp;mut </span>conn, i1.uid().unwrap()).<span class="kw">await</span>;
     <span class="comment">// Above delete should have updated the list's ttl, so should be there after another 40ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         <span class="macro">vec!</span>[<span class="string">"i5"</span>, <span class="string">"i4"</span>, <span class="string">"i3"</span>, <span class="string">"i2"</span>]
     );
-    tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     li2.update(<span class="kw-2">&amp;mut </span>conn, i5.uid().unwrap(), <span class="kw-2">&amp;</span><span class="string">"i5-updated"</span>)
         .<span class="kw">await</span>;
     <span class="comment">// Above update should have updated the list's ttl, so should be there after another 40ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">40</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         li2.read::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, i5.uid().unwrap())
             .<span class="kw">await
@@ -1729,18 +1743,18 @@
         <span class="prelude-val">Some</span>(<span class="string">"i5-updated"</span>.to_string())
     );
     <span class="comment">// When no reads or writes, the list should expire after 50ms:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+    </span>tokio::time::sleep(std::time::Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
     <span class="macro">assert_eq!</span>(
         RedisTempListItem::vec_items(li2.read_multi::&lt;String&gt;(<span class="kw-2">&amp;mut </span>conn, <span class="prelude-val">None</span>).<span class="kw">await</span>),
         Vec::&lt;String&gt;::new()
     );
 
     <span class="comment">// Make sure manual clear() works on a new list too:
-    </span><span class="kw">let </span>li3 = r.templist(
+    </span><span class="kw">let </span>li3 = RedisTempList::new(
         NS,
         <span class="string">"t3"</span>,
-        Duration::from_millis(<span class="number">100</span>),
-        Duration::from_millis(<span class="number">30</span>),
+        std::time::Duration::from_millis(<span class="number">100</span>),
+        std::time::Duration::from_millis(<span class="number">30</span>),
     );
     li3.extend(
         <span class="kw-2">&amp;mut </span>conn,
@@ -1758,11 +1772,11 @@
     );
 
     <span class="comment">// Try with arb value, e.g. vec of (i32, String):
-    </span><span class="kw">let </span>li4 = r.templist(
+    </span><span class="kw">let </span>li4 = RedisTempList::new(
         NS,
         <span class="string">"t4"</span>,
-        Duration::from_millis(<span class="number">100</span>),
-        Duration::from_millis(<span class="number">30</span>),
+        std::time::Duration::from_millis(<span class="number">100</span>),
+        std::time::Duration::from_millis(<span class="number">30</span>),
     );
     li4.push(<span class="kw-2">&amp;mut </span>conn, (<span class="number">1</span>, <span class="string">"a"</span>.to_string())).<span class="kw">await</span>;
     li4.push(<span class="kw-2">&amp;mut </span>conn, (<span class="number">2</span>, <span class="string">"b"</span>.to_string())).<span class="kw">await</span>;
@@ -1782,11 +1796,11 @@
     </span>);
 
     <span class="comment">// Try with json value:
-    </span><span class="kw">let </span>li5 = r.templist(
+    </span><span class="kw">let </span>li5 = RedisTempList::new(
         NS,
         <span class="string">"t5"</span>,
-        Duration::from_millis(<span class="number">100</span>),
-        Duration::from_millis(<span class="number">30</span>),
+        std::time::Duration::from_millis(<span class="number">100</span>),
+        std::time::Duration::from_millis(<span class="number">30</span>),
     );
     li5.extend(
         <span class="kw-2">&amp;mut </span>conn,
@@ -1817,11 +1831,11 @@
     );
 
     <span class="comment">// Make sure duplicate values don't break the list and are still kept:
-    </span><span class="kw">let </span>li6 = r.templist(
+    </span><span class="kw">let </span>li6 = RedisTempList::new(
         NS,
         <span class="string">"t6"</span>,
-        Duration::from_millis(<span class="number">100</span>),
-        Duration::from_millis(<span class="number">30</span>),
+        std::time::Duration::from_millis(<span class="number">100</span>),
+        std::time::Duration::from_millis(<span class="number">30</span>),
     );
     li6.extend(
         <span class="kw-2">&amp;mut </span>conn,

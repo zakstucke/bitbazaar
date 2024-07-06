@@ -100,30 +100,12 @@
 <a href="#100" id="100">100</a>
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
-<a href="#103" id="103">103</a>
-<a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
-<a href="#106" id="106">106</a>
-<a href="#107" id="107">107</a>
-<a href="#108" id="108">108</a>
-<a href="#109" id="109">109</a>
-<a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a>
-<a href="#112" id="112">112</a>
-<a href="#113" id="113">113</a>
-<a href="#114" id="114">114</a>
-<a href="#115" id="115">115</a>
-<a href="#116" id="116">116</a>
-<a href="#117" id="117">117</a>
-<a href="#118" id="118">118</a>
-<a href="#119" id="119">119</a>
-<a href="#120" id="120">120</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{sync::Arc, time::Duration};
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>deadpool_redis::{Config, Runtime};
 <span class="kw">use </span>futures::Future;
 
-<span class="kw">use super</span>::{RedisConn, RedisLock, RedisLockErr, RedisTempList};
+<span class="kw">use super</span>::{RedisConn, RedisLock, RedisLockErr};
 <span class="kw">use </span><span class="kw">crate</span>::errors::prelude::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// A wrapper around redis to make it more concise to use and not need redis in the downstream Cargo.toml.
@@ -188,7 +170,7 @@
     /// - `wait_up_to`: if the lock is busy elsewhere, wait this long trying to get it, before giving up and returning [`RedisLockErr::Unavailable`].
     </span><span class="kw">pub async fn </span>dlock_for_fut&lt;R, Fut: Future&lt;Output = RResult&lt;R, AnyErr&gt;&gt;&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         lock_key: <span class="kw-2">&amp;</span>str,
         wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
         fut: Fut,
@@ -207,24 +189,6 @@
         <span class="comment">// Always unlock, would expire eventually, but allows others to access straight away:
         </span>lock.unlock().<span class="kw">await</span>;
         result
-    }
-
-    <span class="doccomment">/// Connect up to a magic redis list that:
-    /// - Has an expiry on the list itself, resetting on each read or write. (each change lives again for `expire_after` time)
-    /// - Each item in the list has it's own expiry, so the list is always clean of old items.
-    /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
-    /// - Returned items are returned newest/last-updated to oldest
-    /// This makes this distributed data structure perfect for stuff like:
-    /// - recent/temporary logs/events of any sort.
-    /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
-    </span><span class="kw">pub fn </span>templist(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-        key: <span class="kw">impl </span>Into&lt;String&gt;,
-        list_inactive_ttl: Duration,
-        item_inactive_ttl: Duration,
-    ) -&gt; Arc&lt;RedisTempList&gt; {
-        RedisTempList::new(namespace, key.into(), list_inactive_ttl, item_inactive_ttl)
     }
 
     <span class="doccomment">/// Escape hatch, access the inner deadpool_redis pool.

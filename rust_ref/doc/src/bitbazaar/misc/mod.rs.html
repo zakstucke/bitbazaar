@@ -16,6 +16,12 @@
 <a href="#16" id="16">16</a>
 <a href="#17" id="17">17</a>
 <a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
 </pre></div><pre class="rust"><code><span class="doccomment">/// Byte manipulation utilities, e.g. transfer speed.
 </span><span class="kw">pub mod </span>bytes;
 
@@ -24,7 +30,10 @@
 <span class="kw">mod </span>in_ci;
 <span class="kw">mod </span>is_tcp_port_listening;
 <span class="kw">mod </span>periodic_updater;
+<span class="attr">#[cfg(feature = <span class="string">"redis"</span>)]
+</span><span class="kw">mod </span>refreshable;
 <span class="kw">mod </span>retry_backoff;
+<span class="kw">mod </span>serde_migratable;
 <span class="kw">mod </span>sleep_compat;
 
 <span class="kw">pub use </span>binary_search::<span class="kw-2">*</span>;
@@ -32,6 +41,9 @@
 <span class="kw">pub use </span>in_ci::in_ci;
 <span class="kw">pub use </span>is_tcp_port_listening::is_tcp_port_listening;
 <span class="kw">pub use </span>periodic_updater::<span class="kw-2">*</span>;
+<span class="attr">#[cfg(feature = <span class="string">"redis"</span>)]
+</span><span class="kw">pub use </span>refreshable::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>retry_backoff::<span class="kw-2">*</span>;
+<span class="kw">pub use </span>serde_migratable::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>sleep_compat::<span class="kw-2">*</span>;
 </code></pre></div></section></main></body></html>

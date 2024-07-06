@@ -735,11 +735,11 @@
     <span class="doccomment">/// Expire an existing key with a new/updated ttl.
     ///
     /// https://redis.io/commands/pexpire/
-    </span><span class="kw">pub fn </span>expire(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str, ttl: std::time::Duration) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>expire(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str, ttl: chrono::Duration) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .pexpire(
                 <span class="self">self</span>.redis_conn.final_key(namespace, key.into()),
-                ttl.as_millis() <span class="kw">as </span>i64,
+                ttl.num_milliseconds(),
             )
             <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
             </span>.ignore();
@@ -765,7 +765,7 @@
         <span class="kw-2">mut </span><span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
-        set_ttl: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+        set_ttl: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
         score: i64,
         value: <span class="kw">impl </span>ToRedisArgs,
     ) -&gt; <span class="self">Self </span>{
@@ -834,7 +834,7 @@
         <span class="kw-2">mut </span><span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,
         set_key: <span class="kw-2">&amp;</span>str,
-        set_ttl: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+        set_ttl: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
         items: <span class="kw-2">&amp;</span>[(i64, <span class="kw">impl </span>ToRedisArgs)],
     ) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
@@ -890,16 +890,16 @@
         namespace: <span class="kw-2">&amp;</span>str,
         key: <span class="kw-2">&amp;</span>str,
         value: T,
-        expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+        expiry: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_key = <span class="self">self</span>.redis_conn.final_key(namespace, key.into());
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(expiry) = expiry {
-            <span class="comment">// If expiry is weirdly 0 don't send to prevent redis error:
-            </span><span class="kw">if </span>(expiry) &gt; std::time::Duration::from_millis(<span class="number">0</span>) {
+            <span class="comment">// If expiry is 0 or negative don't send to prevent redis error:
+            </span><span class="kw">if </span>expiry &gt; chrono::Duration::zero() {
                 <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
                 </span><span class="self">self</span>.pipe
-                    .pset_ex(final_key, value, expiry.as_millis() <span class="kw">as </span>u64)
+                    .pset_ex(final_key, value, expiry.num_milliseconds() <span class="kw">as </span>u64)
                     .ignore();
             }
         } <span class="kw">else </span>{
@@ -922,7 +922,7 @@
         <span class="kw-2">mut </span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         pairs: <span class="kw">impl </span>IntoIterator&lt;Item = (<span class="kw">impl </span>AsRef&lt;str&gt;, Value)&gt;,
-        expiry: <span class="prelude-ty">Option</span>&lt;std::time::Duration&gt;,
+        expiry: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_pairs = pairs
             .into_iter()
@@ -936,10 +936,10 @@
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(expiry) = expiry {
             <span class="comment">// If expiry is weirdly 0 don't send to prevent redis error:
-            </span><span class="kw">if </span>(expiry) &gt; std::time::Duration::from_millis(<span class="number">0</span>) {
+            </span><span class="kw">if </span>(expiry) &gt; chrono::Duration::milliseconds(<span class="number">0</span>) {
                 <span class="kw">let </span><span class="kw-2">mut </span>invoker = MSET_WITH_EXPIRY_SCRIPT
                     .invoker()
-                    .arg(expiry.as_millis() <span class="kw">as </span>u64);
+                    .arg(expiry.num_milliseconds() <span class="kw">as </span>u64);
                 <span class="kw">for </span>(key, value) <span class="kw">in </span>final_pairs {
                     invoker = invoker.key(key).arg(value);
                 }

@@ -36,7 +36,6 @@
 <a href="#36" id="36">36</a>
 <a href="#37" id="37">37</a>
 <a href="#38" id="38">38</a>
-<a href="#39" id="39">39</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(clippy::module_inception)]
 #![allow(clippy::type_complexity)]
 #![warn(clippy::disallowed_types)]
@@ -50,17 +49,16 @@
 </span><span class="doccomment">/// Command line interface utilities.
 </span><span class="kw">pub mod </span>cli;
 
-<span class="attr">#[cfg(feature = <span class="string">"chrono"</span>)]
-</span><span class="doccomment">/// Chrono utilities
+<span class="doccomment">/// Chrono utilities
 </span><span class="kw">pub mod </span>chrono;
 <span class="attr">#[cfg(any(feature = <span class="string">"cookies_ssr"</span>, feature = <span class="string">"cookies_wasm"</span>))]
 </span><span class="doccomment">/// Setting/getting cookies in wasm or ssr.
 </span><span class="kw">pub mod </span>cookies;
+<span class="attr">#[cfg(feature = <span class="string">"crypto"</span>)]
+</span><span class="doccomment">/// Hashing &amp; encryption utilities.
+</span><span class="kw">pub mod </span>crypto;
 <span class="doccomment">/// Error handling utilities.
 </span><span class="kw">pub mod </span>errors;
-<span class="attr">#[cfg(feature = <span class="string">"hash"</span>)]
-</span><span class="doccomment">/// Hashing utilities.
-</span><span class="kw">pub mod </span>hash;
 <span class="doccomment">/// Logging utilities
 </span><span class="kw">pub mod </span>log;
 <span class="doccomment">/// Completely miscellaneous utilities

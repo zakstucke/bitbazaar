@@ -625,7 +625,7 @@ end
     <span class="doccomment">/// Creates a new lock, use [`super::Redis::dlock`] instead.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>new(
         redis: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw">super</span>::Redis,
-        namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+        namespace: <span class="kw-2">&amp;</span>str,
         lock_key: <span class="kw-2">&amp;</span>str,
         ttl: Duration,
         wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
@@ -928,7 +928,7 @@ end
     <span class="macro">macro_rules!</span> assert_td_in_range {
         (<span class="macro-nonterminal">$td</span>:expr, <span class="macro-nonterminal">$range</span>:expr) =&gt; {
             <span class="macro">assert!</span>(
-                <span class="macro-nonterminal">$range</span>.contains(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$td</span>),
+                <span class="macro-nonterminal">$td </span>&gt;= <span class="macro-nonterminal">$range</span>.start &amp;&amp; <span class="macro-nonterminal">$td </span>&lt;= <span class="macro-nonterminal">$range</span>.end,
                 <span class="string">"Expected '{}' to be in range '{}' - '{}'."</span>,
                 chrono_format_td(<span class="macro-nonterminal">$td</span>, <span class="bool-val">true</span>),
                 chrono_format_td(<span class="macro-nonterminal">$range</span>.start, <span class="bool-val">true</span>),
