@@ -25,15 +25,13 @@ pub use wrapper::Redis;
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        sync::{atomic::AtomicU8, Arc},
-        time::Duration,
-    };
+    use std::sync::{atomic::AtomicU8, Arc};
 
     use rstest::*;
 
     use super::*;
     use crate::{
+        chrono::chrono_format_td,
         errors::prelude::*,
         log::GlobalLog,
         redis::{dlock::redis_dlock_tests, temp_list::redis_temp_list_tests},
@@ -304,7 +302,7 @@ mod tests {
                     .cached_fn(
                         "my_fn_ex_group",
                         "foo",
-                        Some(Duration::from_millis(15)),
+                        Some(chrono::Duration::milliseconds(15)),
                         || async {
                             // Add one to the call count, should only be called once:
                             called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -327,17 +325,17 @@ mod tests {
         // <--- set/mset with expiry:
         work_conn
             .batch()
-            .set("e1", "foo", "foo", Some(Duration::from_millis(15)))
-            .set("e1", "bar", "bar", Some(Duration::from_millis(30)))
+            .set("e1", "foo", "foo", Some(chrono::Duration::milliseconds(15)))
+            .set("e1", "bar", "bar", Some(chrono::Duration::milliseconds(30)))
             .mset(
                 "e2",
                 [("foo", "foo"), ("bar", "bar")],
-                Some(Duration::from_millis(15)),
+                Some(chrono::Duration::milliseconds(15)),
             )
             .mset(
                 "e2",
                 [("baz", "baz"), ("qux", "qux")],
-                Some(Duration::from_millis(30)),
+                Some(chrono::Duration::milliseconds(30)),
             )
             .fire()
             .await;
@@ -383,7 +381,13 @@ mod tests {
                 .batch()
                 .zadd("z1", "myset", None, 3, "foo")
                 // By setting an expiry time here, the set itself will now expire after 30ms:
-                .zadd("z1", "myset", Some(Duration::from_millis(30)), 1, "bar")
+                .zadd(
+                    "z1",
+                    "myset",
+                    Some(chrono::Duration::milliseconds(30)),
+                    1,
+                    "bar"
+                )
                 .zadd_multi(
                     "z1",
                     "myset",
@@ -461,6 +465,76 @@ mod tests {
 
         // Run the temp_list tests:
         redis_temp_list_tests(&work_r).await?;
+
+        Ok(())
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_backoff(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        // Redis can't be run on windows, skip if so:
+        if cfg!(windows) {
+            return Ok(());
+        }
+
+        // TODO using now in here and dlock, should be some test utils we can use cross crate.
+        macro_rules! assert_td_in_range {
+            ($td:expr, $range:expr) => {
+                assert!(
+                    $td >= $range.start && $td <= $range.end,
+                    "Expected '{}' to be in range '{}' - '{}'.",
+                    chrono_format_td($td, true),
+                    chrono_format_td($range.start, true),
+                    chrono_format_td($range.end, true),
+                );
+            };
+        }
+
+        let rs = RedisStandalone::new().await?;
+
+        let r = rs.instance()?;
+        let mut rconn = r.conn();
+
+        macro_rules! call {
+            () => {
+                rconn
+                    .backoff_protector("n1", "caller1", 2, chrono::Duration::milliseconds(100), 1.5)
+                    .await
+            };
+        }
+        assert_eq!(call!(), None);
+        assert_eq!(call!(), None);
+        assert_td_in_range!(
+            call!().unwrap(),
+            chrono::Duration::milliseconds(90)..chrono::Duration::milliseconds(100)
+        );
+        // Wait to allow call again, but will x1.5 wait for next time:
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        assert_eq!(call!(), None);
+        assert_td_in_range!(
+            call!().unwrap(),
+            chrono::Duration::milliseconds(130)..chrono::Duration::milliseconds(150)
+        );
+        // Just check double call too:
+        assert_td_in_range!(
+            call!().unwrap(),
+            chrono::Duration::milliseconds(125)..chrono::Duration::milliseconds(150)
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+        assert_eq!(call!(), None);
+        // Should now 1.5x again:
+        assert_td_in_range!(
+            call!().unwrap(),
+            chrono::Duration::milliseconds(190)..chrono::Duration::milliseconds(225)
+        );
+        // By waiting over 2x the current delay, should all reset:
+        tokio::time::sleep(std::time::Duration::from_millis(450)).await;
+        assert_eq!(call!(), None);
+        assert_eq!(call!(), None);
+        assert_td_in_range!(
+            call!().unwrap(),
+            chrono::Duration::milliseconds(90)..chrono::Duration::milliseconds(100)
+        );
 
         Ok(())
     }

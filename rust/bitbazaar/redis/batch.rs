@@ -106,11 +106,11 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     /// Expire an existing key with a new/updated ttl.
     ///
     /// https://redis.io/commands/pexpire/
-    pub fn expire(mut self, namespace: &str, key: &str, ttl: std::time::Duration) -> Self {
+    pub fn expire(mut self, namespace: &str, key: &str, ttl: chrono::Duration) -> Self {
         self.pipe
             .pexpire(
                 self.redis_conn.final_key(namespace, key.into()),
-                ttl.as_millis() as i64,
+                ttl.num_milliseconds(),
             )
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();
@@ -136,7 +136,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         mut self,
         set_namespace: &str,
         set_key: &str,
-        set_ttl: Option<std::time::Duration>,
+        set_ttl: Option<chrono::Duration>,
         score: i64,
         value: impl ToRedisArgs,
     ) -> Self {
@@ -205,7 +205,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         mut self,
         set_namespace: &str,
         set_key: &str,
-        set_ttl: Option<std::time::Duration>,
+        set_ttl: Option<chrono::Duration>,
         items: &[(i64, impl ToRedisArgs)],
     ) -> Self {
         self.pipe
@@ -261,16 +261,16 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         namespace: &str,
         key: &str,
         value: T,
-        expiry: Option<std::time::Duration>,
+        expiry: Option<chrono::Duration>,
     ) -> Self {
         let final_key = self.redis_conn.final_key(namespace, key.into());
 
         if let Some(expiry) = expiry {
-            // If expiry is weirdly 0 don't send to prevent redis error:
-            if (expiry) > std::time::Duration::from_millis(0) {
+            // If expiry is 0 or negative don't send to prevent redis error:
+            if expiry > chrono::Duration::zero() {
                 // Ignoring so it doesn't take up a space in the tuple response.
                 self.pipe
-                    .pset_ex(final_key, value, expiry.as_millis() as u64)
+                    .pset_ex(final_key, value, expiry.num_milliseconds() as u64)
                     .ignore();
             }
         } else {
@@ -293,7 +293,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
         mut self,
         namespace: &str,
         pairs: impl IntoIterator<Item = (impl AsRef<str>, Value)>,
-        expiry: Option<std::time::Duration>,
+        expiry: Option<chrono::Duration>,
     ) -> Self {
         let final_pairs = pairs
             .into_iter()
@@ -307,10 +307,10 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
 
         if let Some(expiry) = expiry {
             // If expiry is weirdly 0 don't send to prevent redis error:
-            if (expiry) > std::time::Duration::from_millis(0) {
+            if (expiry) > chrono::Duration::milliseconds(0) {
                 let mut invoker = MSET_WITH_EXPIRY_SCRIPT
                     .invoker()
-                    .arg(expiry.as_millis() as u64);
+                    .arg(expiry.num_milliseconds() as u64);
                 for (key, value) in final_pairs {
                     invoker = invoker.key(key).arg(value);
                 }

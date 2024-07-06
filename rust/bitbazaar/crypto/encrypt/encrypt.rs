@@ -2,7 +2,6 @@ use aes_gcm_siv::{
     aead::{generic_array::GenericArray, rand_core::RngCore, Aead, OsRng},
     Aes256GcmSiv, KeyInit, Nonce,
 };
-use argon2::Config;
 
 use crate::prelude::*;
 
@@ -30,15 +29,15 @@ pub fn encrypt_aes256(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> 
     // Generating salt:
     let mut salt = [0u8; 32];
     OsRng.fill_bytes(&mut salt);
-    let config = Config {
-        hash_length: 32,
-        ..Default::default()
-    };
 
     // Generating key:
-    let password = argon2::hash_raw(password, &salt, &config).change_context(AnyErr)?;
+    // https://docs.rs/argon2/0.5.3/argon2/#key-derivation
+    let mut output_key_material = [0u8; 32]; // Can be any desired size
+    argon2::Argon2::default()
+        .hash_password_into(password, &salt, &mut output_key_material)
+        .map_err(|e| anyerr!("Failed to hash password: {:?}", e))?;
 
-    let key = GenericArray::from_slice(&password);
+    let key = GenericArray::from_slice(&output_key_material);
     let cipher = Aes256GcmSiv::new(key);
 
     // Generating nonce:
@@ -84,15 +83,14 @@ pub fn decrypt_aes256(data: &[u8], password: &[u8]) -> RResult<Vec<u8>, AnyErr> 
     // Decoding:
     let decoded: PrecryptorFile = bincode::deserialize(data).change_context(AnyErr)?;
 
-    let config = Config {
-        hash_length: 32,
-        ..Default::default()
-    };
-
     // Generating key:
-    let password = argon2::hash_raw(password, &decoded.salt, &config).change_context(AnyErr)?;
+    // https://docs.rs/argon2/0.5.3/argon2/#key-derivation
+    let mut output_key_material = [0u8; 32]; // Can be any desired size
+    argon2::Argon2::default()
+        .hash_password_into(password, &decoded.salt, &mut output_key_material)
+        .map_err(|e| anyerr!("Failed to hash password: {:?}", e))?;
 
-    let key = GenericArray::from_slice(&password);
+    let key = GenericArray::from_slice(&output_key_material);
     let cipher = Aes256GcmSiv::new(key);
     let nonce = Nonce::from_slice(&decoded.nonce);
 
