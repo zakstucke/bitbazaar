@@ -364,7 +364,7 @@ dependencies = [
 
 [[package]]
 name = "bitbazaar"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "aes-gcm-siv",
  "arc-swap",
