@@ -37,7 +37,7 @@ on:
         default: false
       rust_version:
         description: Rust Version
-        default: 0.2.1
+        default: 0.2.2
 
 jobs:
   commit_versions:
