@@ -22,7 +22,7 @@
 
 <span class="kw">pub use </span>any::AnyErr;
 
-<span class="doccomment">/// Shorthand for a [`Result`] with a [`Report`] as the error variant
+<span class="doccomment">/// Shorthand for a [`Result`] with a [`error_stack::Report`] as the error variant
 </span><span class="kw">pub type </span>RResult&lt;T, C&gt; = <span class="prelude-ty">Result</span>&lt;T, error_stack::Report&lt;C&gt;&gt;;
 
 <span class="doccomment">/// Easily import all useful error items. Useful to put inside a crate prelude.

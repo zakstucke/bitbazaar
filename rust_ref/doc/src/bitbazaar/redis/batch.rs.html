@@ -734,7 +734,7 @@
 
     <span class="doccomment">/// Expire an existing key with a new/updated ttl.
     ///
-    /// https://redis.io/commands/pexpire/
+    /// &lt;https://redis.io/commands/pexpire/&gt;
     </span><span class="kw">pub fn </span>expire(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str, ttl: chrono::Duration) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.pipe
             .pexpire(
@@ -753,7 +753,7 @@
     }
 
     <span class="doccomment">/// Add an entry to an ordered set (auto creating the set if it doesn't exist).
-    /// https://redis.io/commands/zadd/
+    /// &lt;https://redis.io/commands/zadd/&gt;
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
@@ -790,7 +790,7 @@
     }
 
     <span class="doccomment">/// remove an entries from an ordered set.
-    /// https://redis.io/commands/zrem/
+    /// &lt;https://redis.io/commands/zrem/&gt;
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
@@ -823,7 +823,7 @@
     }
 
     <span class="doccomment">/// Add multiple entries at once to an ordered set (auto creating the set if it doesn't exist).
-    /// https://redis.io/commands/zadd/
+    /// &lt;https://redis.io/commands/zadd/&gt;
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
@@ -858,7 +858,7 @@
 
     <span class="doccomment">/// Remove entries from an ordered set by score range. (range is inclusive)
     ///
-    /// https://redis.io/commands/zremrangebyscore/
+    /// &lt;https://redis.io/commands/zremrangebyscore/&gt;
     </span><span class="kw">pub fn </span>zremrangebyscore(
         <span class="kw-2">mut </span><span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,
@@ -1072,7 +1072,7 @@
     /// - `max`: The maximum score.
     /// - `limit`: The maximum number of items to return.
     ///
-    /// https://redis.io/commands/zrangebyscore/
+    /// `https://redis.io/commands/zrangebyscore/`
     </span><span class="kw">fn </span>zrangebyscore_high_to_low&lt;Value: FromRedisValue&gt;(
         <span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,
@@ -1093,7 +1093,7 @@
     /// - `max`: The maximum score.
     /// - `limit`: The maximum number of items to return.
     ///
-    /// https://redis.io/commands/zrangebyscore/
+    /// `https://redis.io/commands/zrangebyscore/`
     </span><span class="kw">fn </span>zrangebyscore_low_to_high&lt;Value: FromRedisValue&gt;(
         <span class="self">self</span>,
         set_namespace: <span class="kw-2">&amp;</span>str,

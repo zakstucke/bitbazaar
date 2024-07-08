@@ -1311,7 +1311,7 @@
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// RedisTempListItem&lt;T&gt;: The resulting item holder which can be used to further manipulate the items.
+    /// `RedisTempListItem&lt;T&gt;`: The resulting item holder which can be used to further manipulate the items.
     </span><span class="kw">pub async fn </span>push&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
         </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
@@ -1347,8 +1347,8 @@
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Some(Vec&lt;RedisTempListItem&lt;T&gt;&gt;): The resulting item holders for each of the items added, these can be used to further manipulate the items.
-    /// - None: Something went wrong and the items weren't added correctly.
+    /// - `Some(Vec&lt;RedisTempListItem&lt;T&gt;&gt;)`: The resulting item holders for each of the items added, these can be used to further manipulate the items.
+    /// - `None`: Something went wrong and the items weren't added correctly.
     </span><span class="kw">pub async fn </span>extend&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
         </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
@@ -1369,7 +1369,7 @@
         }
     }
 
-    <span class="doccomment">/// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than RedisTempList&lt;T&gt; that makes working with items easier.
+    <span class="doccomment">/// Underlying of [`RedisTempList::read_multi`], but returns the `(i64: ttl, String: item key, T: item)` rather than `RedisTempList&lt;T&gt;` that makes working with items easier.
     </span><span class="kw">pub async fn </span>read_multi_raw&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
@@ -1456,7 +1456,7 @@
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Vec&lt;RedisTempListItem&lt;T&gt;: The wrapped items in the list from newest to oldest up to the provided limit (if any).
+    /// - `Vec&lt;RedisTempListItem&lt;T&gt;`: The wrapped items in the list from newest to oldest up to the provided limit (if any).
     </span><span class="kw">pub async fn </span>read_multi&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
         </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,

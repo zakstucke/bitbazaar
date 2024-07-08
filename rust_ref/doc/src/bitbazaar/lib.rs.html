@@ -36,12 +36,18 @@
 <a href="#36" id="36">36</a>
 <a href="#37" id="37">37</a>
 <a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(clippy::module_inception)]
 #![allow(clippy::type_complexity)]
 #![warn(clippy::disallowed_types)]
 #![warn(missing_docs)]
 
 </span><span class="doccomment">//! bitbazaar - An assortment of publicly available cross-language utilities useful to my projects.
+
+</span><span class="comment">// When docs auto created for docs.rs, will include features, given docs.rs uses nightly by default:
+</span><span class="attr">#![cfg_attr(all(doc, CHANNEL_NIGHTLY), feature(doc_auto_cfg))]
 
 </span><span class="kw">mod </span>prelude;
 
