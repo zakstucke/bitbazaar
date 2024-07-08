@@ -539,6 +539,7 @@
 <a href="#539" id="539">539</a>
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>batch;
 <span class="kw">mod </span>conn;
 <span class="kw">mod </span>dlock;
@@ -555,8 +556,9 @@
 <span class="kw">pub use </span>conn::RedisConn;
 <span class="kw">pub use </span>dlock::{RedisLock, RedisLockErr};
 <span class="kw">pub use </span>json::{RedisJson, RedisJsonBorrowed};
-<span class="comment">// Re-exporting redis to be used outside: (this must also be in scope for the derive macros to work)
-</span><span class="kw">pub use </span>redis;
+<span class="comment">// Re-exporting redis and deadpool_redis to be used outside if needed:
+</span><span class="kw">pub use </span>deadpool_redis;
+<span class="kw">pub use </span>redis;
 <span class="comment">// Re-exporting the json derive utilities to allow redis to take arbitrary json types without the need for the wrapper.
 // Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
 </span><span class="kw">pub use </span>redis_macros::{FromRedisValue, ToRedisArgs};

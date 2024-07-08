@@ -208,6 +208,22 @@
 <a href="#208" id="208">208</a>
 <a href="#209" id="209">209</a>
 <a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::cmp::Ordering;
 
 <span class="doccomment">/// A trait allowing arbitrary types to be binary searchable.
@@ -285,23 +301,27 @@
 ///
 /// Returns:
 /// - Some(index) the index of the item in the array.
-/// - None if the item is not found.
+/// - None if the item is not found or array empty.
 </span><span class="kw">pub fn </span>binary_search_exact&lt;Item&gt;(
     arr_like: <span class="kw-2">&amp;</span><span class="kw">impl </span>BinarySearchable&lt;Item = Item&gt;,
     comparer: <span class="kw">impl </span>Fn(<span class="kw-2">&amp;</span>Item) -&gt; Ordering,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>low = <span class="number">0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>high = arr_like.len() - <span class="number">1</span>;
-    <span class="kw">while </span>low &lt;= high {
-        <span class="kw">let </span>mid = (low + high) / <span class="number">2</span>;
-        <span class="kw">match </span>comparer(arr_like.get(mid)) {
-            Ordering::Greater =&gt; low = mid + <span class="number">1</span>,
-            Ordering::Less =&gt; high = mid - <span class="number">1</span>,
-            Ordering::Equal =&gt; <span class="kw">return </span><span class="prelude-val">Some</span>(mid),
+    <span class="kw">if </span>arr_like.is_empty() {
+        <span class="prelude-val">None
+    </span>} <span class="kw">else </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>low = <span class="number">0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>high = arr_like.len() - <span class="number">1</span>;
+        <span class="kw">while </span>low &lt;= high {
+            <span class="kw">let </span>mid = (low + high) / <span class="number">2</span>;
+            <span class="kw">match </span>comparer(arr_like.get(mid)) {
+                Ordering::Greater =&gt; low = mid + <span class="number">1</span>,
+                Ordering::Less =&gt; high = mid - <span class="number">1</span>,
+                Ordering::Equal =&gt; <span class="kw">return </span><span class="prelude-val">Some</span>(mid),
+            }
         }
-    }
-    <span class="prelude-val">None
-</span>}
+        <span class="prelude-val">None
+    </span>}
+}
 
 <span class="doccomment">/// Binary search for the desired item in the array, but also passes the prior and next items into the comparison function, if they exist.
 /// Returns None when not exactly found.
@@ -312,33 +332,37 @@
 ///
 /// Returns:
 /// - Some(index) the index of the item in the array.
-/// - None if the item is not found.
+/// - None if the item is not found or array empty.
 </span><span class="kw">pub fn </span>binary_search_exact_with_siblings&lt;Item&gt;(
     arr_like: <span class="kw-2">&amp;</span><span class="kw">impl </span>BinarySearchable&lt;Item = Item&gt;,
     comparer: <span class="kw">impl </span>Fn(<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Item&gt;, <span class="kw-2">&amp;</span>Item, <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Item&gt;) -&gt; Ordering,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>low = <span class="number">0</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>high = arr_like.len() - <span class="number">1</span>;
-    <span class="kw">while </span>low &lt;= high {
-        <span class="kw">let </span>mid = (low + high) / <span class="number">2</span>;
-        <span class="kw">let </span>prior = <span class="kw">if </span>mid == <span class="number">0 </span>{
-            <span class="prelude-val">None
-        </span>} <span class="kw">else </span>{
-            <span class="prelude-val">Some</span>(arr_like.get(mid - <span class="number">1</span>))
-        };
-        <span class="kw">let </span>next = <span class="kw">if </span>mid == arr_like.len() - <span class="number">1 </span>{
-            <span class="prelude-val">None
-        </span>} <span class="kw">else </span>{
-            <span class="prelude-val">Some</span>(arr_like.get(mid + <span class="number">1</span>))
-        };
-        <span class="kw">match </span>comparer(prior, arr_like.get(mid), next) {
-            Ordering::Greater =&gt; low = mid + <span class="number">1</span>,
-            Ordering::Less =&gt; high = mid - <span class="number">1</span>,
-            Ordering::Equal =&gt; <span class="kw">return </span><span class="prelude-val">Some</span>(mid),
+    <span class="kw">if </span>arr_like.is_empty() {
+        <span class="prelude-val">None
+    </span>} <span class="kw">else </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>low = <span class="number">0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>high = arr_like.len() - <span class="number">1</span>;
+        <span class="kw">while </span>low &lt;= high {
+            <span class="kw">let </span>mid = (low + high) / <span class="number">2</span>;
+            <span class="kw">let </span>prior = <span class="kw">if </span>mid == <span class="number">0 </span>{
+                <span class="prelude-val">None
+            </span>} <span class="kw">else </span>{
+                <span class="prelude-val">Some</span>(arr_like.get(mid - <span class="number">1</span>))
+            };
+            <span class="kw">let </span>next = <span class="kw">if </span>mid == arr_like.len() - <span class="number">1 </span>{
+                <span class="prelude-val">None
+            </span>} <span class="kw">else </span>{
+                <span class="prelude-val">Some</span>(arr_like.get(mid + <span class="number">1</span>))
+            };
+            <span class="kw">match </span>comparer(prior, arr_like.get(mid), next) {
+                Ordering::Greater =&gt; low = mid + <span class="number">1</span>,
+                Ordering::Less =&gt; high = mid - <span class="number">1</span>,
+                Ordering::Equal =&gt; <span class="kw">return </span><span class="prelude-val">Some</span>(mid),
+            }
         }
-    }
-    <span class="prelude-val">None
-</span>}
+        <span class="prelude-val">None
+    </span>}
+}
 
 <span class="doccomment">/// Binary search for the desired item in the array.
 /// Only returns None when the array is empty.
@@ -378,6 +402,14 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_binary_search() {
+        <span class="comment">// Empty arrays shouldn't panic for any variation:
+        </span><span class="macro">assert_eq!</span>(binary_search_exact(<span class="kw-2">&amp;</span>[], |x| <span class="number">5</span>.cmp(x)), <span class="prelude-val">None</span>);
+        <span class="macro">assert_eq!</span>(
+            binary_search_exact_with_siblings(<span class="kw-2">&amp;</span>[], |<span class="kw">_</span>, x, <span class="kw">_</span>| <span class="number">5</span>.cmp(x)),
+            <span class="prelude-val">None
+        </span>);
+        <span class="macro">assert_eq!</span>(binary_search_soft(<span class="kw-2">&amp;</span>[], |x| <span class="number">5</span>.cmp(x)), <span class="prelude-val">None</span>);
+
         <span class="comment">// 7 is missing, with exact should be None, with soft should be 5
         </span><span class="kw">let </span>arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">10</span>];
         <span class="macro">assert_eq!</span>(binary_search_exact(<span class="kw-2">&amp;</span>arr, |x| <span class="number">5</span>.cmp(x)), <span class="prelude-val">Some</span>(<span class="number">4</span>));
