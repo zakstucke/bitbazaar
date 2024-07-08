@@ -3,7 +3,7 @@ mod macros;
 
 pub use any::AnyErr;
 
-/// Shorthand for a [`Result`] with a [`Report`] as the error variant
+/// Shorthand for a [`Result`] with a [`error_stack::Report`] as the error variant
 pub type RResult<T, C> = Result<T, error_stack::Report<C>>;
 
 /// Easily import all useful error items. Useful to put inside a crate prelude.

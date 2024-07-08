@@ -105,7 +105,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
 
     /// Expire an existing key with a new/updated ttl.
     ///
-    /// https://redis.io/commands/pexpire/
+    /// <https://redis.io/commands/pexpire/>
     pub fn expire(mut self, namespace: &str, key: &str, ttl: chrono::Duration) -> Self {
         self.pipe
             .pexpire(
@@ -124,7 +124,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     }
 
     /// Add an entry to an ordered set (auto creating the set if it doesn't exist).
-    /// https://redis.io/commands/zadd/
+    /// <https://redis.io/commands/zadd/>
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
@@ -161,7 +161,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     }
 
     /// remove an entries from an ordered set.
-    /// https://redis.io/commands/zrem/
+    /// <https://redis.io/commands/zrem/>
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
@@ -194,7 +194,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
     }
 
     /// Add multiple entries at once to an ordered set (auto creating the set if it doesn't exist).
-    /// https://redis.io/commands/zadd/
+    /// <https://redis.io/commands/zadd/>
     ///
     /// Arguments:
     /// - `set_namespace`: The namespace of the set.
@@ -229,7 +229,7 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
 
     /// Remove entries from an ordered set by score range. (range is inclusive)
     ///
-    /// https://redis.io/commands/zremrangebyscore/
+    /// <https://redis.io/commands/zremrangebyscore/>
     pub fn zremrangebyscore(
         mut self,
         set_namespace: &str,
@@ -443,7 +443,7 @@ pub trait RedisBatchReturningOps<'c> {
     /// - `max`: The maximum score.
     /// - `limit`: The maximum number of items to return.
     ///
-    /// https://redis.io/commands/zrangebyscore/
+    /// `https://redis.io/commands/zrangebyscore/`
     fn zrangebyscore_high_to_low<Value: FromRedisValue>(
         self,
         set_namespace: &str,
@@ -464,7 +464,7 @@ pub trait RedisBatchReturningOps<'c> {
     /// - `max`: The maximum score.
     /// - `limit`: The maximum number of items to return.
     ///
-    /// https://redis.io/commands/zrangebyscore/
+    /// `https://redis.io/commands/zrangebyscore/`
     fn zrangebyscore_low_to_high<Value: FromRedisValue>(
         self,
         set_namespace: &str,

@@ -3,7 +3,7 @@ use crate::prelude::*;
 /// The following link explains the distinction between normal tokio, [`tokio::task::spawn_blocking`], and rayon.
 /// For most cases you think to use [`tokio::task::spawn_blocking`], but isn't actual IO like file read/write that isn't async, and actually CPU bound stuff, rayon should be used.
 /// It goes without saying, if you ever want to use anything from rayon like [`rayon::iter::ParallelIterator`], it should be inside [`run_cpu_intensive`]
-/// https://ryhl.io/blog/async-what-is-blocking/#the-rayon-crate
+/// <https://ryhl.io/blog/async-what-is-blocking/#the-rayon-crate>
 ///
 /// This also makes sure to maintain the active tracing span context across into the rayon block.
 pub async fn run_cpu_intensive<R: Send + 'static>(

@@ -5,6 +5,9 @@
 
 //! bitbazaar - An assortment of publicly available cross-language utilities useful to my projects.
 
+// When docs auto created for docs.rs, will include features, given docs.rs uses nightly by default:
+#![cfg_attr(all(doc, CHANNEL_NIGHTLY), feature(doc_auto_cfg))]
+
 mod prelude;
 
 #[cfg(feature = "cli")]

@@ -383,7 +383,7 @@ impl RedisTempList {
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// RedisTempListItem<T>: The resulting item holder which can be used to further manipulate the items.
+    /// `RedisTempListItem<T>`: The resulting item holder which can be used to further manipulate the items.
     pub async fn push<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
         self: &'a Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
         conn: &mut RedisConn<'_>,
@@ -419,8 +419,8 @@ impl RedisTempList {
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Some(Vec<RedisTempListItem<T>>): The resulting item holders for each of the items added, these can be used to further manipulate the items.
-    /// - None: Something went wrong and the items weren't added correctly.
+    /// - `Some(Vec<RedisTempListItem<T>>)`: The resulting item holders for each of the items added, these can be used to further manipulate the items.
+    /// - `None`: Something went wrong and the items weren't added correctly.
     pub async fn extend<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
         self: &'a Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
         conn: &mut RedisConn<'_>,
@@ -441,7 +441,7 @@ impl RedisTempList {
         }
     }
 
-    /// Underlying of [`RedisTempList::read_multi`], but returns the (i64: ttl, String: item key, T: item) rather than RedisTempList<T> that makes working with items easier.
+    /// Underlying of [`RedisTempList::read_multi`], but returns the `(i64: ttl, String: item key, T: item)` rather than `RedisTempList<T>` that makes working with items easier.
     pub async fn read_multi_raw<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
         &self,
         conn: &mut RedisConn<'_>,
@@ -528,7 +528,7 @@ impl RedisTempList {
     /// - Clean up expired list items
     ///
     /// Returns:
-    /// - Vec<RedisTempListItem<T>: The wrapped items in the list from newest to oldest up to the provided limit (if any).
+    /// - `Vec<RedisTempListItem<T>`: The wrapped items in the list from newest to oldest up to the provided limit (if any).
     pub async fn read_multi<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
         self: &Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
         conn: &mut RedisConn<'_>,

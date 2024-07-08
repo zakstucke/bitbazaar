@@ -123,7 +123,7 @@ pub enum BatchLimit {
 }
 
 /// Batch run futures but with a limiter on parents and descendants.
-/// IF HIGHEST PERFORMANCE IS NEEDED AND YOU DON'T NEED DESCENDANT LIMITING, USE [`batch_futures_stream_async_cb_perf`] or just normal [`futures::StreamExt::buffer_unordered`].
+/// IF HIGHEST PERFORMANCE IS NEEDED AND YOU DON'T NEED DESCENDANT LIMITING, USE [`batch_futures_flat_stream_async_cb`] or just normal [`futures::StreamExt::buffer_unordered`].
 ///
 /// Key specialised features:
 /// - Limits can be shared with descendants/parents, preventing concurrency explosion, but also internally making sure no deadlocks.
@@ -131,9 +131,9 @@ pub enum BatchLimit {
 /// - Despite batching, vec of results/callbacks of results are in same order as inputted (keeping finished out of order futures in buffer until they're next in line.).
 /// - The future callback will only be called when the future will imminently be polled, allowing sync setup.
 ///
-/// If you need to start processing the results before all the futures are done, use [`batch_futures_stream_async_cb`] or [`batch_futures_stream_sync_cb`].
+/// If you need to start processing the results before all the futures are done, use [`batch_futures_descendants_stream_sync_cb`] or [`batch_futures_descendants_stream_async_cb`].
 ///
-/// If neither of the above features are needed, you may as well use `buffer_unordered` (https://users.rust-lang.org/t/batch-execution-of-futures-in-the-tokio-runtime-or-max-number-of-active-futures-at-a-time/47659)
+/// If neither of the above features are needed, you may as well use `buffer_unordered` <https://users.rust-lang.org/t/batch-execution-of-futures-in-the-tokio-runtime-or-max-number-of-active-futures-at-a-time/47659>
 pub async fn batch_futures_descendants<R, Fut: Future<Output = R>>(
     batch_limit: &BatchLimit,
     fut_cbs: impl IntoIterator<Item = impl FnOnce(BatchLimit) -> Fut>,
