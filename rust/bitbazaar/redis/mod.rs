@@ -14,7 +14,8 @@ pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::RedisConn;
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonBorrowed};
-// Re-exporting redis to be used outside: (this must also be in scope for the derive macros to work)
+// Re-exporting redis and deadpool_redis to be used outside if needed:
+pub use deadpool_redis;
 pub use redis;
 // Re-exporting the json derive utilities to allow redis to take arbitrary json types without the need for the wrapper.
 // Both this and the custom wrapper are exported as latter works better for e.g. the temp list.

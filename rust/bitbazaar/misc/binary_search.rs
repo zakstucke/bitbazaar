@@ -75,22 +75,26 @@ impl<K, V> BinarySearchable for indexmap::IndexMap<K, V> {
 ///
 /// Returns:
 /// - Some(index) the index of the item in the array.
-/// - None if the item is not found.
+/// - None if the item is not found or array empty.
 pub fn binary_search_exact<Item>(
     arr_like: &impl BinarySearchable<Item = Item>,
     comparer: impl Fn(&Item) -> Ordering,
 ) -> Option<usize> {
-    let mut low = 0;
-    let mut high = arr_like.len() - 1;
-    while low <= high {
-        let mid = (low + high) / 2;
-        match comparer(arr_like.get(mid)) {
-            Ordering::Greater => low = mid + 1,
-            Ordering::Less => high = mid - 1,
-            Ordering::Equal => return Some(mid),
+    if arr_like.is_empty() {
+        None
+    } else {
+        let mut low = 0;
+        let mut high = arr_like.len() - 1;
+        while low <= high {
+            let mid = (low + high) / 2;
+            match comparer(arr_like.get(mid)) {
+                Ordering::Greater => low = mid + 1,
+                Ordering::Less => high = mid - 1,
+                Ordering::Equal => return Some(mid),
+            }
         }
+        None
     }
-    None
 }
 
 /// Binary search for the desired item in the array, but also passes the prior and next items into the comparison function, if they exist.
@@ -102,32 +106,36 @@ pub fn binary_search_exact<Item>(
 ///
 /// Returns:
 /// - Some(index) the index of the item in the array.
-/// - None if the item is not found.
+/// - None if the item is not found or array empty.
 pub fn binary_search_exact_with_siblings<Item>(
     arr_like: &impl BinarySearchable<Item = Item>,
     comparer: impl Fn(Option<&Item>, &Item, Option<&Item>) -> Ordering,
 ) -> Option<usize> {
-    let mut low = 0;
-    let mut high = arr_like.len() - 1;
-    while low <= high {
-        let mid = (low + high) / 2;
-        let prior = if mid == 0 {
-            None
-        } else {
-            Some(arr_like.get(mid - 1))
-        };
-        let next = if mid == arr_like.len() - 1 {
-            None
-        } else {
-            Some(arr_like.get(mid + 1))
-        };
-        match comparer(prior, arr_like.get(mid), next) {
-            Ordering::Greater => low = mid + 1,
-            Ordering::Less => high = mid - 1,
-            Ordering::Equal => return Some(mid),
+    if arr_like.is_empty() {
+        None
+    } else {
+        let mut low = 0;
+        let mut high = arr_like.len() - 1;
+        while low <= high {
+            let mid = (low + high) / 2;
+            let prior = if mid == 0 {
+                None
+            } else {
+                Some(arr_like.get(mid - 1))
+            };
+            let next = if mid == arr_like.len() - 1 {
+                None
+            } else {
+                Some(arr_like.get(mid + 1))
+            };
+            match comparer(prior, arr_like.get(mid), next) {
+                Ordering::Greater => low = mid + 1,
+                Ordering::Less => high = mid - 1,
+                Ordering::Equal => return Some(mid),
+            }
         }
+        None
     }
-    None
 }
 
 /// Binary search for the desired item in the array.
@@ -168,6 +176,14 @@ mod tests {
 
     #[test]
     fn test_binary_search() {
+        // Empty arrays shouldn't panic for any variation:
+        assert_eq!(binary_search_exact(&[], |x| 5.cmp(x)), None);
+        assert_eq!(
+            binary_search_exact_with_siblings(&[], |_, x, _| 5.cmp(x)),
+            None
+        );
+        assert_eq!(binary_search_soft(&[], |x| 5.cmp(x)), None);
+
         // 7 is missing, with exact should be None, with soft should be 5
         let arr = [1, 2, 3, 4, 5, 6, 8, 9, 10];
         assert_eq!(binary_search_exact(&arr, |x| 5.cmp(x)), Some(4));
