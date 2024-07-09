@@ -191,6 +191,12 @@
 <a href="#191" id="191">191</a>
 <a href="#192" id="192">192</a>
 <a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>serde::Deserialize;
 
 <span class="kw">use </span><span class="kw">crate</span>::log::record_exception;
@@ -273,33 +279,39 @@
 
         <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 
-        <span class="kw">let </span>axum_response = leptos::expect_context::&lt;leptos_axum::ResponseOptions&gt;();
-        <span class="kw">let </span><span class="kw-2">mut </span>cookie = Cookie::build((name, value)).http_only(options.http_only);
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = options.path {
-            cookie = cookie.path(path);
-        }
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(domain) = options.domain {
-            cookie = cookie.domain(domain);
-        }
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(expires) = options.expires {
-            cookie = cookie.max_age(time::Duration::milliseconds(expires.num_milliseconds()));
-        }
-        <span class="kw">if </span>options.secure {
-            cookie = cookie.secure(<span class="bool-val">true</span>);
-        }
-        cookie = <span class="kw">match </span>options.same_site {
-            SameSite::Lax =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::Lax),
-            SameSite::Strict =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::Strict),
-            SameSite::None =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::None),
-        };
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(resp_opts) = leptos::use_context::&lt;leptos_axum::ResponseOptions&gt;() {
+            <span class="kw">let </span><span class="kw-2">mut </span>cookie = Cookie::build((name, value)).http_only(options.http_only);
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = options.path {
+                cookie = cookie.path(path);
+            }
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(domain) = options.domain {
+                cookie = cookie.domain(domain);
+            }
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(expires) = options.expires {
+                cookie = cookie.max_age(time::Duration::milliseconds(expires.num_milliseconds()));
+            }
+            <span class="kw">if </span>options.secure {
+                cookie = cookie.secure(<span class="bool-val">true</span>);
+            }
+            cookie = <span class="kw">match </span>options.same_site {
+                SameSite::Lax =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::Lax),
+                SameSite::Strict =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::Strict),
+                SameSite::None =&gt; cookie.same_site(axum_extra::extract::cookie::SameSite::None),
+            };
 
-        <span class="kw">match </span>http::HeaderValue::from_str(<span class="kw-2">&amp;</span>cookie.to_string()).change_context(AnyErr) {
-            <span class="prelude-val">Ok</span>(cookie) =&gt; {
-                axum_response.append_header(http::header::SET_COOKIE, cookie);
+            <span class="kw">match </span>http::HeaderValue::from_str(<span class="kw-2">&amp;</span>cookie.to_string()).change_context(AnyErr) {
+                <span class="prelude-val">Ok</span>(cookie) =&gt; {
+                    resp_opts.append_header(http::header::SET_COOKIE, cookie);
+                }
+                <span class="prelude-val">Err</span>(e) =&gt; {
+                    record_exception(<span class="string">"Failed to set cookie."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
+                }
             }
-            <span class="prelude-val">Err</span>(e) =&gt; {
-                record_exception(<span class="string">"Failed to set cookie."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
-            }
+        } <span class="kw">else </span>{
+            record_exception(
+                <span class="string">"Couldn't get response options from leptos_axum::ResponseOptions context."</span>,
+                <span class="string">""</span>,
+            );
         }
     }
 }
