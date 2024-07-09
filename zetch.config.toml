@@ -14,7 +14,7 @@ commands = ["./dev_scripts/pkg.sh update_versions"]
 [context.static]
 PY_VERSION = "0.0.7"
 JS_VERSION = "0.0.29"
-RUST_VERSION = "0.2.2"
+RUST_VERSION = "0.2.3"
 PY_RUST_VERSION = "0.0.3"
 JS_ALIASES = { value = '{ "@root": "./bitbazaar", "@scripts": "./scripts" }', coerce = "json" }
 # This will be updated manually in locations that need it: (using ./dev_scripts/utils.sh rand_id)
