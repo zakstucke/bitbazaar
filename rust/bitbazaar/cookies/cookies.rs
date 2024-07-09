@@ -80,33 +80,39 @@ pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
 
         use crate::prelude::*;
 
-        let axum_response = leptos::expect_context::<leptos_axum::ResponseOptions>();
-        let mut cookie = Cookie::build((name, value)).http_only(options.http_only);
-        if let Some(path) = options.path {
-            cookie = cookie.path(path);
-        }
-        if let Some(domain) = options.domain {
-            cookie = cookie.domain(domain);
-        }
-        if let Some(expires) = options.expires {
-            cookie = cookie.max_age(time::Duration::milliseconds(expires.num_milliseconds()));
-        }
-        if options.secure {
-            cookie = cookie.secure(true);
-        }
-        cookie = match options.same_site {
-            SameSite::Lax => cookie.same_site(axum_extra::extract::cookie::SameSite::Lax),
-            SameSite::Strict => cookie.same_site(axum_extra::extract::cookie::SameSite::Strict),
-            SameSite::None => cookie.same_site(axum_extra::extract::cookie::SameSite::None),
-        };
+        if let Some(resp_opts) = leptos::use_context::<leptos_axum::ResponseOptions>() {
+            let mut cookie = Cookie::build((name, value)).http_only(options.http_only);
+            if let Some(path) = options.path {
+                cookie = cookie.path(path);
+            }
+            if let Some(domain) = options.domain {
+                cookie = cookie.domain(domain);
+            }
+            if let Some(expires) = options.expires {
+                cookie = cookie.max_age(time::Duration::milliseconds(expires.num_milliseconds()));
+            }
+            if options.secure {
+                cookie = cookie.secure(true);
+            }
+            cookie = match options.same_site {
+                SameSite::Lax => cookie.same_site(axum_extra::extract::cookie::SameSite::Lax),
+                SameSite::Strict => cookie.same_site(axum_extra::extract::cookie::SameSite::Strict),
+                SameSite::None => cookie.same_site(axum_extra::extract::cookie::SameSite::None),
+            };
 
-        match http::HeaderValue::from_str(&cookie.to_string()).change_context(AnyErr) {
-            Ok(cookie) => {
-                axum_response.append_header(http::header::SET_COOKIE, cookie);
+            match http::HeaderValue::from_str(&cookie.to_string()).change_context(AnyErr) {
+                Ok(cookie) => {
+                    resp_opts.append_header(http::header::SET_COOKIE, cookie);
+                }
+                Err(e) => {
+                    record_exception("Failed to set cookie.", format!("{:?}", e));
+                }
             }
-            Err(e) => {
-                record_exception("Failed to set cookie.", format!("{:?}", e));
-            }
+        } else {
+            record_exception(
+                "Couldn't get response options from leptos_axum::ResponseOptions context.",
+                "",
+            );
         }
     }
 }

@@ -18,6 +18,7 @@
     "py_rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
     "py_rust/README.zetch.md": "29069ce3e8571383bb6872a764d92933e44f529b20a1fe96cd60b09bacfb385f",
     "rust/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b",
-    "rust/README.zetch.md": "29069ce3e8571383bb6872a764d92933e44f529b20a1fe96cd60b09bacfb385f"
+    "rust/README.zetch.md": "29069ce3e8571383bb6872a764d92933e44f529b20a1fe96cd60b09bacfb385f",
+    "rust/pkg/LICENSE.zetch.md": "d2c12e539d357957b950a54a5477c3a9f87bd2b3ee707be7a4db7adaf5aacc2b"
   }
 }
