@@ -12,11 +12,27 @@ use crate::prelude::*;
 /// - `stacktrace`: All of the location information for the exception, (maybe also the exception itself if e.g. from `Report<T>`).
 #[track_caller]
 pub fn record_exception(message: impl Into<String>, stacktrace: impl Into<String>) {
+    record_exception_with_caller(std::panic::Location::caller(), message, stacktrace)
+}
+
+/// Record an exception to the currently active span, making sure the record location is added to the stacktrace.
+/// Matches oltp spec so it shows up correctly as an exception in observers
+/// <https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/>
+///
+/// Arguments:
+/// - `caller`: The location of the exception, use `std::panic::Location::caller()`.
+/// - `message`: Information about the exception e.g. `Internal Error leading to 500 http response`.
+/// - `stacktrace`: All of the location information for the exception, (maybe also the exception itself if e.g. from `Report<T>`).
+pub fn record_exception_with_caller(
+    caller: &std::panic::Location,
+    message: impl Into<String>,
+    stacktrace: impl Into<String>,
+) {
     let mut stacktrace = stacktrace.into();
     stacktrace = if stacktrace.trim().is_empty() {
-        format!("At {}", std::panic::Location::caller())
+        format!("╰╴at {}", caller)
     } else {
-        format!("{}\nAt {}", stacktrace, std::panic::Location::caller())
+        format!("{}\n╰╴at {}", stacktrace, caller)
     };
     super::exceptions::record_exception_inner(message, stacktrace, "Err");
 }
