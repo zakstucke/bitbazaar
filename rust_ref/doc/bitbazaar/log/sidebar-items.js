@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["flush","global_meter","init_system_and_process_metrics","meter","record_exception","set_response_headers_from_ctx","set_span_parent_from_http_headers","shutdown"],"mod":["otlp"],"struct":["GlobalLog","GlobalLogBuilder"]};
+window.SIDEBAR_ITEMS = {"fn":["flush","global_meter","init_system_and_process_metrics","meter","record_exception","record_exception_with_caller","set_response_headers_from_ctx","set_span_parent_from_http_headers","shutdown"],"mod":["otlp"],"struct":["GlobalLog","GlobalLogBuilder"]};
