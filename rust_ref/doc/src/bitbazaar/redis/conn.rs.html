@@ -223,7 +223,7 @@
         </span>}
     }
 
-    <span class="doccomment">/// A simple ratelimit/backoff helper.
+    <span class="doccomment">/// A simple rate_limiter/backoff helper.
     /// Can be used to protect against repeated attempts in quick succession.
     /// Once `start_delaying_after_attempt` is hit, the operation delay will multiplied by the multiplier each time.
     /// Only once no call is made for the duration of the current delay (so current delay doubled) will the attempt number reset to zero.
@@ -238,7 +238,7 @@
     /// Returns:
     /// - `None`: Continue with the operation.
     /// - `Some&lt;chrono::Duration&gt;`: Retry after the duration.
-    </span><span class="kw">pub async fn </span>backoff_protector(
+    </span><span class="kw">pub async fn </span>rate_limiter(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         caller_identifier: <span class="kw-2">&amp;</span>str,

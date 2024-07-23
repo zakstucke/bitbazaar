@@ -62,6 +62,11 @@
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
 <a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Instant;
 
 <span class="kw">use </span><span class="kw">crate</span>::log::record_exception;
@@ -78,17 +83,17 @@
 }
 
 <span class="kw">impl </span>RedisStandalone {
-    <span class="doccomment">/// Start a standalone redis server process on an unused port.
+    <span class="doccomment">/// Start a standalone redis server process with the given port and extra arguments.
     /// This process will be killed on drop.
-    </span><span class="kw">pub async fn </span>new() -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
-        <span class="kw">let </span>port = portpicker::pick_unused_port()
-            .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">"Could not find a free port to run RedisStandalone on."</span>))<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>child = std::process::Command::new(<span class="string">"redis-server"</span>)
-            .arg(<span class="string">"--port"</span>)
-            .arg(port.to_string())
-            .spawn()
-            .change_context(AnyErr)<span class="question-mark">?</span>;
+    </span><span class="kw">pub async fn </span>new_with_opts(port: u16, extra_args: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str]&gt;) -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>cmd = std::process::Command::new(<span class="string">"redis-server"</span>);
+        cmd.arg(<span class="string">"--port"</span>).arg(port.to_string());
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(extra_args) = extra_args {
+            <span class="kw">for </span>arg <span class="kw">in </span>extra_args {
+                cmd.arg(arg);
+            }
+        }
+        <span class="kw">let </span>child = cmd.spawn().change_context(AnyErr)<span class="question-mark">?</span>;
 
         <span class="comment">// Wait for redis to come up, raising if waited for 10 seconds.
         </span><span class="kw">let </span><span class="kw-2">mut </span>up = <span class="bool-val">false</span>;
@@ -109,12 +114,17 @@
         }
     }
 
-    <span class="doccomment">/// Get a new [`Redis`] instance connected to this standalone redis server.
-    </span><span class="kw">pub fn </span>instance(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RResult&lt;Redis, AnyErr&gt; {
-        Redis::new(
-            <span class="macro">format!</span>(<span class="string">"redis://localhost:{}"</span>, <span class="self">self</span>.port),
-            uuid::Uuid::new_v4().to_string(),
-        )
+    <span class="doccomment">/// Start a standalone redis server process on an unused port.
+    /// This process will be killed on drop.
+    </span><span class="kw">pub async fn </span>new() -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
+        <span class="kw">let </span>port = portpicker::pick_unused_port()
+            .ok_or_else(|| <span class="macro">anyerr!</span>(<span class="string">"Could not find a free port to run RedisStandalone on."</span>))<span class="question-mark">?</span>;
+        RedisStandalone::new_with_opts(port, <span class="prelude-val">None</span>).<span class="kw">await
+    </span>}
+
+    <span class="doccomment">/// Get the connection string needed to connect as a client to this locally running redis instance.
+    </span><span class="kw">pub fn </span>client_conn_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="macro">format!</span>(<span class="string">"redis://localhost:{}"</span>, <span class="self">self</span>.port)
     }
 }
 

@@ -9,15 +9,19 @@
 <a href="#9" id="9">9</a>
 <a href="#10" id="10">10</a>
 <a href="#11" id="11">11</a>
+<a href="#12" id="12">12</a>
+<a href="#13" id="13">13</a>
 </pre></div><pre class="rust"><code><span class="doccomment">/// Sleep for a duration, compatible with both WASM and native targets.
 ///
 /// Wasm: uses gloo_timers::future::TimeoutFuture
 /// Native: uses tokio::time::sleep
-</span><span class="kw">pub async fn </span>sleep_compat(duration: std::time::Duration) {
+</span><span class="kw">pub async fn </span>sleep_compat(duration: chrono::Duration) {
     <span class="attr">#[cfg(target_arch = <span class="string">"wasm32"</span>)]
-    </span>gloo_timers::future::TimeoutFuture::new(duration.as_millis().min(u32::MAX <span class="kw">as </span>u128) <span class="kw">as </span>u32)
-        .<span class="kw">await</span>;
+    </span>gloo_timers::future::TimeoutFuture::new(
+        duration.num_milliseconds().min(u32::MAX <span class="kw">as </span>i64) <span class="kw">as </span>u32
+    )
+    .<span class="kw">await</span>;
     <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
-    </span>tokio::time::sleep(duration).<span class="kw">await</span>;
+    </span>tokio::time::sleep(duration.to_std().unwrap_or_default()).<span class="kw">await</span>;
 }
 </code></pre></div></section></main></body></html>

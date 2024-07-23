@@ -625,7 +625,7 @@
 
         <span class="kw">let </span>rs = RedisStandalone::new().<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>work_r = rs.instance()<span class="question-mark">?</span>;
+        <span class="kw">let </span>work_r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>work_conn = work_r.conn();
 
         <span class="comment">// Also create a fake version on a random port, this will be used to check failure cases.
@@ -1035,13 +1035,13 @@
 
         <span class="kw">let </span>rs = RedisStandalone::new().<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>r = rs.instance()<span class="question-mark">?</span>;
+        <span class="kw">let </span>r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>rconn = r.conn();
 
         <span class="macro">macro_rules!</span> call {
             () =&gt; {
                 rconn
-                    .backoff_protector(<span class="string">"n1"</span>, <span class="string">"caller1"</span>, <span class="number">2</span>, chrono::Duration::milliseconds(<span class="number">100</span>), <span class="number">1.5</span>)
+                    .rate_limiter(<span class="string">"n1"</span>, <span class="string">"caller1"</span>, <span class="number">2</span>, chrono::Duration::milliseconds(<span class="number">100</span>), <span class="number">1.5</span>)
                     .<span class="kw">await
             </span>};
         }

@@ -464,7 +464,7 @@
                                 // Doing 100ms and the error!() log so we know if this isn't true and our understanding is incorrect. 100ms is slow enough to not cause performance issues.
                                 </span>seen_stream_empty = <span class="bool-val">true</span>;
 
-                                sleep_compat(std::time::Duration::from_millis(<span class="number">100</span>)).<span class="kw">await</span>;
+                                sleep_compat(chrono::Duration::milliseconds(<span class="number">100</span>)).<span class="kw">await</span>;
                             }
                         }
                         <span class="attr">#[allow(unreachable_code)]
