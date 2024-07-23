@@ -14,17 +14,17 @@ pub struct RedisStandalone {
 }
 
 impl RedisStandalone {
-    /// Start a standalone redis server process on an unused port.
+    /// Start a standalone redis server process with the given port and extra arguments.
     /// This process will be killed on drop.
-    pub async fn new() -> RResult<Self, AnyErr> {
-        let port = portpicker::pick_unused_port()
-            .ok_or_else(|| anyerr!("Could not find a free port to run RedisStandalone on."))?;
-
-        let child = std::process::Command::new("redis-server")
-            .arg("--port")
-            .arg(port.to_string())
-            .spawn()
-            .change_context(AnyErr)?;
+    pub async fn new_with_opts(port: u16, extra_args: Option<&[&str]>) -> RResult<Self, AnyErr> {
+        let mut cmd = std::process::Command::new("redis-server");
+        cmd.arg("--port").arg(port.to_string());
+        if let Some(extra_args) = extra_args {
+            for arg in extra_args {
+                cmd.arg(arg);
+            }
+        }
+        let child = cmd.spawn().change_context(AnyErr)?;
 
         // Wait for redis to come up, raising if waited for 10 seconds.
         let mut up = false;
@@ -45,12 +45,17 @@ impl RedisStandalone {
         }
     }
 
-    /// Get a new [`Redis`] instance connected to this standalone redis server.
-    pub fn instance(&self) -> RResult<Redis, AnyErr> {
-        Redis::new(
-            format!("redis://localhost:{}", self.port),
-            uuid::Uuid::new_v4().to_string(),
-        )
+    /// Start a standalone redis server process on an unused port.
+    /// This process will be killed on drop.
+    pub async fn new() -> RResult<Self, AnyErr> {
+        let port = portpicker::pick_unused_port()
+            .ok_or_else(|| anyerr!("Could not find a free port to run RedisStandalone on."))?;
+        RedisStandalone::new_with_opts(port, None).await
+    }
+
+    /// Get the connection string needed to connect as a client to this locally running redis instance.
+    pub fn client_conn_str(&self) -> String {
+        format!("redis://localhost:{}", self.port)
     }
 }
 

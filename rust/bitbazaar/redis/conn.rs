@@ -53,7 +53,7 @@ impl<'a> RedisConn<'a> {
         }
     }
 
-    /// A simple ratelimit/backoff helper.
+    /// A simple rate_limiter/backoff helper.
     /// Can be used to protect against repeated attempts in quick succession.
     /// Once `start_delaying_after_attempt` is hit, the operation delay will multiplied by the multiplier each time.
     /// Only once no call is made for the duration of the current delay (so current delay doubled) will the attempt number reset to zero.
@@ -68,7 +68,7 @@ impl<'a> RedisConn<'a> {
     /// Returns:
     /// - `None`: Continue with the operation.
     /// - `Some<chrono::Duration>`: Retry after the duration.
-    pub async fn backoff_protector(
+    pub async fn rate_limiter(
         &mut self,
         namespace: &str,
         caller_identifier: &str,

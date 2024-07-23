@@ -186,7 +186,7 @@ macro_rules! batch_futures_descendants_impl {
                                 // Doing 100ms and the error!() log so we know if this isn't true and our understanding is incorrect. 100ms is slow enough to not cause performance issues.
                                 seen_stream_empty = true;
 
-                                sleep_compat(std::time::Duration::from_millis(100)).await;
+                                sleep_compat(chrono::Duration::milliseconds(100)).await;
                             }
                         }
                         #[allow(unreachable_code)]

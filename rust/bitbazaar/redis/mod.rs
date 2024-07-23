@@ -83,7 +83,7 @@ mod tests {
 
         let rs = RedisStandalone::new().await?;
 
-        let work_r = rs.instance()?;
+        let work_r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())?;
         let mut work_conn = work_r.conn();
 
         // Also create a fake version on a random port, this will be used to check failure cases.
@@ -493,13 +493,13 @@ mod tests {
 
         let rs = RedisStandalone::new().await?;
 
-        let r = rs.instance()?;
+        let r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())?;
         let mut rconn = r.conn();
 
         macro_rules! call {
             () => {
                 rconn
-                    .backoff_protector("n1", "caller1", 2, chrono::Duration::milliseconds(100), 1.5)
+                    .rate_limiter("n1", "caller1", 2, chrono::Duration::milliseconds(100), 1.5)
                     .await
             };
         }

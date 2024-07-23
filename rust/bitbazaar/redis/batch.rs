@@ -3,6 +3,8 @@ use std::{collections::HashSet, marker::PhantomData};
 use deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
 use once_cell::sync::Lazy;
 
+use crate::{log::record_exception, misc::Retry, retry_flexi};
+
 use super::{RedisConn, RedisScript, RedisScriptInvoker};
 
 static CLEAR_NAMESPACE_SCRIPT: Lazy<RedisScript> =
@@ -38,49 +40,73 @@ impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
 
     async fn inner_fire<R: FromRedisValue>(&mut self) -> Option<R> {
         if let Some(conn) = self.redis_conn.get_inner_conn().await {
-            match self.pipe.query_async(conn).await {
-                Ok(result) => Some(result),
-                Err(err) => {
+            // Handling retryable errors internally:
+            let retry = Retry::<redis::RedisError>::fibonacci(chrono::Duration::milliseconds(10))
+            // Will cumulatively delay for up to 6 seconds.
+            // SHOULDN'T BE LONGER, considering outer code may then handle the redis failure,
+            // in e.g. web request, any longer would then be harmful.
+            .until_total_delay(chrono::Duration::seconds(5))
+                .on_retry(move |info| match info.last_error.kind() {
+                    // These should all be automatically retried:
+                    redis::ErrorKind::BusyLoadingError
+                    | redis::ErrorKind::TryAgain
+                    | redis::ErrorKind::MasterDown => {
+                        tracing::warn!(
+                            "Redis command failed with retryable error, retrying in {}. Last attempt no: '{}'.\nErr:\n{:?}.",
+                            info.delay_till_next_attempt,
+                            info.last_attempt_no,
+                            info.last_error
+                        );
+                        None
+                    },
+                    // Everything else should just exit straight away, no point retrying internally.
+                    _ => Some(info.last_error),
+                });
+
+            match retry_flexi!(retry.clone(), { self.pipe.query_async(conn).await }) {
+                Ok(v) => Some(v),
+                Err(e) => {
                     // Load the scripts into Redis if the any of the scripts weren't there before.
-                    if err.kind() == redis::ErrorKind::NoScriptError {
+                    if matches!(e.kind(), redis::ErrorKind::NoScriptError) {
                         if self.used_scripts.is_empty() {
-                            tracing::error!("Redis batch failed. Pipe returned NoScriptError, but not scripts were used. Err: '{}'", err);
+                            record_exception("Redis batch failed. Pipe returned NoScriptError, but no scripts were used.", format!("{:?}", e));
                             return None;
                         }
 
-                        tracing::info!(
-                            "Redis batch failed. Pipe returned NoScriptError, reloading {} script{} to redis. Err: '{}'",
+                        tracing::debug!(
+                            "Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Err: '{:?}'",
                             self.used_scripts.len(),
                             if self.used_scripts.len() == 1 { "" } else { "s" },
-                            err
+                            e
                         );
 
                         let mut load_pipe = deadpool_redis::redis::pipe();
                         for script in &self.used_scripts {
                             load_pipe.add_command(script.load_cmd());
                         }
-                        match load_pipe
-                            .query_async::<deadpool_redis::Connection, redis::Value>(conn)
-                            .await
-                        {
+                        match retry_flexi!(retry, {
+                            load_pipe
+                                .query_async::<deadpool_redis::Connection, redis::Value>(conn)
+                                .await
+                        }) {
                             // Now loaded the scripts, rerun the batch:
                             Ok(_) => match self.pipe.query_async(conn).await {
                                 Ok(result) => Some(result),
                                 Err(err) => {
-                                    tracing::error!("Redis batch failed. Second attempt as first required reloading of scripts (not necessarily related). Err: '{}'", err);
+                                    record_exception("Redis batch failed. Pipe returned NoScriptError, but we've just loaded all scripts.", format!("{:?}", err));
                                     None
                                 }
                             },
                             Err(err) => {
-                                tracing::error!(
-                                    "Redis script reload during batch failed. Err: '{}'",
-                                    err
+                                record_exception(
+                                    "Redis script reload during batch failed.",
+                                    format!("{:?}", err),
                                 );
                                 None
                             }
                         }
                     } else {
-                        tracing::error!("Redis batch failed. Err: '{}'", err);
+                        record_exception("Redis batch failed.", format!("{:?}", e));
                         None
                     }
                 }
