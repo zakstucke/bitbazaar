@@ -4,7 +4,7 @@ use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 use once_cell::sync::Lazy;
 
 use super::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
-use crate::{errors::prelude::*, redis::RedisScript};
+use crate::{errors::prelude::*, log::record_exception, redis::RedisScript};
 
 /// Wrapper around a lazy redis connection.
 pub struct RedisConn<'a> {
@@ -33,7 +33,7 @@ impl<'a> RedisConn<'a> {
             match self.pool.get().await {
                 Ok(conn) => self.conn = Some(conn),
                 Err(e) => {
-                    tracing::error!("Could not get redis connection: {}", e);
+                    record_exception("Failed to get redis connection.", format!("{:?}", e));
                     return None;
                 }
             }

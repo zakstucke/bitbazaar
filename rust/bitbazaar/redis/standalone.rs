@@ -27,18 +27,20 @@ impl RedisStandalone {
         let child = cmd.spawn().change_context(AnyErr)?;
 
         // Wait for redis to come up, raising if waited for 10 seconds.
+        let client = Redis::new(
+            format!("redis://localhost:{}", port),
+            uuid::Uuid::new_v4().to_string(),
+        )?;
         let mut up = false;
         let elapsed = Instant::now();
         while !up && elapsed.elapsed() < std::time::Duration::from_secs(10) {
-            up = Redis::new(
-                format!("redis://localhost:{}", port),
-                uuid::Uuid::new_v4().to_string(),
-            )?
-            .conn()
-            .ping()
-            .await
+            // Using low level check of conn first, as inner will record an exception which we don't really need during this startup check:
+            if client.get_inner_pool().get().await.is_ok() {
+                up = client.conn().ping().await
+            }
         }
-        if up {
+        // Final ping as that interface conn() will actually log an error on failure to connect:
+        if up || client.conn().ping().await {
             Ok(Self { child, port })
         } else {
             Err(anyerr!("RedisStandalone process not ready in 10 seconds."))
