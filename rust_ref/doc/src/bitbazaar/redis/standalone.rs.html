@@ -67,6 +67,8 @@
 <a href="#67" id="67">67</a>
 <a href="#68" id="68">68</a>
 <a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Instant;
 
 <span class="kw">use </span><span class="kw">crate</span>::log::record_exception;
@@ -96,18 +98,20 @@
         <span class="kw">let </span>child = cmd.spawn().change_context(AnyErr)<span class="question-mark">?</span>;
 
         <span class="comment">// Wait for redis to come up, raising if waited for 10 seconds.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>up = <span class="bool-val">false</span>;
+        </span><span class="kw">let </span>client = Redis::new(
+            <span class="macro">format!</span>(<span class="string">"redis://localhost:{}"</span>, port),
+            uuid::Uuid::new_v4().to_string(),
+        )<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>up = <span class="bool-val">false</span>;
         <span class="kw">let </span>elapsed = Instant::now();
         <span class="kw">while </span>!up &amp;&amp; elapsed.elapsed() &lt; std::time::Duration::from_secs(<span class="number">10</span>) {
-            up = Redis::new(
-                <span class="macro">format!</span>(<span class="string">"redis://localhost:{}"</span>, port),
-                uuid::Uuid::new_v4().to_string(),
-            )<span class="question-mark">?
-            </span>.conn()
-            .ping()
-            .<span class="kw">await
-        </span>}
-        <span class="kw">if </span>up {
+            <span class="comment">// Using low level check of conn first, as inner will record an exception which we don't really need during this startup check:
+            </span><span class="kw">if </span>client.get_inner_pool().get().<span class="kw">await</span>.is_ok() {
+                up = client.conn().ping().<span class="kw">await
+            </span>}
+        }
+        <span class="comment">// Final ping as that interface conn() will actually log an error on failure to connect:
+        </span><span class="kw">if </span>up || client.conn().ping().<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ child, port })
         } <span class="kw">else </span>{
             <span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"RedisStandalone process not ready in 10 seconds."</span>))

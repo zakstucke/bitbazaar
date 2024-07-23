@@ -174,7 +174,7 @@
 <span class="kw">use </span>once_cell::sync::Lazy;
 
 <span class="kw">use </span><span class="kw">super</span>::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
-<span class="kw">use crate</span>::{errors::prelude::<span class="kw-2">*</span>, redis::RedisScript};
+<span class="kw">use crate</span>::{errors::prelude::<span class="kw-2">*</span>, log::record_exception, redis::RedisScript};
 
 <span class="doccomment">/// Wrapper around a lazy redis connection.
 </span><span class="kw">pub struct </span>RedisConn&lt;<span class="lifetime">'a</span>&gt; {
@@ -203,7 +203,7 @@
             <span class="kw">match </span><span class="self">self</span>.pool.get().<span class="kw">await </span>{
                 <span class="prelude-val">Ok</span>(conn) =&gt; <span class="self">self</span>.conn = <span class="prelude-val">Some</span>(conn),
                 <span class="prelude-val">Err</span>(e) =&gt; {
-                    <span class="macro">tracing::error!</span>(<span class="string">"Could not get redis connection: {}"</span>, e);
+                    record_exception(<span class="string">"Failed to get redis connection."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
                     <span class="kw">return </span><span class="prelude-val">None</span>;
                 }
             }
