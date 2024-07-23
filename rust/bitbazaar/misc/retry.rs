@@ -336,28 +336,31 @@ mod tests {
             .await;
         assert_eq!(calls.load(Ordering::Relaxed), 10);
 
-        // TotalDelay:
-        let before = chrono::Utc::now();
-        let _ = Retry::<Report<AnyErr>>::fixed(Duration::milliseconds(30))
-            .until_total_delay(Duration::milliseconds(100))
-            .call(|| async { Err::<(), _>(anyerr!("Foo")) })
-            .await;
-        assert_td_in_range!(
-            chrono::Utc::now() - before,
-            Duration::milliseconds(100)..Duration::milliseconds(130)
-        );
+        // Ignore the timing checks on windows, windows often has worse tokio sleep resolution:
+        if cfg!(not(windows)) {
+            // TotalDelay:
+            let before = chrono::Utc::now();
+            let _ = Retry::<Report<AnyErr>>::fixed(Duration::milliseconds(30))
+                .until_total_delay(Duration::milliseconds(100))
+                .call(|| async { Err::<(), _>(anyerr!("Foo")) })
+                .await;
+            assert_td_in_range!(
+                chrono::Utc::now() - before,
+                Duration::milliseconds(100)..Duration::milliseconds(130)
+            );
 
-        // Delay:
-        // this should go 3, 9, 81
-        let before = chrono::Utc::now();
-        let _ = Retry::<Report<AnyErr>>::exponential(Duration::milliseconds(3), 2.0)
-            .until_delay(Duration::milliseconds(80))
-            .call(|| async { Err::<(), _>(anyerr!("Foo")) })
-            .await;
-        assert_td_in_range!(
-            chrono::Utc::now() - before,
-            Duration::milliseconds(93)..Duration::milliseconds(110)
-        );
+            // Delay:
+            // this should go 3, 9, 81
+            let before = chrono::Utc::now();
+            let _ = Retry::<Report<AnyErr>>::exponential(Duration::milliseconds(3), 2.0)
+                .until_delay(Duration::milliseconds(80))
+                .call(|| async { Err::<(), _>(anyerr!("Foo")) })
+                .await;
+            assert_td_in_range!(
+                chrono::Utc::now() - before,
+                Duration::milliseconds(93)..Duration::milliseconds(110)
+            );
+        }
 
         Ok(())
     }
