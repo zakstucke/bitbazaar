@@ -49,15 +49,22 @@ leptos = { version = "0.6", optional = true }
 leptos_axum = { version = "0.6", optional = true }
 http = { version = "1", optional = true }
 portpicker = { version = '0.1', optional = true }
+argon2 = { version = "0.5", optional = true }
 
 # FEAT: indexmap:
 indexmap = { version = "2", optional = true }
 
-# FEAT: crypto:
-sha2 = { version = "0.10", optional = true }
+# FEAT: aes256:
 aes-gcm-siv = { version = "0.11", optional = true }
-argon2 = { version = "0.5", optional = true }
 bincode = { version = "1", optional = true }
+
+# FEAT: md5:
+md-5 = { version = "0.10", optional = true }
+
+# FEAT: sha:
+sha2 = { version = "0.10", optional = true }
+
+# FEAT: password:
 
 # FEAT: log-filter:
 regex = { version = '1', optional = true }
@@ -123,7 +130,10 @@ tokio = { version = '1', features = ["full"] }
 [features]
 indexmap = ["dep:indexmap"]
 log-filter = ["dep:regex"]
-crypto = ['dep:sha2', 'dep:aes-gcm-siv', 'dep:argon2', 'dep:bincode']
+aes256 = ['dep:aes-gcm-siv', 'dep:argon2', 'dep:bincode']
+md5 = ['dep:md-5']
+sha = ['dep:sha2']
+password = ['dep:argon2', 'rand/getrandom']
 timing = ['dep:comfy-table']
 cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'dep:strum']
 system = ['dep:sysinfo']
