@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["encrypt","hash"]};
+window.SIDEBAR_ITEMS = {"mod":["aes256","fnv1a","md5","password","sha"]};

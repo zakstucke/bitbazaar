@@ -25,6 +25,8 @@
 <a href="#25" id="25">25</a>
 <a href="#26" id="26">26</a>
 <a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
+<a href="#29" id="29">29</a>
 </pre></div><pre class="rust"><code><span class="doccomment">/// Byte manipulation utilities, e.g. transfer speed.
 </span><span class="kw">pub mod </span>bytes;
 
@@ -35,6 +37,7 @@
 <span class="kw">mod </span>main_wrapper;
 <span class="kw">mod </span>periodic_updater;
 
+<span class="kw">mod </span>random_bytes;
 <span class="attr">#[cfg(feature = <span class="string">"redis"</span>)]
 </span><span class="kw">mod </span>refreshable;
 <span class="kw">mod </span>retry;
@@ -47,6 +50,7 @@
 <span class="kw">pub use </span>is_tcp_port_listening::is_tcp_port_listening;
 <span class="kw">pub use </span>main_wrapper::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>periodic_updater::<span class="kw-2">*</span>;
+<span class="kw">pub use </span>random_bytes::<span class="kw-2">*</span>;
 <span class="attr">#[cfg(feature = <span class="string">"redis"</span>)]
 </span><span class="kw">pub use </span>refreshable::<span class="kw-2">*</span>;
 <span class="kw">pub use </span>retry::<span class="kw-2">*</span>;
