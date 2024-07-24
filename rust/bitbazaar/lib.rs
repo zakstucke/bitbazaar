@@ -19,8 +19,7 @@ pub mod chrono;
 #[cfg(any(feature = "cookies_ssr", feature = "cookies_wasm"))]
 /// Setting/getting cookies in wasm or ssr.
 pub mod cookies;
-#[cfg(feature = "crypto")]
-/// Hashing & encryption utilities.
+/// Hashing & encryption utilities. Most inside is feature gated.
 pub mod crypto;
 /// Error handling utilities.
 pub mod errors;

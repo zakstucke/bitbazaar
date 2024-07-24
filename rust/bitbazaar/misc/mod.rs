@@ -8,6 +8,7 @@ mod is_tcp_port_listening;
 mod main_wrapper;
 mod periodic_updater;
 
+mod random_bytes;
 #[cfg(feature = "redis")]
 mod refreshable;
 mod retry;
@@ -20,6 +21,7 @@ pub use in_ci::in_ci;
 pub use is_tcp_port_listening::is_tcp_port_listening;
 pub use main_wrapper::*;
 pub use periodic_updater::*;
+pub use random_bytes::*;
 #[cfg(feature = "redis")]
 pub use refreshable::*;
 pub use retry::*;
