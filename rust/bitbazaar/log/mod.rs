@@ -36,10 +36,9 @@ pub mod otlp {
 mod tests {
     use std::{
         collections::{HashMap, HashSet},
-        sync::atomic::AtomicU32,
+        sync::{atomic::AtomicU32, LazyLock},
     };
 
-    use once_cell::sync::Lazy;
     use parking_lot::Mutex;
     use rstest::*;
     use tempfile::tempdir;
@@ -65,7 +64,7 @@ mod tests {
         #[values(true, false)] include_timestamp: bool,
         #[values(true, false)] include_loc: bool,
     ) -> RResult<(), AnyErr> {
-        static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
+        static LOGS: LazyLock<Mutex<Vec<String>>> = LazyLock::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
             LOGS.lock().clear();
@@ -131,7 +130,7 @@ mod tests {
         #[case] loc_matcher: Option<regex::Regex>,
         #[case] expected_logs: Vec<&str>,
     ) -> RResult<(), AnyErr> {
-        static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
+        static LOGS: LazyLock<Mutex<Vec<String>>> = LazyLock::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
             LOGS.lock().clear();
@@ -181,7 +180,7 @@ mod tests {
         #[case] level_from: Level,
         #[case] expected_found: Vec<&str>,
     ) -> RResult<(), AnyErr> {
-        static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
+        static LOGS: LazyLock<Mutex<Vec<String>>> = LazyLock::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
             LOGS.lock().clear();
@@ -225,7 +224,7 @@ mod tests {
     /// - Confirm both are recognised internally as exception events and use a custom formatter to give nice error messages.
     #[rstest]
     fn test_exception_recording() -> RResult<(), AnyErr> {
-        static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
+        static LOGS: LazyLock<Mutex<Vec<String>>> = LazyLock::new(Mutex::default);
         {
             // Fn repeat usage so static needs clearing each time:
             LOGS.lock().clear();

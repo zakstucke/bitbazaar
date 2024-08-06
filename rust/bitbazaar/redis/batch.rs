@@ -1,35 +1,34 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::{collections::HashSet, marker::PhantomData, sync::LazyLock};
 
 use deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
-use once_cell::sync::Lazy;
 
 use crate::{log::record_exception, misc::Retry, retry_flexi};
 
-use super::{RedisConn, RedisScript, RedisScriptInvoker};
+use super::{conn::RedisConnLike, RedisScript, RedisScriptInvoker};
 
-static CLEAR_NAMESPACE_SCRIPT: Lazy<RedisScript> =
-    Lazy::new(|| RedisScript::new(include_str!("lua_scripts/clear_namespace.lua")));
+static CLEAR_NAMESPACE_SCRIPT: LazyLock<RedisScript> =
+    LazyLock::new(|| RedisScript::new(include_str!("lua_scripts/clear_namespace.lua")));
 
-static MEXISTS_SCRIPT: Lazy<RedisScript> =
-    Lazy::new(|| RedisScript::new(include_str!("lua_scripts/mexists.lua")));
+static MEXISTS_SCRIPT: LazyLock<RedisScript> =
+    LazyLock::new(|| RedisScript::new(include_str!("lua_scripts/mexists.lua")));
 
-static MSET_WITH_EXPIRY_SCRIPT: Lazy<RedisScript> =
-    Lazy::new(|| RedisScript::new(include_str!("lua_scripts/mset_with_expiry.lua")));
+static MSET_WITH_EXPIRY_SCRIPT: LazyLock<RedisScript> =
+    LazyLock::new(|| RedisScript::new(include_str!("lua_scripts/mset_with_expiry.lua")));
 
 /// A command builder struct. Committed with [`RedisBatch::fire`].
 ///
 /// Batched commands are run in order, but other commands from different sources may be interleaved.
 /// Note each command may be run twice, if scripts needed caching to redis.
-pub struct RedisBatch<'a, 'b, 'c, ReturnType> {
+pub struct RedisBatch<'a, 'c, ConnType: RedisConnLike, ReturnType> {
     _returns: PhantomData<ReturnType>,
-    redis_conn: &'a mut RedisConn<'b>,
+    redis_conn: &'a mut ConnType,
     pipe: Pipeline,
     /// Need to keep a reference to used scripts, these will all be reloaded to redis errors because one wasn't cached on the server.
     used_scripts: HashSet<&'c RedisScript>,
 }
 
-impl<'a, 'b, 'c, ReturnType> RedisBatch<'a, 'b, 'c, ReturnType> {
-    pub(crate) fn new(redis_conn: &'a mut RedisConn<'b>) -> Self {
+impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, ReturnType> {
+    pub(crate) fn new(redis_conn: &'a mut ConnType) -> Self {
         Self {
             _returns: PhantomData,
             redis_conn,
@@ -400,7 +399,9 @@ pub trait RedisBatchFire {
 }
 
 // The special singular variant that returns the command output directly.
-impl<'a, 'b, 'c, R: FromRedisValue> RedisBatchFire for RedisBatch<'a, 'b, 'c, (R,)> {
+impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue> RedisBatchFire
+    for RedisBatch<'a, 'c, ConnType, (R,)>
+{
     type ReturnType = R;
 
     async fn fire(mut self) -> Option<R> {
@@ -410,7 +411,7 @@ impl<'a, 'b, 'c, R: FromRedisValue> RedisBatchFire for RedisBatch<'a, 'b, 'c, (R
 
 macro_rules! impl_batch_fire {
     ( $($tup_item:ident)* ) => (
-        impl<'a, 'b, 'c, $($tup_item: FromRedisValue),*> RedisBatchFire for RedisBatch<'a, 'b, 'c, ($($tup_item,)*)> {
+        impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue),*> RedisBatchFire for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
             type ReturnType = ($($tup_item,)*);
 
             async fn fire(mut self) -> Option<($($tup_item,)*)> {
@@ -503,8 +504,8 @@ pub trait RedisBatchReturningOps<'c> {
 
 macro_rules! impl_batch_ops {
     ( $($tup_item:ident)* ) => (
-        impl<'a, 'b, 'c, $($tup_item: FromRedisValue),*> RedisBatchReturningOps<'c> for RedisBatch<'a, 'b, 'c, ($($tup_item,)*)> {
-            type NextType<T> = RedisBatch<'a, 'b, 'c, ($($tup_item,)* T,)>;
+        impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue),*> RedisBatchReturningOps<'c> for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
+            type NextType<T> = RedisBatch<'a, 'c, ConnType, ($($tup_item,)* T,)>;
 
             fn script<ScriptOutput: FromRedisValue>(
                 mut self,

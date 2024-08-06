@@ -11,7 +11,7 @@ mod standalone;
 pub use standalone::*;
 
 pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
-pub use conn::RedisConn;
+pub use conn::{RedisConn, RedisConnLike};
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonBorrowed};
 // Re-exporting redis and deadpool_redis to be used outside if needed:

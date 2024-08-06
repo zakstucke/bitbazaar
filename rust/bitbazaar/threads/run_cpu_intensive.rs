@@ -33,7 +33,6 @@ pub async fn run_cpu_intensive<R: Send + 'static>(
 // #[cfg(test)]
 // mod tests {
 //     use bitbazaar::log::GlobalLog;
-//     use once_cell::sync::Lazy;
 //     use parking_lot::Mutex;
 
 //     use crate::testing::prelude::*;
@@ -45,7 +44,7 @@ pub async fn run_cpu_intensive<R: Send + 'static>(
 //     #[tokio::test]
 //     async fn test_run_cpu_intensive_spans_maintained() -> RResult<(), AnyErr> {
 //         // TODO this is silly to do like this Arc<Mutex>> would work if we change the callback signature, we can do better upstream now.
-//         static LOGS: Lazy<Mutex<Vec<String>>> = Lazy::new(Mutex::default);
+//         static LOGS: LazyLock<Mutex<Vec<String>>> = LazyLock::new(Mutex::default);
 //         GlobalLog::builder()
 //             .custom(false, false, false, false, |log| {
 //                 LOGS.lock()

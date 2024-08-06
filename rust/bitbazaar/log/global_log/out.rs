@@ -1,11 +1,12 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use parking_lot::Mutex;
 use tracing::{Dispatch, Level};
 use tracing_subscriber::prelude::*;
 
 use crate::errors::prelude::*;
 
-pub static GLOBAL_LOG: Lazy<Mutex<Option<GlobalLog>>> = Lazy::new(Mutex::default);
+pub static GLOBAL_LOG: LazyLock<Mutex<Option<GlobalLog>>> = LazyLock::new(Mutex::default);
 
 /// The global logger/tracer for stdout, file and full open telemetry. Works with the tracing crates (info!, debug!, warn!, error!) and span funcs and decorators.
 ///

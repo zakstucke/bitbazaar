@@ -12,8 +12,9 @@ pub use errs::BashErr;
 
 #[cfg(test)]
 mod tests {
+    use std::sync::LazyLock;
+
     use normpath::PathExt;
-    use once_cell::sync::Lazy;
     use rstest::*;
     use tempfile::NamedTempFile;
 
@@ -31,9 +32,9 @@ mod tests {
         format!("{:?}", NamedTempFile::new().unwrap().path())
     }
 
-    static GLOB_TD: Lazy<tempfile::TempDir> = Lazy::new(|| tempfile::tempdir().unwrap());
+    static GLOB_TD: LazyLock<tempfile::TempDir> = LazyLock::new(|| tempfile::tempdir().unwrap());
 
-    static HOME_DIR: Lazy<String> = Lazy::new(|| {
+    static HOME_DIR: LazyLock<String> = LazyLock::new(|| {
         homedir::get_my_home()
             .unwrap()
             .unwrap()

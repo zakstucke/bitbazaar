@@ -7,7 +7,7 @@ pub use arc_swap::Guard as RefreshableGuard;
 
 use crate::{
     prelude::*,
-    redis::{Redis, RedisBatchFire, RedisBatchReturningOps, RedisConn},
+    redis::{Redis, RedisBatchFire, RedisBatchReturningOps, RedisConnLike},
 };
 
 /// A data wrapper that automatically updates the data given out when deemed stale.
@@ -84,7 +84,7 @@ impl<T: Clone> Refreshable<T> {
     }
 
     /// Internal of `sync`, doesn't set the new data so can be used in mutator.
-    async fn sync_no_set(&self, conn: &mut RedisConn<'_>) -> RResult<Option<T>, AnyErr> {
+    async fn sync_no_set(&self, conn: &mut impl RedisConnLike) -> RResult<Option<T>, AnyErr> {
         let mutate_id_changed = {
             if let Some(Some(current_mutate_id)) = conn
                 .batch()
@@ -115,7 +115,7 @@ impl<T: Clone> Refreshable<T> {
     }
 
     /// Resyncs the data with the source, when it becomes stale (hard refresh), or redis mutate id changes, meaning a different node has updated the data.
-    async fn sync(&self, conn: &mut RedisConn<'_>) -> RResult<(), AnyErr> {
+    async fn sync(&self, conn: &mut impl RedisConnLike) -> RResult<(), AnyErr> {
         if let Some(new_data) = self.sync_no_set(conn).await? {
             self.set_data(new_data).await?;
         }
@@ -145,7 +145,7 @@ impl<T: Clone> Refreshable<T> {
     /// NOTE: returns a double result to allow custom internal error types to be passed out.
     pub async fn mutate<E>(
         &self,
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         mutator: impl FnOnce(&mut T) -> Result<(), E>,
     ) -> RResult<Result<(), E>, AnyErr> {
         self.redis
@@ -207,7 +207,10 @@ impl<T: Clone> Refreshable<T> {
     ///
     /// NOTE: the implementation of the guards means not too many should be alive at once, and keeping across await points should be discouraged.
     /// If you need long access to the underlying data, consider cloning it.
-    pub async fn get(&self, conn: &mut RedisConn<'_>) -> RResult<RefreshableGuard<Arc<T>>, AnyErr> {
+    pub async fn get(
+        &self,
+        conn: &mut impl RedisConnLike,
+    ) -> RResult<RefreshableGuard<Arc<T>>, AnyErr> {
         // Refresh if stale or mutate id in redis changes:
         self.sync(conn).await?;
         Ok(self.data().await?.load())

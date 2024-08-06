@@ -1,8 +1,9 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use parking_lot::Mutex;
 
 #[allow(dead_code)]
-pub static SENT_WARNING_IDS: Lazy<Mutex<Vec<&'static str>>> = Lazy::new(Mutex::default);
+pub static SENT_WARNING_IDS: LazyLock<Mutex<Vec<&'static str>>> = LazyLock::new(Mutex::default);
 
 /// Warn a user once, with uniqueness determined by the given ID.
 #[macro_export]

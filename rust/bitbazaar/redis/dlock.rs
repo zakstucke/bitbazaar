@@ -10,15 +10,17 @@
 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-use std::time::{Duration, Instant};
+use std::{
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
 
 use error_stack::Context;
 use futures::{Future, FutureExt};
-use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng, RngCore};
 use redis::{RedisResult, Value};
 
-use super::{RedisBatchFire, RedisBatchReturningOps, RedisConn, RedisScript};
+use super::{conn::RedisConnLike, RedisBatchFire, RedisBatchReturningOps, RedisConn, RedisScript};
 use crate::{chrono::chrono_format_td, prelude::*};
 
 const RETRY_DELAY: u32 = 200;
@@ -43,8 +45,8 @@ else
 end
 "#;
 
-static UNLOCK_SCRIPT: Lazy<RedisScript> = Lazy::new(|| RedisScript::new(UNLOCK_LUA));
-static EXTEND_SCRIPT: Lazy<RedisScript> = Lazy::new(|| RedisScript::new(EXTEND_LUA));
+static UNLOCK_SCRIPT: LazyLock<RedisScript> = LazyLock::new(|| RedisScript::new(UNLOCK_LUA));
+static EXTEND_SCRIPT: LazyLock<RedisScript> = LazyLock::new(|| RedisScript::new(EXTEND_LUA));
 
 /// Errors that can occur when trying to lock a resource.
 #[derive(Debug)]
