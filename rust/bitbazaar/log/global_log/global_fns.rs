@@ -53,10 +53,10 @@ pub fn meter(name: impl Into<std::borrow::Cow<'static, str>>) -> opentelemetry::
 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 /// Returns the default [`opentelemetry::metrics::Meter`] for the app, labelled "default".
 pub fn global_meter() -> &'static opentelemetry::metrics::Meter {
-    use once_cell::sync::Lazy;
+    use std::sync::LazyLock;
 
-    static GLOBAL_METER: Lazy<opentelemetry::metrics::Meter> =
-        Lazy::new(|| opentelemetry::global::meter("default"));
+    static GLOBAL_METER: LazyLock<opentelemetry::metrics::Meter> =
+        LazyLock::new(|| opentelemetry::global::meter("default"));
 
     &GLOBAL_METER
 }

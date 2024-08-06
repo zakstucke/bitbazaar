@@ -1,13 +1,15 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, LazyLock},
+};
 
-use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tracing::warn;
 
 use crate::{errors::prelude::*, timing::format_duration};
 
 /// A global time recorder, used by the timeit! macro.
-pub static GLOBAL_TIME_RECORDER: Lazy<TimeRecorder> = Lazy::new(TimeRecorder::new);
+pub static GLOBAL_TIME_RECORDER: LazyLock<TimeRecorder> = LazyLock::new(TimeRecorder::new);
 
 #[derive(Default)]
 struct Logs {

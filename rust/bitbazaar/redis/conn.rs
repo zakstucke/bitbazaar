@@ -1,7 +1,12 @@
-use std::{borrow::Cow, future::Future};
+#![allow(async_fn_in_trait)]
+
+use std::{
+    borrow::Cow,
+    future::Future,
+    sync::{Arc, LazyLock},
+};
 
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
-use once_cell::sync::Lazy;
 
 use super::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 use crate::{errors::prelude::*, log::record_exception, redis::RedisScript};
@@ -13,36 +18,80 @@ pub struct RedisConn<'a> {
     conn: Option<deadpool_redis::Connection>,
 }
 
-impl std::fmt::Debug for RedisConn<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RedisConn")
-            .field("prefix", &self.prefix)
-            .field("pool", &self.pool)
-            .field("conn", &self.conn.is_some())
-            .finish()
+impl<'a> RedisConn<'a> {
+    pub(crate) fn new(pool: &'a deadpool_redis::Pool, prefix: &'a str) -> Self {
+        Self {
+            pool,
+            prefix,
+            conn: None,
+        }
     }
 }
 
-/// Public methods for RedisConn.
-impl<'a> RedisConn<'a> {
+// Cloning is still technically heavy for the un-owned, as the active connection can't be reused.
+impl<'a> Clone for RedisConn<'a> {
+    fn clone(&self) -> Self {
+        Self {
+            prefix: self.prefix,
+            pool: self.pool,
+            conn: None,
+        }
+    }
+}
+
+/// An owned variant of [`RedisConn`]. Useful when parent struct lifetimes get out of hand.
+/// [`RedisConn`] is better, so keeping local in crate until a real need for it outside.
+/// (requires pool arc cloning, and prefix string cloning, so slightly less efficient).
+pub struct RedisConnOwned {
+    // Prefix and pool both Arced now at top level for easy cloning.
+    // The conn will be reset to None on each clone, so it's a very heavy object I think.
+    pub(crate) prefix: Arc<String>,
+    pool: deadpool_redis::Pool,
+    conn: Option<deadpool_redis::Connection>,
+}
+
+impl Clone for RedisConnOwned {
+    fn clone(&self) -> Self {
+        Self {
+            prefix: self.prefix.clone(),
+            pool: self.pool.clone(),
+            conn: None,
+        }
+    }
+}
+
+macro_rules! impl_debug_for_conn {
+    ($conn_type:ty, $name:literal) => {
+        impl std::fmt::Debug for $conn_type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_struct($name)
+                    .field("prefix", &self.prefix)
+                    .field("pool", &self.pool)
+                    .field("conn", &self.conn.is_some())
+                    .finish()
+            }
+        }
+    };
+}
+
+impl_debug_for_conn!(RedisConn<'_>, "RedisConn");
+impl_debug_for_conn!(RedisConnOwned, "RedisConnOwned");
+
+/// Generic methods over the RedisConn and RedisConnOwned types.
+pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// Get an internal connection from the pool, connections are kept in the pool for reuse.
     /// If redis is acting up and unavailable, this will return None.
     /// NOTE: this mainly is used internally, but provides a fallback to the underlying connection, if the exposed interface does not provide options that fit an external user need (which could definitely happen).
-    pub async fn get_inner_conn(&mut self) -> Option<&mut deadpool_redis::Connection> {
-        if self.conn.is_none() {
-            match self.pool.get().await {
-                Ok(conn) => self.conn = Some(conn),
-                Err(e) => {
-                    record_exception("Failed to get redis connection.", format!("{:?}", e));
-                    return None;
-                }
-            }
-        }
-        self.conn.as_mut()
-    }
+    async fn get_inner_conn(&mut self) -> Option<&mut deadpool_redis::Connection>;
+
+    /// Get the redis configured prefix.
+    fn prefix(&self) -> &str;
+
+    /// Convert to the owned variant.
+    fn into_owned(self) -> RedisConnOwned;
 
     /// Ping redis, returning true if it's up.
-    pub async fn ping(&mut self) -> bool {
+    async fn ping(&mut self) -> bool {
         if let Some(conn) = self.get_inner_conn().await {
             redis::cmd("PING")
                 .query_async::<_, String>(conn)
@@ -50,6 +99,53 @@ impl<'a> RedisConn<'a> {
                 .is_ok()
         } else {
             false
+        }
+    }
+
+    // Commented out as untested, not sure if works.
+    // /// Get all data from redis, only really useful during testing.
+    // ///
+    // async fn dev_all_data(&mut self) -> HashMap<String, redis::Value> {
+    //     if let Some(conn) = self.get_inner_conn().await {
+    //         let mut cmd = redis::cmd("SCAN");
+    //         cmd.arg(0);
+    //         let mut data = HashMap::new();
+    //         loop {
+    //             let (next_cursor, keys): (i64, Vec<String>) = cmd.query_async(conn).await.unwrap();
+    //             for key in keys {
+    //                 let val: redis::Value =
+    //                     redis::cmd("GET").arg(&key).query_async(conn).await.unwrap();
+    //                 data.insert(key, val);
+    //             }
+    //             if next_cursor == 0 {
+    //                 break;
+    //             }
+    //             cmd.arg(next_cursor);
+    //         }
+    //         data
+    //     } else {
+    //         HashMap::new()
+    //     }
+    // }
+
+    /// Flush the whole redis cache, will delete all data.
+    async fn dev_flushall(&mut self, sync: bool) -> Option<String> {
+        if let Some(conn) = self.get_inner_conn().await {
+            let mut cmd = redis::cmd("FLUSHALL");
+            if sync {
+                cmd.arg("SYNC");
+            } else {
+                cmd.arg("ASYNC");
+            }
+            match cmd.query_async::<_, String>(conn).await {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    record_exception("Failed to reset redis cache.", format!("{:?}", e));
+                    None
+                }
+            }
+        } else {
+            None
         }
     }
 
@@ -68,7 +164,7 @@ impl<'a> RedisConn<'a> {
     /// Returns:
     /// - `None`: Continue with the operation.
     /// - `Some<chrono::Duration>`: Retry after the duration.
-    pub async fn rate_limiter(
+    async fn rate_limiter(
         &mut self,
         namespace: &str,
         caller_identifier: &str,
@@ -76,8 +172,8 @@ impl<'a> RedisConn<'a> {
         initial_delay: chrono::Duration,
         multiplier: f64,
     ) -> Option<chrono::Duration> {
-        static LUA_BACKOFF_SCRIPT: Lazy<RedisScript> =
-            Lazy::new(|| RedisScript::new(include_str!("lua_scripts/backoff_protector.lua")));
+        static LUA_BACKOFF_SCRIPT: LazyLock<RedisScript> =
+            LazyLock::new(|| RedisScript::new(include_str!("lua_scripts/backoff_protector.lua")));
 
         let final_key = self.final_key(namespace, caller_identifier.into());
         let result = self
@@ -105,19 +201,19 @@ impl<'a> RedisConn<'a> {
     }
 
     /// Get a new [`RedisBatch`] for this connection that commands can be piped together with.
-    pub fn batch<'ref_lt>(&'ref_lt mut self) -> RedisBatch<'ref_lt, 'a, '_, ()> {
+    fn batch(&mut self) -> RedisBatch<'_, '_, Self, ()> {
         RedisBatch::new(self)
     }
 
     /// Redis keys are all prefixed, use this to finalise a namespace outside of built in commands, e.g. for use in a custom script.
     #[inline]
-    pub fn final_namespace(&self, namespace: &str) -> String {
-        format!("{}:{}", self.prefix, namespace)
+    fn final_namespace(&self, namespace: &str) -> String {
+        format!("{}:{}", self.prefix(), namespace)
     }
 
     /// Redis keys are all prefixed, use this to finalise a key outside of built in commands, e.g. for use in a custom script.
     #[inline]
-    pub fn final_key(&self, namespace: &str, key: Cow<'_, str>) -> String {
+    fn final_key(&self, namespace: &str, key: Cow<'_, str>) -> String {
         format!("{}:{}", self.final_namespace(namespace), key)
     }
 
@@ -129,7 +225,7 @@ impl<'a> RedisConn<'a> {
     ///
     /// Expiry accurate to a millisecond.
     #[inline]
-    pub async fn cached_fn<'b, T, Fut, K: Into<Cow<'b, str>>>(
+    async fn cached_fn<'b, T, Fut, K: Into<Cow<'b, str>>>(
         &mut self,
         namespace: &str,
         key: K,
@@ -158,13 +254,52 @@ impl<'a> RedisConn<'a> {
     }
 }
 
-/// Private (public inside crate)
-impl<'a> RedisConn<'a> {
-    pub(crate) fn new(pool: &'a deadpool_redis::Pool, prefix: &'a str) -> Self {
-        Self {
-            pool,
-            prefix,
-            conn: None,
+impl<'a> RedisConnLike for RedisConn<'a> {
+    async fn get_inner_conn(&mut self) -> Option<&mut deadpool_redis::Connection> {
+        if self.conn.is_none() {
+            match self.pool.get().await {
+                Ok(conn) => self.conn = Some(conn),
+                Err(e) => {
+                    record_exception("Failed to get redis connection.", format!("{:?}", e));
+                    return None;
+                }
+            }
         }
+        self.conn.as_mut()
+    }
+
+    fn prefix(&self) -> &str {
+        self.prefix
+    }
+
+    fn into_owned(self) -> RedisConnOwned {
+        RedisConnOwned {
+            prefix: Arc::new(self.prefix.to_string()),
+            pool: self.pool.clone(),
+            conn: self.conn,
+        }
+    }
+}
+
+impl RedisConnLike for RedisConnOwned {
+    async fn get_inner_conn(&mut self) -> Option<&mut deadpool_redis::Connection> {
+        if self.conn.is_none() {
+            match self.pool.get().await {
+                Ok(conn) => self.conn = Some(conn),
+                Err(e) => {
+                    record_exception("Failed to get redis connection.", format!("{:?}", e));
+                    return None;
+                }
+            }
+        }
+        self.conn.as_mut()
+    }
+
+    fn prefix(&self) -> &str {
+        &self.prefix
+    }
+
+    fn into_owned(self) -> RedisConnOwned {
+        self
     }
 }

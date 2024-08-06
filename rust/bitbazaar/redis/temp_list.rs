@@ -3,45 +3,73 @@ use std::{
     sync::{atomic::AtomicI64, Arc},
 };
 
-use futures::{future::BoxFuture, FutureExt};
+use futures::future::BoxFuture;
 use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 
-use super::{batch::*, RedisConn, RedisJson};
+use super::{batch::*, conn::RedisConnOwned, RedisConnLike, RedisJson};
 #[cfg(test)]
 use crate::prelude::*;
-use crate::{misc::FlexiLog, redis::RedisJsonBorrowed};
+use crate::{
+    misc::{FlexiLog, FlexiLogFromRedis, FlexiLogPhase, FlexiLogWriter},
+    redis::RedisJsonBorrowed,
+};
 
 /// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
 #[derive(Debug)]
-pub struct RedisTempListItemWithConn<'a, 'b, 'c, T> {
-    /// Mutexes to keep mutability internal.
-    item: Mutex<&'a mut RedisTempListItem<T>>,
-    conn: Mutex<&'b mut RedisConn<'c>>,
+pub struct RedisTempListItemWithConn<T> {
+    // Mutability kept internal.
+    item: Mutex<RedisTempListItem<T>>,
+    conn: Mutex<RedisConnOwned>,
 }
 
-impl<T: FlexiLog + Send + Sync + serde::Serialize + for<'d> serde::Deserialize<'d>> FlexiLog
-    for RedisTempListItemWithConn<'_, '_, '_, T>
+impl<
+        T: FlexiLogWriter + Send + Sync + 'static + serde::Serialize + for<'d> serde::Deserialize<'d>,
+    > FlexiLog for RedisTempListItemWithConn<T>
 {
-    async fn set_progress(&self, progress: f64) {
-        self.update_async(move |item| item.set_progress(progress).boxed())
-            .await;
+    type Writer = T;
+
+    fn batch(
+        &self,
+        cb: impl FnOnce(&mut Self::Writer) + Send,
+    ) -> impl std::future::Future<Output = ()> + Send {
+        self.update(move |updater| {
+            cb(updater);
+        })
     }
 
-    async fn log_with_opts(&self, lvl: tracing::Level, msg: String, force_replace_prior: bool) {
-        self.update_async(move |item| item.log_with_opts(lvl, msg, force_replace_prior).boxed())
-            .await;
+    async fn phase(&self) -> FlexiLogPhase {
+        let maybe_item = self.item().await;
+        if let Some(inner) = maybe_item.as_ref() {
+            inner.phase()
+        } else {
+            crate::misc::FlexiLogPhase::Pending
+        }
     }
 }
 
-impl<'a, 'b, 'c, T: serde::Serialize + for<'d> serde::Deserialize<'d>>
-    RedisTempListItemWithConn<'a, 'b, 'c, T>
+impl<
+        T: FlexiLogWriter
+            + Send
+            + Sync
+            + 'static
+            + serde::Serialize
+            + for<'de> serde::Deserialize<'de>,
+    > FlexiLogFromRedis for RedisTempListItem<T>
 {
+    type FlexiLogger = RedisTempListItemWithConn<T>;
+
+    fn into_flexi_log(self, redis: &super::Redis) -> Self::FlexiLogger {
+        self.into_with_conn(redis.conn())
+    }
+}
+
+impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> RedisTempListItemWithConn<T> {
     /// See [`RedisTempListItem::update`]
     pub async fn update(&self, updater: impl FnOnce(&mut T)) {
         self.item
             .lock()
             .await
-            .update(*self.conn.lock().await, updater)
+            .update(&mut *self.conn.lock().await, updater)
             .await;
     }
 
@@ -50,7 +78,7 @@ impl<'a, 'b, 'c, T: serde::Serialize + for<'d> serde::Deserialize<'d>>
         self.item
             .lock()
             .await
-            .update_async(*self.conn.lock().await, updater)
+            .update_async(&mut *self.conn.lock().await, updater)
             .await;
     }
 
@@ -59,7 +87,7 @@ impl<'a, 'b, 'c, T: serde::Serialize + for<'d> serde::Deserialize<'d>>
         self.item
             .lock()
             .await
-            .replace(*self.conn.lock().await, replacer)
+            .replace(&mut *self.conn.lock().await, replacer)
             .await;
     }
 
@@ -91,7 +119,7 @@ pub struct RedisTempListItem<T> {
     maybe_item: Option<T>,
 }
 
-impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> {
+impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> RedisTempListItem<T> {
     /// Useful helper utility to just get a vec of valid items from a vec of holders.
     /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
     pub fn vec_items(items: Vec<Self>) -> Vec<T> {
@@ -99,13 +127,10 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
     }
 
     /// Useful for combining a connection with an item, to prevent needing to pass both around.
-    pub fn with_conn<'a, 'b, 'c>(
-        &'a mut self,
-        conn: &'b mut RedisConn<'c>,
-    ) -> RedisTempListItemWithConn<'a, 'b, 'c, T> {
+    pub fn into_with_conn(self, conn: impl RedisConnLike) -> RedisTempListItemWithConn<T> {
         RedisTempListItemWithConn {
             item: Mutex::new(self),
-            conn: Mutex::new(conn),
+            conn: Mutex::new(conn.into_owned()),
         }
     }
 
@@ -134,7 +159,7 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
     /// Fully manage the update of an item back to redis.
     /// This interface is designed to encapsulate all failure logic,
     /// and not run the callback if the item wasn't needed, didn't exist etc.
-    pub async fn update(&mut self, conn: &mut RedisConn<'_>, updater: impl FnOnce(&mut T)) {
+    pub async fn update(&mut self, conn: &mut impl RedisConnLike, updater: impl FnOnce(&mut T)) {
         let mut try_push = false;
         if let Some(tmp_list) = &self.maybe_tmp_list {
             if let Some(item) = self.maybe_item.as_mut() {
@@ -165,7 +190,7 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
     /// and not run the callback if the item wasn't needed, didn't exist etc.
     pub async fn update_async(
         &mut self,
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         updater: impl for<'e> FnOnce(&'e mut T) -> BoxFuture<'e, ()>,
     ) {
         let mut try_push = false;
@@ -195,7 +220,7 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
 
     /// Replace the contents of an item in the redis list with new, discarding any previous.
     /// This encapsulates the logic of no list being available, the callback will then never run.
-    pub async fn replace(&mut self, conn: &mut RedisConn<'_>, replacer: impl FnOnce() -> T) {
+    pub async fn replace(&mut self, conn: &mut impl RedisConnLike, replacer: impl FnOnce() -> T) {
         let mut try_push_with_next_item = (false, None);
         if let Some(tmp_list) = &self.maybe_tmp_list {
             let next_item = replacer();
@@ -220,7 +245,7 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
 
     /// Delete the item from the list.
     /// Will be a no-op of the item wrapper is actually empty for some reason.
-    pub async fn delete(self, conn: &mut RedisConn<'_>) {
+    pub async fn delete(self, conn: &mut impl RedisConnLike) {
         if let Some(tmp_list) = self.maybe_tmp_list {
             if let Some(uid) = self.maybe_uid {
                 tmp_list.delete(conn, &uid).await;
@@ -249,6 +274,7 @@ impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> RedisTempListItem<T> 
 /// - Each item in the list has it's own expiry, so the list is always clean of old items.
 /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
 /// - Returned items are returned newest/last-updated to oldest
+///
 /// This makes this distributed data structure perfect for stuff like:
 /// - recent/temporary logs/events of any sort.
 /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
@@ -295,7 +321,7 @@ impl RedisTempList {
     /// The score should be the utc timestamp to expire:
     async fn extend_inner<'a, T>(
         &self,
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         items: impl IntoIterator<Item = &'a T>,
     ) -> Option<Vec<String>>
     where
@@ -386,7 +412,7 @@ impl RedisTempList {
     /// `RedisTempListItem<T>`: The resulting item holder which can be used to further manipulate the items.
     pub async fn push<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
         self: &'a Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         item: T,
     ) -> RedisTempListItem<T> {
         let uids = self.extend_inner(conn, std::iter::once(&item)).await;
@@ -423,7 +449,7 @@ impl RedisTempList {
     /// - `None`: Something went wrong and the items weren't added correctly.
     pub async fn extend<'a, T: serde::Serialize + for<'b> serde::Deserialize<'b>>(
         self: &'a Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         items: impl IntoIterator<Item = T>,
     ) -> Vec<RedisTempListItem<T>> {
         let items = items.into_iter().collect::<Vec<_>>();
@@ -444,7 +470,7 @@ impl RedisTempList {
     /// Underlying of [`RedisTempList::read_multi`], but returns the `(i64: ttl, String: item key, T: item)` rather than `RedisTempList<T>` that makes working with items easier.
     pub async fn read_multi_raw<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
         &self,
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         limit: Option<isize>,
     ) -> Vec<(i64, String, T)> {
         // NOTE: because of the separation between the root list, and the values themselves as a separate redis keys, 2 calls are needed.
@@ -531,7 +557,7 @@ impl RedisTempList {
     /// - `Vec<RedisTempListItem<T>`: The wrapped items in the list from newest to oldest up to the provided limit (if any).
     pub async fn read_multi<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
         self: &Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         limit: Option<isize>,
     ) -> Vec<RedisTempListItem<T>> {
         self.read_multi_raw::<T>(conn, limit)
@@ -551,7 +577,7 @@ impl RedisTempList {
     /// - RedisTempListItem<'a, 'c, T>: The item holder that encapsulates any error logic.
     pub async fn read<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(
         self: &Arc<Self>, // Using arc to be cloning references into the list items rather than the full list object each time.
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         uid: &str,
     ) -> RedisTempListItem<T> {
         let item = conn
@@ -585,7 +611,7 @@ impl RedisTempList {
     /// This will also:
     /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
-    pub async fn delete(&self, conn: &mut RedisConn<'_>, uid: &str) {
+    pub async fn delete(&self, conn: &mut impl RedisConnLike, uid: &str) {
         self.delete_multi(conn, std::iter::once(uid)).await;
     }
 
@@ -596,7 +622,7 @@ impl RedisTempList {
     /// - Clean up expired list items
     pub async fn delete_multi<S: Into<String>>(
         &self,
-        conn: &mut RedisConn<'_>,
+        conn: &mut impl RedisConnLike,
         uids: impl IntoIterator<Item = S>,
     ) {
         conn.batch()
@@ -632,7 +658,7 @@ impl RedisTempList {
     /// - Clean up expired list items
     /// - Reset the item's expiry time, given its been updated
     ///
-    pub async fn update<'a, T>(&self, conn: &mut RedisConn<'_>, uid: &str, item: &'a T)
+    pub async fn update<'a, T>(&self, conn: &mut impl RedisConnLike, uid: &str, item: &'a T)
     where
         T: 'a + serde::Deserialize<'a>,
         &'a T: serde::Serialize,
@@ -672,7 +698,7 @@ impl RedisTempList {
 
     /// Clear all the items in the list.
     /// (by just deleting the list itself, stored values will still live until their ttl but used a random uid so no conflicts)
-    pub async fn clear(&self, conn: &mut RedisConn<'_>) {
+    pub async fn clear(&self, conn: &mut impl RedisConnLike) {
         conn.batch()
             .clear(&self.namespace, std::iter::once(self.key.as_str()))
             .fire()

@@ -4,9 +4,7 @@ mod exit;
 mod pwd;
 mod set;
 
-use std::collections::HashMap;
-
-use once_cell::sync::Lazy;
+use std::{collections::HashMap, sync::LazyLock};
 
 use super::{errs::BuiltinErr, shell::Shell, BashOut};
 use crate::prelude::*;
@@ -26,7 +24,7 @@ macro_rules! bad_call {
 
 pub(crate) use bad_call;
 
-pub static BUILTINS: Lazy<HashMap<&'static str, Builtin>> = Lazy::new(|| {
+pub static BUILTINS: LazyLock<HashMap<&'static str, Builtin>> = LazyLock::new(|| {
     let mut builtins: HashMap<&'static str, Builtin> = HashMap::new();
     builtins.insert("echo", echo::echo);
     builtins.insert("cd", cd::cd);
