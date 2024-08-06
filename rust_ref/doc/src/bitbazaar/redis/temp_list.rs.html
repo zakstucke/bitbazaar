@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/temp_list.rs`."><title>temp_list.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../bitbazaar/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/temp_list.rs`."><title>temp_list.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -926,50 +926,104 @@
 <a href="#926" id="926">926</a>
 <a href="#927" id="927">927</a>
 <a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Cow,
     sync::{atomic::AtomicI64, Arc},
 };
 
-<span class="kw">use </span>futures::{future::BoxFuture, FutureExt};
+<span class="kw">use </span>futures::future::BoxFuture;
 <span class="kw">use </span>tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 
-<span class="kw">use super</span>::{batch::<span class="kw-2">*</span>, RedisConn, RedisJson};
+<span class="kw">use super</span>::{batch::<span class="kw-2">*</span>, conn::RedisConnOwned, RedisConnLike, RedisJson};
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
-<span class="kw">use crate</span>::{misc::FlexiLog, redis::RedisJsonBorrowed};
+<span class="kw">use crate</span>::{
+    misc::{FlexiLog, FlexiLogFromRedis, FlexiLogPhase, FlexiLogWriter},
+    redis::RedisJsonBorrowed,
+};
 
 <span class="doccomment">/// A wrapped item, with a connection too, preventing need to pass 2 things around if useful for certain interfaces.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, T&gt; {
-    <span class="doccomment">/// Mutexes to keep mutability internal.
-    </span>item: Mutex&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>RedisTempListItem&lt;T&gt;&gt;,
-    conn: Mutex&lt;<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="kw-2">mut </span>RedisConn&lt;<span class="lifetime">'c</span>&gt;&gt;,
+</span><span class="kw">pub struct </span>RedisTempListItemWithConn&lt;T&gt; {
+    <span class="comment">// Mutability kept internal.
+    </span>item: Mutex&lt;RedisTempListItem&lt;T&gt;&gt;,
+    conn: Mutex&lt;RedisConnOwned&gt;,
 }
 
-<span class="kw">impl</span>&lt;T: FlexiLog + Send + Sync + serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'d</span>&gt; serde::Deserialize&lt;<span class="lifetime">'d</span>&gt;&gt; FlexiLog
-    <span class="kw">for </span>RedisTempListItemWithConn&lt;<span class="lifetime">'_</span>, <span class="lifetime">'_</span>, <span class="lifetime">'_</span>, T&gt;
+<span class="kw">impl</span>&lt;
+        T: FlexiLogWriter + Send + Sync + <span class="lifetime">'static </span>+ serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'d</span>&gt; serde::Deserialize&lt;<span class="lifetime">'d</span>&gt;,
+    &gt; FlexiLog <span class="kw">for </span>RedisTempListItemWithConn&lt;T&gt;
 {
-    <span class="kw">async fn </span>set_progress(<span class="kw-2">&amp;</span><span class="self">self</span>, progress: f64) {
-        <span class="self">self</span>.update_async(<span class="kw">move </span>|item| item.set_progress(progress).boxed())
-            .<span class="kw">await</span>;
+    <span class="kw">type </span>Writer = T;
+
+    <span class="kw">fn </span>batch(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        cb: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span><span class="self">Self</span>::Writer) + Send,
+    ) -&gt; <span class="kw">impl </span>std::future::Future&lt;Output = ()&gt; + Send {
+        <span class="self">self</span>.update(<span class="kw">move </span>|updater| {
+            cb(updater);
+        })
     }
 
-    <span class="kw">async fn </span>log_with_opts(<span class="kw-2">&amp;</span><span class="self">self</span>, lvl: tracing::Level, msg: String, force_replace_prior: bool) {
-        <span class="self">self</span>.update_async(<span class="kw">move </span>|item| item.log_with_opts(lvl, msg, force_replace_prior).boxed())
-            .<span class="kw">await</span>;
+    <span class="kw">async fn </span>phase(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; FlexiLogPhase {
+        <span class="kw">let </span>maybe_item = <span class="self">self</span>.item().<span class="kw">await</span>;
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(inner) = maybe_item.as_ref() {
+            inner.phase()
+        } <span class="kw">else </span>{
+            <span class="kw">crate</span>::misc::FlexiLogPhase::Pending
+        }
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'d</span>&gt; serde::Deserialize&lt;<span class="lifetime">'d</span>&gt;&gt;
-    RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, T&gt;
+<span class="kw">impl</span>&lt;
+        T: FlexiLogWriter
+            + Send
+            + Sync
+            + <span class="lifetime">'static
+            </span>+ serde::Serialize
+            + <span class="kw">for</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt;,
+    &gt; FlexiLogFromRedis <span class="kw">for </span>RedisTempListItem&lt;T&gt;
 {
+    <span class="kw">type </span>FlexiLogger = RedisTempListItemWithConn&lt;T&gt;;
+
+    <span class="kw">fn </span>into_flexi_log(<span class="self">self</span>, redis: <span class="kw-2">&amp;</span><span class="kw">super</span>::Redis) -&gt; <span class="self">Self</span>::FlexiLogger {
+        <span class="self">self</span>.into_with_conn(redis.conn())
+    }
+}
+
+<span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt;&gt; RedisTempListItemWithConn&lt;T&gt; {
     <span class="doccomment">/// See [`RedisTempListItem::update`]
     </span><span class="kw">pub async fn </span>update(<span class="kw-2">&amp;</span><span class="self">self</span>, updater: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>T)) {
         <span class="self">self</span>.item
             .lock()
             .<span class="kw">await
-            </span>.update(<span class="kw-2">*</span><span class="self">self</span>.conn.lock().<span class="kw">await</span>, updater)
+            </span>.update(<span class="kw-2">&amp;mut *</span><span class="self">self</span>.conn.lock().<span class="kw">await</span>, updater)
             .<span class="kw">await</span>;
     }
 
@@ -978,7 +1032,7 @@
         <span class="self">self</span>.item
             .lock()
             .<span class="kw">await
-            </span>.update_async(<span class="kw-2">*</span><span class="self">self</span>.conn.lock().<span class="kw">await</span>, updater)
+            </span>.update_async(<span class="kw-2">&amp;mut *</span><span class="self">self</span>.conn.lock().<span class="kw">await</span>, updater)
             .<span class="kw">await</span>;
     }
 
@@ -987,7 +1041,7 @@
         <span class="self">self</span>.item
             .lock()
             .<span class="kw">await
-            </span>.replace(<span class="kw-2">*</span><span class="self">self</span>.conn.lock().<span class="kw">await</span>, replacer)
+            </span>.replace(<span class="kw-2">&amp;mut *</span><span class="self">self</span>.conn.lock().<span class="kw">await</span>, replacer)
             .<span class="kw">await</span>;
     }
 
@@ -1019,7 +1073,7 @@
     maybe_item: <span class="prelude-ty">Option</span>&lt;T&gt;,
 }
 
-<span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt; RedisTempListItem&lt;T&gt; {
+<span class="kw">impl</span>&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt;&gt; RedisTempListItem&lt;T&gt; {
     <span class="doccomment">/// Useful helper utility to just get a vec of valid items from a vec of holders.
     /// E.g. `RedisTempListItem::vec_items(vec![item1, item2, item3])`
     </span><span class="kw">pub fn </span>vec_items(items: Vec&lt;<span class="self">Self</span>&gt;) -&gt; Vec&lt;T&gt; {
@@ -1027,13 +1081,10 @@
     }
 
     <span class="doccomment">/// Useful for combining a connection with an item, to prevent needing to pass both around.
-    </span><span class="kw">pub fn </span>with_conn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="kw-2">mut </span>RedisConn&lt;<span class="lifetime">'c</span>&gt;,
-    ) -&gt; RedisTempListItemWithConn&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, <span class="lifetime">'c</span>, T&gt; {
+    </span><span class="kw">pub fn </span>into_with_conn(<span class="self">self</span>, conn: <span class="kw">impl </span>RedisConnLike) -&gt; RedisTempListItemWithConn&lt;T&gt; {
         RedisTempListItemWithConn {
             item: Mutex::new(<span class="self">self</span>),
-            conn: Mutex::new(conn),
+            conn: Mutex::new(conn.into_owned()),
         }
     }
 
@@ -1062,7 +1113,7 @@
     <span class="doccomment">/// Fully manage the update of an item back to redis.
     /// This interface is designed to encapsulate all failure logic,
     /// and not run the callback if the item wasn't needed, didn't exist etc.
-    </span><span class="kw">pub async fn </span>update(<span class="kw-2">&amp;mut </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, updater: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>T)) {
+    </span><span class="kw">pub async fn </span>update(<span class="kw-2">&amp;mut </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike, updater: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>T)) {
         <span class="kw">let </span><span class="kw-2">mut </span>try_push = <span class="bool-val">false</span>;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tmp_list) = <span class="kw-2">&amp;</span><span class="self">self</span>.maybe_tmp_list {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(item) = <span class="self">self</span>.maybe_item.as_mut() {
@@ -1093,7 +1144,7 @@
     /// and not run the callback if the item wasn't needed, didn't exist etc.
     </span><span class="kw">pub async fn </span>update_async(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         updater: <span class="kw">impl for</span>&lt;<span class="lifetime">'e</span>&gt; FnOnce(<span class="kw-2">&amp;</span><span class="lifetime">'e </span><span class="kw-2">mut </span>T) -&gt; BoxFuture&lt;<span class="lifetime">'e</span>, ()&gt;,
     ) {
         <span class="kw">let </span><span class="kw-2">mut </span>try_push = <span class="bool-val">false</span>;
@@ -1123,7 +1174,7 @@
 
     <span class="doccomment">/// Replace the contents of an item in the redis list with new, discarding any previous.
     /// This encapsulates the logic of no list being available, the callback will then never run.
-    </span><span class="kw">pub async fn </span>replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, replacer: <span class="kw">impl </span>FnOnce() -&gt; T) {
+    </span><span class="kw">pub async fn </span>replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike, replacer: <span class="kw">impl </span>FnOnce() -&gt; T) {
         <span class="kw">let </span><span class="kw-2">mut </span>try_push_with_next_item = (<span class="bool-val">false</span>, <span class="prelude-val">None</span>);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tmp_list) = <span class="kw-2">&amp;</span><span class="self">self</span>.maybe_tmp_list {
             <span class="kw">let </span>next_item = replacer();
@@ -1148,7 +1199,7 @@
 
     <span class="doccomment">/// Delete the item from the list.
     /// Will be a no-op of the item wrapper is actually empty for some reason.
-    </span><span class="kw">pub async fn </span>delete(<span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;) {
+    </span><span class="kw">pub async fn </span>delete(<span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike) {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(tmp_list) = <span class="self">self</span>.maybe_tmp_list {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(uid) = <span class="self">self</span>.maybe_uid {
                 tmp_list.delete(conn, <span class="kw-2">&amp;</span>uid).<span class="kw">await</span>;
@@ -1177,6 +1228,7 @@
 /// - Each item in the list has it's own expiry, so the list is always clean of old items.
 /// - Each item has a generated unique key, this key can be used to update or delete specific items directly.
 /// - Returned items are returned newest/last-updated to oldest
+///
 /// This makes this distributed data structure perfect for stuff like:
 /// - recent/temporary logs/events of any sort.
 /// - pending actions, that can be updated in-place by the creator, but read as part of a list by a viewer etc.
@@ -1223,7 +1275,7 @@
     <span class="doccomment">/// The score should be the utc timestamp to expire:
     </span><span class="kw">async fn </span>extend_inner&lt;<span class="lifetime">'a</span>, T&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         items: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T&gt;,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;Vec&lt;String&gt;&gt;
     <span class="kw">where
@@ -1314,7 +1366,7 @@
     /// `RedisTempListItem&lt;T&gt;`: The resulting item holder which can be used to further manipulate the items.
     </span><span class="kw">pub async fn </span>push&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
-        </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        </span>conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         item: T,
     ) -&gt; RedisTempListItem&lt;T&gt; {
         <span class="kw">let </span>uids = <span class="self">self</span>.extend_inner(conn, std::iter::once(<span class="kw-2">&amp;</span>item)).<span class="kw">await</span>;
@@ -1351,7 +1403,7 @@
     /// - `None`: Something went wrong and the items weren't added correctly.
     </span><span class="kw">pub async fn </span>extend&lt;<span class="lifetime">'a</span>, T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
-        </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        </span>conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         items: <span class="kw">impl </span>IntoIterator&lt;Item = T&gt;,
     ) -&gt; Vec&lt;RedisTempListItem&lt;T&gt;&gt; {
         <span class="kw">let </span>items = items.into_iter().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
@@ -1372,7 +1424,7 @@
     <span class="doccomment">/// Underlying of [`RedisTempList::read_multi`], but returns the `(i64: ttl, String: item key, T: item)` rather than `RedisTempList&lt;T&gt;` that makes working with items easier.
     </span><span class="kw">pub async fn </span>read_multi_raw&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
     ) -&gt; Vec&lt;(i64, String, T)&gt; {
         <span class="comment">// NOTE: because of the separation between the root list, and the values themselves as a separate redis keys, 2 calls are needed.
@@ -1459,7 +1511,7 @@
     /// - `Vec&lt;RedisTempListItem&lt;T&gt;`: The wrapped items in the list from newest to oldest up to the provided limit (if any).
     </span><span class="kw">pub async fn </span>read_multi&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
-        </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        </span>conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
     ) -&gt; Vec&lt;RedisTempListItem&lt;T&gt;&gt; {
         <span class="self">self</span>.read_multi_raw::&lt;T&gt;(conn, limit)
@@ -1479,7 +1531,7 @@
     /// - RedisTempListItem&lt;'a, 'c, T&gt;: The item holder that encapsulates any error logic.
     </span><span class="kw">pub async fn </span>read&lt;T: serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;&gt;(
         <span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, <span class="comment">// Using arc to be cloning references into the list items rather than the full list object each time.
-        </span>conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        </span>conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         uid: <span class="kw-2">&amp;</span>str,
     ) -&gt; RedisTempListItem&lt;T&gt; {
         <span class="kw">let </span>item = conn
@@ -1513,7 +1565,7 @@
     /// This will also:
     /// - Autoreset list's expire time to self.list_inactive_ttl from now
     /// - Clean up expired list items
-    </span><span class="kw">pub async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, uid: <span class="kw-2">&amp;</span>str) {
+    </span><span class="kw">pub async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike, uid: <span class="kw-2">&amp;</span>str) {
         <span class="self">self</span>.delete_multi(conn, std::iter::once(uid)).<span class="kw">await</span>;
     }
 
@@ -1524,7 +1576,7 @@
     /// - Clean up expired list items
     </span><span class="kw">pub async fn </span>delete_multi&lt;S: Into&lt;String&gt;&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;,
+        conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike,
         uids: <span class="kw">impl </span>IntoIterator&lt;Item = S&gt;,
     ) {
         conn.batch()
@@ -1560,7 +1612,7 @@
     /// - Clean up expired list items
     /// - Reset the item's expiry time, given its been updated
     ///
-    </span><span class="kw">pub async fn </span>update&lt;<span class="lifetime">'a</span>, T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;, uid: <span class="kw-2">&amp;</span>str, item: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T)
+    </span><span class="kw">pub async fn </span>update&lt;<span class="lifetime">'a</span>, T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike, uid: <span class="kw-2">&amp;</span>str, item: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T)
     <span class="kw">where
         </span>T: <span class="lifetime">'a </span>+ serde::Deserialize&lt;<span class="lifetime">'a</span>&gt;,
         <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T: serde::Serialize,
@@ -1600,7 +1652,7 @@
 
     <span class="doccomment">/// Clear all the items in the list.
     /// (by just deleting the list itself, stored values will still live until their ttl but used a random uid so no conflicts)
-    </span><span class="kw">pub async fn </span>clear(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span>RedisConn&lt;<span class="lifetime">'_</span>&gt;) {
+    </span><span class="kw">pub async fn </span>clear(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike) {
         conn.batch()
             .clear(<span class="kw-2">&amp;</span><span class="self">self</span>.namespace, std::iter::once(<span class="self">self</span>.key.as_str()))
             .fire()

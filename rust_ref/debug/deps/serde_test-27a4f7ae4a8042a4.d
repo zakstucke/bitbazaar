@@ -1,0 +1,11 @@
+/home/runner/work/bitbazaar/bitbazaar/rust/target/debug/deps/libserde_test-27a4f7ae4a8042a4.rmeta: /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/lib.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/assert.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/configure.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/de.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/error.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/ser.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/token.rs
+
+/home/runner/work/bitbazaar/bitbazaar/rust/target/debug/deps/serde_test-27a4f7ae4a8042a4.d: /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/lib.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/assert.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/configure.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/de.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/error.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/ser.rs /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/token.rs
+
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/lib.rs:
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/assert.rs:
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/configure.rs:
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/de.rs:
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/error.rs:
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/ser.rs:
+/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde_test-1.0.176/src/token.rs:
