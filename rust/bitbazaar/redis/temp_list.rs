@@ -597,9 +597,10 @@ impl RedisTempList {
             // Unlike our zadd during setting, need to manually refresh the expire time of the list here:
             .expire(&self.namespace, &self.key, self.list_inactive_ttl_chrono())
             .fire()
-            .await;
+            .await
+            .flatten();
 
-        if let Some(item) = item.flatten() {
+        if let Some(item) = item {
             RedisTempListItem::new(Some(uid.to_string()), Some(item.0), Some(self))
         } else {
             RedisTempListItem::new_dummy()
@@ -714,241 +715,252 @@ impl RedisTempList {
     }
 }
 
+// Redis server can't be run on windows:
+#[cfg(not(target_os = "windows"))]
 #[cfg(test)]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct ExampleObject {
-    pub a: i32,
-    pub b: String,
-}
+mod tests {
 
-/// Run by the main tester that spawns up a redis process.
-#[cfg(test)]
-pub async fn redis_temp_list_tests(r: &super::Redis) -> Result<(), AnyErr> {
-    // Just checking the object is normal: (from upstream)
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
-    is_normal::<RedisTempList>();
+    use super::*;
+    use crate::redis::{Redis, RedisStandalone};
+    use crate::testing::prelude::*;
 
-    let mut conn = r.conn();
-
-    static NS: &str = "templist_tests";
-
-    let li1 = RedisTempList::new(
-        NS,
-        "t1",
-        std::time::Duration::from_millis(100),
-        std::time::Duration::from_millis(60),
-    );
-    li1.extend(
-        &mut conn,
-        vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
-    )
-    .await;
-    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    li1.push(&mut conn, "i4".to_string()).await;
-    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    li1.push(&mut conn, "i5".to_string()).await;
-    // Keys are ordered from recent to old:
-    assert_eq!(
-        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
-        vec!["i5", "i4", "i3", "i2", "i1"]
-    );
-    // Read with limit, should be keeping newest and dropping oldest:
-    assert_eq!(
-        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, Some(3)).await),
-        vec!["i5", "i4", "i3"]
-    );
-    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    // First batch should have expired now (3 20ms waits)
-    // i4 should be expired, it had a ttl of 20ms:
-    assert_eq!(
-        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
-        vec!["i5", "i4"]
-    );
-    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    // i4 should be gone now:
-    assert_eq!(
-        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
-        vec!["i5"]
-    );
-    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    // i5 should be gone now:
-    assert_eq!(
-        RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
-        Vec::<String>::new()
-    );
-
-    // Let's create a strange list, one with a short list lifetime but effectively infinite item lifetime:
-    let li2 = RedisTempList::new(
-        NS,
-        "t2",
-        std::time::Duration::from_millis(50),
-        std::time::Duration::from_millis(1000),
-    );
-    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    let i1 = li2.push(&mut conn, "i1".to_string()).await;
-    // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
-        vec!["i1"]
-    );
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    li2.extend(
-        &mut conn,
-        vec!["i2".to_string(), "i3".to_string(), "i4".to_string()],
-    )
-    .await;
-    // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
-        vec!["i4", "i3", "i2", "i1"]
-    );
-    // Above read_multi should have also updated the list's ttl, so should be there after another 40ms:
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    assert_eq!(
-        li2.read::<String>(&mut conn, i1.uid().unwrap())
-            .await
-            .into_item(),
-        Some("i1".to_string())
-    );
-    // Above direct read should have also updated the list's ttl, so should be there after another 40ms:
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    assert_eq!(
-        li2.read::<String>(&mut conn, i1.uid().unwrap())
-            .await
-            .into_item(),
-        Some("i1".to_string())
-    );
-    let i5 = li2.push(&mut conn, "i5".to_string()).await;
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    li2.delete(&mut conn, i1.uid().unwrap()).await;
-    // Above delete should have updated the list's ttl, so should be there after another 40ms:
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
-        vec!["i5", "i4", "i3", "i2"]
-    );
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    li2.update(&mut conn, i5.uid().unwrap(), &"i5-updated")
-        .await;
-    // Above update should have updated the list's ttl, so should be there after another 40ms:
-    tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-    assert_eq!(
-        li2.read::<String>(&mut conn, i5.uid().unwrap())
-            .await
-            .into_item(),
-        Some("i5-updated".to_string())
-    );
-    // When no reads or writes, the list should expire after 50ms:
-    tokio::time::sleep(std::time::Duration::from_millis(60)).await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
-        Vec::<String>::new()
-    );
-
-    // Make sure manual clear() works on a new list too:
-    let li3 = RedisTempList::new(
-        NS,
-        "t3",
-        std::time::Duration::from_millis(100),
-        std::time::Duration::from_millis(30),
-    );
-    li3.extend(
-        &mut conn,
-        vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
-    )
-    .await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
-        vec!["i3", "i2", "i1"]
-    );
-    li3.clear(&mut conn).await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
-        Vec::<String>::new()
-    );
-
-    // Try with arb value, e.g. vec of (i32, String):
-    let li4 = RedisTempList::new(
-        NS,
-        "t4",
-        std::time::Duration::from_millis(100),
-        std::time::Duration::from_millis(30),
-    );
-    li4.push(&mut conn, (1, "a".to_string())).await;
-    li4.push(&mut conn, (2, "b".to_string())).await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li4.read_multi::<(i32, String)>(&mut conn, None).await),
-        vec![(2, "b".to_string()), (1, "a".to_string())]
-    );
-    // Confirm delete() with the items themselves works:
-    let li_items = li4.read_multi::<(i32, String)>(&mut conn, None).await;
-    assert_eq!(li_items.len(), 2);
-    for item in li_items {
-        item.delete(&mut conn).await;
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+    pub struct ExampleObject {
+        pub a: i32,
+        pub b: String,
     }
-    assert_eq!(
-        li4.read_multi::<(i32, String)>(&mut conn, None).await.len(),
-        0
-    );
 
-    // Try with json value:
-    let li5 = RedisTempList::new(
-        NS,
-        "t5",
-        std::time::Duration::from_millis(100),
-        std::time::Duration::from_millis(30),
-    );
-    li5.extend(
-        &mut conn,
-        vec![
-            ExampleObject {
-                a: 1,
-                b: "a".to_string(),
-            },
-            ExampleObject {
-                a: 2,
-                b: "b".to_string(),
-            },
-        ],
-    )
-    .await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li5.read_multi::<ExampleObject>(&mut conn, None).await),
-        vec![
-            ExampleObject {
-                a: 2,
-                b: "b".to_string()
-            },
-            ExampleObject {
-                a: 1,
-                b: "a".to_string()
-            }
-        ]
-    );
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_temp_list(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        let server = RedisStandalone::new_no_persistence().await?;
+        let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
+        // Just checking the object is normal: (from upstream)
+        fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+        is_normal::<RedisTempList>();
 
-    // Make sure duplicate values don't break the list and are still kept:
-    let li6 = RedisTempList::new(
-        NS,
-        "t6",
-        std::time::Duration::from_millis(100),
-        std::time::Duration::from_millis(30),
-    );
-    li6.extend(
-        &mut conn,
-        vec![
-            "i1".to_string(),
-            "i2".to_string(),
-            "i1".to_string(),
-            "i3".to_string(),
-        ],
-    )
-    .await;
-    assert_eq!(
-        RedisTempListItem::vec_items(li6.read_multi::<String>(&mut conn, None).await),
-        vec!["i3", "i1", "i2", "i1"]
-    );
+        let mut conn = r.conn();
 
-    Ok(())
+        static NS: &str = "templist_tests";
+
+        let li1 = RedisTempList::new(
+            NS,
+            "t1",
+            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(60),
+        );
+        li1.extend(
+            &mut conn,
+            vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
+        )
+        .await;
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        li1.push(&mut conn, "i4".to_string()).await;
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        li1.push(&mut conn, "i5".to_string()).await;
+        // Keys are ordered from recent to old:
+        assert_eq!(
+            RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+            vec!["i5", "i4", "i3", "i2", "i1"]
+        );
+        // Read with limit, should be keeping newest and dropping oldest:
+        assert_eq!(
+            RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, Some(3)).await),
+            vec!["i5", "i4", "i3"]
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        // First batch should have expired now (3 20ms waits)
+        // i4 should be expired, it had a ttl of 20ms:
+        assert_eq!(
+            RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+            vec!["i5", "i4"]
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        // i4 should be gone now:
+        assert_eq!(
+            RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+            vec!["i5"]
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        // i5 should be gone now:
+        assert_eq!(
+            RedisTempListItem::vec_items(li1.read_multi::<String>(&mut conn, None).await),
+            Vec::<String>::new()
+        );
+
+        // Let's create a strange list, one with a short list lifetime but effectively infinite item lifetime:
+        let li2 = RedisTempList::new(
+            NS,
+            "t2",
+            std::time::Duration::from_millis(50),
+            std::time::Duration::from_millis(1000),
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        let i1 = li2.push(&mut conn, "i1".to_string()).await;
+        // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+            vec!["i1"]
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        li2.extend(
+            &mut conn,
+            vec!["i2".to_string(), "i3".to_string(), "i4".to_string()],
+        )
+        .await;
+        // Li should still be there after another 40ms, as the last push should have updated the list's ttl:
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+            vec!["i4", "i3", "i2", "i1"]
+        );
+        // Above read_multi should have also updated the list's ttl, so should be there after another 40ms:
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        assert_eq!(
+            li2.read::<String>(&mut conn, i1.uid().unwrap())
+                .await
+                .into_item(),
+            Some("i1".to_string())
+        );
+        // Above direct read should have also updated the list's ttl, so should be there after another 40ms:
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        assert_eq!(
+            li2.read::<String>(&mut conn, i1.uid().unwrap())
+                .await
+                .into_item(),
+            Some("i1".to_string())
+        );
+        let i5 = li2.push(&mut conn, "i5".to_string()).await;
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        li2.delete(&mut conn, i1.uid().unwrap()).await;
+        // Above delete should have updated the list's ttl, so should be there after another 40ms:
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+            vec!["i5", "i4", "i3", "i2"]
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        li2.update(&mut conn, i5.uid().unwrap(), &"i5-updated")
+            .await;
+        // Above update should have updated the list's ttl, so should be there after another 40ms:
+        tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+        assert_eq!(
+            li2.read::<String>(&mut conn, i5.uid().unwrap())
+                .await
+                .into_item(),
+            Some("i5-updated".to_string())
+        );
+        // When no reads or writes, the list should expire after 50ms:
+        tokio::time::sleep(std::time::Duration::from_millis(60)).await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li2.read_multi::<String>(&mut conn, None).await),
+            Vec::<String>::new()
+        );
+
+        // Make sure manual clear() works on a new list too:
+        let li3 = RedisTempList::new(
+            NS,
+            "t3",
+            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(30),
+        );
+        li3.extend(
+            &mut conn,
+            vec!["i1".to_string(), "i2".to_string(), "i3".to_string()],
+        )
+        .await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
+            vec!["i3", "i2", "i1"]
+        );
+        li3.clear(&mut conn).await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li3.read_multi::<String>(&mut conn, None).await),
+            Vec::<String>::new()
+        );
+
+        // Try with arb value, e.g. vec of (i32, String):
+        let li4 = RedisTempList::new(
+            NS,
+            "t4",
+            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(30),
+        );
+        li4.push(&mut conn, (1, "a".to_string())).await;
+        li4.push(&mut conn, (2, "b".to_string())).await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li4.read_multi::<(i32, String)>(&mut conn, None).await),
+            vec![(2, "b".to_string()), (1, "a".to_string())]
+        );
+        // Confirm delete() with the items themselves works:
+        let li_items = li4.read_multi::<(i32, String)>(&mut conn, None).await;
+        assert_eq!(li_items.len(), 2);
+        for item in li_items {
+            item.delete(&mut conn).await;
+        }
+        assert_eq!(
+            li4.read_multi::<(i32, String)>(&mut conn, None).await.len(),
+            0
+        );
+
+        // Try with json value:
+        let li5 = RedisTempList::new(
+            NS,
+            "t5",
+            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(30),
+        );
+        li5.extend(
+            &mut conn,
+            vec![
+                ExampleObject {
+                    a: 1,
+                    b: "a".to_string(),
+                },
+                ExampleObject {
+                    a: 2,
+                    b: "b".to_string(),
+                },
+            ],
+        )
+        .await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li5.read_multi::<ExampleObject>(&mut conn, None).await),
+            vec![
+                ExampleObject {
+                    a: 2,
+                    b: "b".to_string()
+                },
+                ExampleObject {
+                    a: 1,
+                    b: "a".to_string()
+                }
+            ]
+        );
+
+        // Make sure duplicate values don't break the list and are still kept:
+        let li6 = RedisTempList::new(
+            NS,
+            "t6",
+            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(30),
+        );
+        li6.extend(
+            &mut conn,
+            vec![
+                "i1".to_string(),
+                "i2".to_string(),
+                "i1".to_string(),
+                "i3".to_string(),
+            ],
+        )
+        .await;
+        assert_eq!(
+            RedisTempListItem::vec_items(li6.read_multi::<String>(&mut conn, None).await),
+            vec!["i3", "i1", "i2", "i1"]
+        );
+
+        Ok(())
+    }
 }

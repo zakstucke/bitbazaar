@@ -86,11 +86,12 @@ impl<T: Clone> Refreshable<T> {
     /// Internal of `sync`, doesn't set the new data so can be used in mutator.
     async fn sync_no_set(&self, conn: &mut impl RedisConnLike) -> RResult<Option<T>, AnyErr> {
         let mutate_id_changed = {
-            if let Some(Some(current_mutate_id)) = conn
+            if let Some(current_mutate_id) = conn
                 .batch()
                 .get::<u64>(&self.redis_namespace, &self.redis_mutate_key)
                 .fire()
                 .await
+                .flatten()
             {
                 // Check if different, simultaneously setting the new value:
                 current_mutate_id

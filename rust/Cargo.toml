@@ -11,6 +11,8 @@ name = "bitbazaar"
 crate-type = ["lib", "cdylib"] # cdylib allows things like wasm to compile
 path = "bitbazaar/lib.rs"
 
+# [patch.crates-io]
+# redis = { path = "../../redis-rs/redis" }
 
 [build-dependencies]
 rustc_version = "0.4.0"
@@ -77,12 +79,12 @@ conch-parser = { version = "0.1.1", optional = true }
 homedir = { version = "0.2", optional = true }
 
 # FEAT: redis:
-deadpool-redis = { version = "0.15", features = ["rt_tokio_1"], optional = true }
-redis = { version = "0.25", default-features = false, features = [
+deadpool-redis = { version = "0.16", features = ["rt_tokio_1"], optional = true }
+redis = { version = "0.26", default-features = false, features = [
   "tokio-comp",
   "json",
 ], optional = true }
-redis-macros = { version = "0.3.0", optional = true }
+redis-macros = { version = "0.4.0", optional = true }
 sha1_smol = { version = "1.0", optional = true }
 
 # FEAT: opentelemetry-(grpc|http):

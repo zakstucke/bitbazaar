@@ -239,7 +239,8 @@ impl<'a> RedisLock<'a> {
                             .arg(new_ttl.as_millis() as usize),
                     )
                     .fire()
-                    .await;
+                    .await
+                    .flatten();
 
                 match result {
                     Some(val) => val == 1,
@@ -267,7 +268,8 @@ impl<'a> RedisLock<'a> {
                             .batch()
                             .script(UNLOCK_SCRIPT.invoker().key(lock_id).arg(val))
                             .fire()
-                            .await;
+                            .await
+                            .flatten();
 
                         match result {
                             Some(val) => val == 1,
@@ -350,192 +352,204 @@ fn get_unique_lock_id() -> Vec<u8> {
     buf.to_vec()
 }
 
-/// Run by the main tester that spawns up a redis process.
+// Redis server can't be run on windows:
+#[cfg(not(target_os = "windows"))]
 #[cfg(test)]
-pub async fn redis_dlock_tests(r: &super::Redis) -> RResult<(), AnyErr> {
+mod tests {
+
     use chrono::TimeDelta;
 
+    use super::*;
     use crate::chrono::chrono_format_td;
+    use crate::redis::{Redis, RedisStandalone};
+    use crate::testing::prelude::*;
 
-    // Just checking the object is normal: (from upstream)
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
-    is_normal::<RedisLock>();
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_dlock(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        let server = RedisStandalone::new_no_persistence().await?;
+        let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
 
-    assert_eq!(get_unique_lock_id().len(), 20);
-    let id1 = get_unique_lock_id();
-    let id2 = get_unique_lock_id();
-    assert_eq!(20, id1.len());
-    assert_eq!(20, id2.len());
-    assert_ne!(id1, id2);
+        // Just checking the object is normal: (from upstream)
+        fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+        is_normal::<RedisLock>();
 
-    static NS: &str = "test_lock";
+        assert_eq!(get_unique_lock_id().len(), 20);
+        let id1 = get_unique_lock_id();
+        let id2 = get_unique_lock_id();
+        assert_eq!(20, id1.len());
+        assert_eq!(20, id2.len());
+        assert_ne!(id1, id2);
 
-    macro_rules! check_lockable {
-        ($name:expr) => {{
-            let mut lock = r
-                .dlock(NS, $name, Duration::from_secs(1), None)
-                .await
-                .change_context(AnyErr)?;
-            lock.unlock().await;
-        }};
-    }
+        static NS: &str = "test_lock";
 
-    macro_rules! check_not_lockable {
-        ($name:expr) => {{
-            if (r.dlock(NS, $name, Duration::from_secs(1), None).await).is_ok() {
-                return Err(anyerr!("Lock acquired, even though it should be locked"));
-            }
-        }};
-    }
+        macro_rules! check_lockable {
+            ($name:expr) => {{
+                let mut lock = r
+                    .dlock(NS, $name, Duration::from_secs(1), None)
+                    .await
+                    .change_context(AnyErr)?;
+                lock.unlock().await;
+            }};
+        }
 
-    macro_rules! assert_td_in_range {
-        ($td:expr, $range:expr) => {
-            assert!(
-                $td >= $range.start && $td <= $range.end,
-                "Expected '{}' to be in range '{}' - '{}'.",
-                chrono_format_td($td, true),
-                chrono_format_td($range.start, true),
-                chrono_format_td($range.end, true),
-            );
-        };
-    }
+        macro_rules! check_not_lockable {
+            ($name:expr) => {{
+                if (r.dlock(NS, $name, Duration::from_secs(1), None).await).is_ok() {
+                    return Err(anyerr!("Lock acquired, even though it should be locked"));
+                }
+            }};
+        }
 
-    // Manual unlock should work:
-    let mut lock = r
-        .dlock(NS, "test_lock_lock_unlock", Duration::from_secs(1), None)
-        .await
-        .change_context(AnyErr)?;
-    assert_td_in_range!(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(900)..TimeDelta::milliseconds(999)
-    );
-    // Should fail as instantly locked:
-    check_not_lockable!("test_lock_lock_unlock");
-    check_not_lockable!("test_lock_lock_unlock"); // Purposely checking twice
-    tokio::time::sleep(Duration::from_millis(30)).await;
-    // Should still be locked after 30ms: (ttl is 1s)
-    check_not_lockable!("test_lock_lock_unlock");
-    // Manual unlock should instantly allow relocking:
-    lock.unlock().await;
-    check_lockable!("test_lock_lock_unlock");
+        macro_rules! assert_td_in_range {
+            ($td:expr, $range:expr) => {
+                assert!(
+                    $td >= $range.start && $td <= $range.end,
+                    "Expected '{}' to be in range '{}' - '{}'.",
+                    chrono_format_td($td, true),
+                    chrono_format_td($range.start, true),
+                    chrono_format_td($range.end, true),
+                );
+            };
+        }
 
-    // Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
-    let lock = r
-        .dlock(NS, "test_lock_autoexpire", Duration::from_millis(100), None)
-        .await
-        .change_context(AnyErr)?;
-    assert_td_in_range!(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
-    );
-    // 50ms shouldn't be enough to unlock:
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    check_not_lockable!("test_lock_autoexpire");
-    // another 50msms should be enough to unlock:
-    tokio::time::sleep(Duration::from_millis(60)).await;
-    check_lockable!("test_lock_autoexpire");
+        // Manual unlock should work:
+        let mut lock = r
+            .dlock(NS, "test_lock_lock_unlock", Duration::from_secs(1), None)
+            .await
+            .change_context(AnyErr)?;
+        assert_td_in_range!(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(900)..TimeDelta::milliseconds(999)
+        );
+        // Should fail as instantly locked:
+        check_not_lockable!("test_lock_lock_unlock");
+        check_not_lockable!("test_lock_lock_unlock"); // Purposely checking twice
+        tokio::time::sleep(Duration::from_millis(30)).await;
+        // Should still be locked after 30ms: (ttl is 1s)
+        check_not_lockable!("test_lock_lock_unlock");
+        // Manual unlock should instantly allow relocking:
+        lock.unlock().await;
+        check_lockable!("test_lock_lock_unlock");
 
-    // New test, confirm extend does extend by expected amount:
-    let mut lock = r
-        .dlock(NS, "test_lock_extend", Duration::from_millis(100), None)
-        .await
-        .change_context(AnyErr)?;
-    assert_td_in_range!(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
-    );
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    // This means should be valid for another 100ms:
-    lock.extend(Duration::from_millis(100))
-        .await
-        .change_context(AnyErr)?;
-    // Sleep for 60, would have expired original, but new will still be valid for another 40:
-    tokio::time::sleep(Duration::from_millis(60)).await;
-    check_not_lockable!("test_lock_extend");
-    // Should now go over extension, should be relockable:
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    check_lockable!("test_lock_extend");
+        // Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
+        let lock = r
+            .dlock(NS, "test_lock_autoexpire", Duration::from_millis(100), None)
+            .await
+            .change_context(AnyErr)?;
+        assert_td_in_range!(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
+        );
+        // 50ms shouldn't be enough to unlock:
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        check_not_lockable!("test_lock_autoexpire");
+        // another 50msms should be enough to unlock:
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        check_lockable!("test_lock_autoexpire");
 
-    // Confirm retries would work to wait for a lock:
-    let lock = r
-        .dlock(NS, "test_lock_retry", Duration::from_millis(300), None)
-        .await
-        .change_context(AnyErr)?;
-    assert_td_in_range!(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(250)..TimeDelta::milliseconds(299)
-    );
-    // This will fail as no wait:
-    check_not_lockable!("test_lock_retry");
-    // This will fail as only waiting 100ms:
-    if r.dlock(
-        NS,
-        "test_lock_retry",
-        Duration::from_millis(100),
-        Some(Duration::from_millis(100)),
-    )
-    .await
-    .is_ok()
-    {
-        return Err(anyerr!("Lock acquired, even though it should be locked"));
-    }
-    // This will succeed as waiting for another 250ms, which should easily hit the 300ms ttl:
-    let lock = r
-        .dlock(
+        // New test, confirm extend does extend by expected amount:
+        let mut lock = r
+            .dlock(NS, "test_lock_extend", Duration::from_millis(100), None)
+            .await
+            .change_context(AnyErr)?;
+        assert_td_in_range!(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        // This means should be valid for another 100ms:
+        lock.extend(Duration::from_millis(100))
+            .await
+            .change_context(AnyErr)?;
+        // Sleep for 60, would have expired original, but new will still be valid for another 40:
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        check_not_lockable!("test_lock_extend");
+        // Should now go over extension, should be relockable:
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        check_lockable!("test_lock_extend");
+
+        // Confirm retries would work to wait for a lock:
+        let lock = r
+            .dlock(NS, "test_lock_retry", Duration::from_millis(300), None)
+            .await
+            .change_context(AnyErr)?;
+        assert_td_in_range!(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(250)..TimeDelta::milliseconds(299)
+        );
+        // This will fail as no wait:
+        check_not_lockable!("test_lock_retry");
+        // This will fail as only waiting 100ms:
+        if r.dlock(
             NS,
             "test_lock_retry",
             Duration::from_millis(100),
-            Some(Duration::from_millis(250)),
+            Some(Duration::from_millis(100)),
         )
         .await
-        .change_context(AnyErr)?;
-    assert_td_in_range!(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
-    );
+        .is_ok()
+        {
+            return Err(anyerr!("Lock acquired, even though it should be locked"));
+        }
+        // This will succeed as waiting for another 250ms, which should easily hit the 300ms ttl:
+        let lock = r
+            .dlock(
+                NS,
+                "test_lock_retry",
+                Duration::from_millis(100),
+                Some(Duration::from_millis(250)),
+            )
+            .await
+            .change_context(AnyErr)?;
+        assert_td_in_range!(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
+        );
 
-    // Confirm hold_for_fut works as expected:
-    // Lock in one future and run for 2 seconds, try accessing in another, should be blocked the whole time.
-    // Once the select finishes, should straight away be able to lock:
-    let mut lock = r
-        .dlock(
-            NS,
-            "test_lock_hold_for_fut",
-            Duration::from_millis(500),
-            None,
-        )
-        .await
-        .change_context(AnyErr)?;
-    let lock_fut = async {
-        lock.hold_for_fut(async {
-            tokio::time::sleep(Duration::from_secs(2)).await;
+        // Confirm hold_for_fut works as expected:
+        // Lock in one future and run for 2 seconds, try accessing in another, should be blocked the whole time.
+        // Once the select finishes, should straight away be able to lock:
+        let mut lock = r
+            .dlock(
+                NS,
+                "test_lock_hold_for_fut",
+                Duration::from_millis(500),
+                None,
+            )
+            .await
+            .change_context(AnyErr)?;
+        let lock_fut = async {
+            lock.hold_for_fut(async {
+                tokio::time::sleep(Duration::from_secs(2)).await;
+                Ok::<_, error_stack::Report<AnyErr>>(())
+            })
+            .await
+            .change_context(AnyErr)?;
+            lock.unlock().await;
             Ok::<_, error_stack::Report<AnyErr>>(())
-        })
-        .await
-        .change_context(AnyErr)?;
-        lock.unlock().await;
-        Ok::<_, error_stack::Report<AnyErr>>(())
-    };
-    let try_get = async {
-        loop {
-            if r.dlock(NS, "test_lock_hold_for_fut", Duration::from_secs(1), None)
-                .await
-                .is_ok()
-            {
-                break;
+        };
+        let try_get = async {
+            loop {
+                if r.dlock(NS, "test_lock_hold_for_fut", Duration::from_secs(1), None)
+                    .await
+                    .is_ok()
+                {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        panic!("Should not have been able to lock!");
-    };
-    futures::select! {
-        result = {lock_fut.fuse()} => result.change_context(AnyErr),
-        _ = {try_get.fuse()} => {
-            panic!("Should not have been able to lock!")
-        }
-    }?;
-    // Should now be able to lock as the lock should be released the second the closure finishes:
-    check_lockable!("test_lock_hold_for_fut");
+            panic!("Should not have been able to lock!");
+        };
+        futures::select! {
+            result = {lock_fut.fuse()} => result.change_context(AnyErr),
+            _ = {try_get.fuse()} => {
+                panic!("Should not have been able to lock!")
+            }
+        }?;
+        // Should now be able to lock as the lock should be released the second the closure finishes:
+        check_lockable!("test_lock_hold_for_fut");
 
-    Ok(())
+        Ok(())
+    }
 }

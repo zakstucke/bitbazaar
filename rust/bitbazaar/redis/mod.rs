@@ -2,6 +2,7 @@ mod batch;
 mod conn;
 mod dlock;
 mod json;
+mod rval;
 mod script;
 mod temp_list;
 mod wrapper;
@@ -24,19 +25,19 @@ pub use script::{RedisScript, RedisScriptInvoker};
 pub use temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
 pub use wrapper::Redis;
 
+// Redis server can't be run on windows:
+#[cfg(not(target_os = "windows"))]
 #[cfg(test)]
 mod tests {
-    use std::sync::{atomic::AtomicU8, Arc};
+    use std::{
+        collections::HashMap,
+        sync::{atomic::AtomicU8, Arc},
+    };
 
-    use rstest::*;
+    use chrono::TimeDelta;
 
     use super::*;
-    use crate::{
-        chrono::chrono_format_td,
-        errors::prelude::*,
-        log::GlobalLog,
-        redis::{dlock::redis_dlock_tests, temp_list::redis_temp_list_tests},
-    };
+    use crate::{chrono::chrono_format_td, errors::prelude::*, testing::prelude::*};
 
     #[derive(
         PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
@@ -67,23 +68,12 @@ mod tests {
         }
     }
 
-    #[fixture]
-    fn logging() -> () {
-        GlobalLog::setup_quick_stdout_global_logging(tracing::Level::DEBUG).unwrap();
-    }
-
     /// Test functionality working as it should when redis up and running fine.
     #[rstest]
     #[tokio::test]
-    async fn test_redis_working(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
-        // Redis can't be run on windows, skip if so:
-        if cfg!(windows) {
-            return Ok(());
-        }
-
-        let rs = RedisStandalone::new().await?;
-
-        let work_r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())?;
+    async fn test_redis_misc(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        let server = RedisStandalone::new_no_persistence().await?;
+        let work_r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
         let mut work_conn = work_r.conn();
 
         // Also create a fake version on a random port, this will be used to check failure cases.
@@ -436,36 +426,98 @@ mod tests {
             Some(false)
         );
 
-        // TODO this isn't possible with redis right now, but looks like its coming very soon.
-        // Once this is working, also do test for mget, where some in the mget fail, and also do for the temp list, in case some don't match T they should be ignored but not stop others being pulled.
-        // See:
-        // https://github.com/redis-rs/redis-rs/issues/746
-        // https://github.com/redis-rs/redis-rs/pull/1093
-        // https://github.com/redis-rs/redis-rs/pull/1144
-        // https://github.com/redis-rs/redis-rs/issues/540
-        // https://github.com/redis-rs/redis-rs/pull/813
-        // https://github.com/redis-rs/redis-rs/issues/1043
+        Ok(())
+    }
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_strange_value_handling(
+        #[allow(unused_variables)] logging: (),
+    ) -> RResult<(), AnyErr> {
+        let server = RedisStandalone::new_no_persistence().await?;
+        let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
+        let mut rconn = r.conn();
 
-        // // If something's of the incorrect type in a get as part of a batch, it shouldn't break the batch (historic bug the batch would fail and the outer would be none)
-        // assert_eq!(
-        //     work_conn
-        //         .batch()
-        //         .set("z1", "corrupt1", "bazboo", Some(Duration::from_millis(30)))
-        //         .set("z1", "valid", "str", Some(Duration::from_millis(30)))
-        //         .set("z1", "corrupt2", "foobar", Some(Duration::from_millis(30)))
-        //         .get::<Vec<HashMap<String, String>>>("z1", "corrupt1")
-        //         .get::<String>("z1", "valid")
-        //         .get::<RedisJson<ExampleJson>>("z1", "corrupt2")
-        //         .fire()
-        //         .await,
-        //     Some((None, Some("str".to_string()), None))
-        // );
+        // THIS ONLY ACTUALLY WORKS FOR STRINGS, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
+        // None::<T>, empty vec![] and "" should all work fine as real stored values,
+        // they shouldn't be hit by the internal invalid type handling (or missing key handling) so each should still be Some():
+        rconn
+            .batch()
+            .set("n1", "none", None::<String>, None)
+            .set("n1", "empty_vec", Vec::<String>::new(), None)
+            .set("n1", "empty_str", "", None)
+            .fire()
+            .await;
+        assert_eq!(
+            rconn
+                .batch()
+                .get::<Option<String>>("n1", "none")
+                .get::<Vec<String>>("n1", "empty_vec")
+                .get::<String>("n1", "empty_str")
+                .fire()
+                .await,
+            Some((None, None, Some("".to_string())))
+        );
 
-        // Run the dlock tests:
-        redis_dlock_tests(&work_r).await?;
+        // If something's of the incorrect type in a get as part of a batch, it shouldn't break the batch:
+        assert_eq!(
+            rconn
+                .batch()
+                .set(
+                    "z1",
+                    "corrupt1",
+                    "bazboo",
+                    Some(TimeDelta::milliseconds(30))
+                )
+                .set("z1", "valid", "str", Some(TimeDelta::milliseconds(30)))
+                .set(
+                    "z1",
+                    "corrupt2",
+                    "foobar",
+                    Some(TimeDelta::milliseconds(30))
+                )
+                .get::<Vec<HashMap::<String, String>>>("z1", "corrupt1")
+                .get::<String>("z1", "valid")
+                .get::<RedisJson<ExampleJson>>("z1", "corrupt2")
+                .fire()
+                .await,
+            Some((None, Some("str".to_string()), None))
+        );
 
-        // Run the temp_list tests:
-        redis_temp_list_tests(&work_r).await?;
+        // Mget should also be able to handle individual keys being corrupt:
+        assert_eq!(
+            rconn
+                .batch()
+                .set("z1", "valid", 1, None)
+                .mget::<usize>("z1", vec!["corrupt1", "valid", "corrupt2"])
+                .fire()
+                .await,
+            Some(vec![None, Some(1), None])
+        );
+
+        // RedisJson should also be fine with it:
+        assert_eq!(
+            rconn
+                .batch()
+                .set(
+                    "z1",
+                    "valid",
+                    ExampleJson {
+                        ree: "roo".to_string()
+                    },
+                    None
+                )
+                .set("z1", "corrupt", "foobar", None)
+                .get::<RedisJson<ExampleJson>>("z1", "valid")
+                .get::<RedisJson<ExampleJson>>("z1", "corrupt")
+                .fire()
+                .await,
+            Some((
+                Some(RedisJson(ExampleJson {
+                    ree: "roo".to_string()
+                })),
+                None
+            ))
+        );
 
         Ok(())
     }
@@ -473,11 +525,6 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_redis_backoff(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
-        // Redis can't be run on windows, skip if so:
-        if cfg!(windows) {
-            return Ok(());
-        }
-
         // TODO using now in here and dlock, should be some test utils we can use cross crate.
         macro_rules! assert_td_in_range {
             ($td:expr, $range:expr) => {
@@ -491,9 +538,8 @@ mod tests {
             };
         }
 
-        let rs = RedisStandalone::new().await?;
-
-        let r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())?;
+        let server = RedisStandalone::new_no_persistence().await?;
+        let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
         let mut rconn = r.conn();
 
         macro_rules! call {

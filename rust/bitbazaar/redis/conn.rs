@@ -93,10 +93,7 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// Ping redis, returning true if it's up.
     async fn ping(&mut self) -> bool {
         if let Some(conn) = self.get_inner_conn().await {
-            redis::cmd("PING")
-                .query_async::<_, String>(conn)
-                .await
-                .is_ok()
+            redis::cmd("PING").query_async::<String>(conn).await.is_ok()
         } else {
             false
         }
@@ -137,7 +134,7 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
             } else {
                 cmd.arg("ASYNC");
             }
-            match cmd.query_async::<_, String>(conn).await {
+            match cmd.query_async::<String>(conn).await {
                 Ok(s) => Some(s),
                 Err(e) => {
                     record_exception("Failed to reset redis cache.", format!("{:?}", e));
@@ -187,7 +184,8 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
                     .arg(multiplier),
             )
             .fire()
-            .await;
+            .await
+            .flatten();
 
         if let Some(result) = result {
             if result > 0 {

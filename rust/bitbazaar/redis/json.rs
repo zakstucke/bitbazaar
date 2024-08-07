@@ -8,7 +8,7 @@ pub struct RedisJson<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(pub T
 impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> FromRedisValue for RedisJson<T> {
     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
         match v {
-            redis::Value::Data(data) => Ok(Self(serde_json::from_slice(data)?)),
+            redis::Value::BulkString(data) => Ok(Self(serde_json::from_slice(data)?)),
             _ => Err(redis::RedisError::from((
                 redis::ErrorKind::TypeError,
                 "Cannot convert to Serialize",
