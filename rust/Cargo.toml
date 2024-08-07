@@ -171,6 +171,7 @@ opentelemetry-http = [ # In general there's no point with this currently, made f
   'opentelemetry-otlp/grpc-tonic',          # Stupid needed but it currently is due to otlp internals
   'opentelemetry-otlp/http-proto',
   'opentelemetry-otlp/reqwest-client',
+  'opentelemetry-otlp/reqwest-rustls',      # Ssl certs needed for https to work.
 ]
 rayon = ['dep:rayon']
 

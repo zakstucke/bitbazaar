@@ -69,6 +69,9 @@ pub struct OtlpConf {
     #[cfg(feature = "opentelemetry-http")]
     /// The url string to connect via http to, e.g. "/otlp" or "localhost/otlp":
     pub http_endpoint: Option<String>,
+    #[cfg(feature = "opentelemetry-http")]
+    /// The headers to send with the http request:
+    pub http_headers: Vec<(String, String)>,
     /// The name of the service:
     pub service_name: String,
     /// The active version/deployment of the service:
@@ -164,6 +167,8 @@ impl GlobalLogBuilder {
             grpc_port: Some(port),
             #[cfg(feature = "opentelemetry-http")]
             http_endpoint: None,
+            #[cfg(feature = "opentelemetry-http")]
+            http_headers: vec![],
             service_name: service_name.into(),
             service_version: service_version.into(),
             shared: SharedOpts::default(),
@@ -188,10 +193,21 @@ impl GlobalLogBuilder {
             #[cfg(feature = "opentelemetry-grpc")]
             grpc_port: None,
             http_endpoint: Some(endpoint.into()),
+            http_headers: vec![],
             service_name: service_name.into(),
             service_version: service_version.into(),
             shared: SharedOpts::default(),
         }));
+        self
+    }
+
+    #[cfg(feature = "opentelemetry-http")]
+    /// Add a header to the last configured otlp http requests,
+    /// this will be a no-op if the last output is not an otlp http output.
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        if let Some(Output::Otlp(conf)) = self.outputs.last_mut() {
+            conf.http_headers.push((key.into(), value.into()));
+        }
         self
     }
 
