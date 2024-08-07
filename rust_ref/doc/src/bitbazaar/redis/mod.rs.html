@@ -540,10 +540,57 @@
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
 <a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>batch;
 <span class="kw">mod </span>conn;
 <span class="kw">mod </span>dlock;
 <span class="kw">mod </span>json;
+<span class="kw">mod </span>rval;
 <span class="kw">mod </span>script;
 <span class="kw">mod </span>temp_list;
 <span class="kw">mod </span>wrapper;
@@ -566,19 +613,19 @@
 <span class="kw">pub use </span>temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
 <span class="kw">pub use </span>wrapper::Redis;
 
-<span class="attr">#[cfg(test)]
+<span class="comment">// Redis server can't be run on windows:
+</span><span class="attr">#[cfg(not(target_os = <span class="string">"windows"</span>))]
+#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>std::sync::{atomic::AtomicU8, Arc};
+    <span class="kw">use </span>std::{
+        collections::HashMap,
+        sync::{atomic::AtomicU8, Arc},
+    };
 
-    <span class="kw">use </span>rstest::<span class="kw-2">*</span>;
+    <span class="kw">use </span>chrono::TimeDelta;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
-    <span class="kw">use crate</span>::{
-        chrono::chrono_format_td,
-        errors::prelude::<span class="kw-2">*</span>,
-        log::GlobalLog,
-        redis::{dlock::redis_dlock_tests, temp_list::redis_temp_list_tests},
-    };
+    <span class="kw">use crate</span>::{chrono::chrono_format_td, errors::prelude::<span class="kw-2">*</span>, testing::prelude::<span class="kw-2">*</span>};
 
     <span class="attr">#[derive(
         PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
@@ -609,23 +656,12 @@
         }
     }
 
-    <span class="attr">#[fixture]
-    </span><span class="kw">fn </span>logging() -&gt; () {
-        GlobalLog::setup_quick_stdout_global_logging(tracing::Level::DEBUG).unwrap();
-    }
-
     <span class="doccomment">/// Test functionality working as it should when redis up and running fine.
     </span><span class="attr">#[rstest]
     #[tokio::test]
-    </span><span class="kw">async fn </span>test_redis_working(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
-        <span class="comment">// Redis can't be run on windows, skip if so:
-        </span><span class="kw">if </span><span class="macro">cfg!</span>(windows) {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-        }
-
-        <span class="kw">let </span>rs = RedisStandalone::new().<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">let </span>work_r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
+    </span><span class="kw">async fn </span>test_redis_misc(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
+        <span class="kw">let </span>server = RedisStandalone::new_no_persistence().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>work_r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>work_conn = work_r.conn();
 
         <span class="comment">// Also create a fake version on a random port, this will be used to check failure cases.
@@ -978,36 +1014,98 @@
             <span class="prelude-val">Some</span>(<span class="bool-val">false</span>)
         );
 
-        <span class="comment">// TODO this isn't possible with redis right now, but looks like its coming very soon.
-        // Once this is working, also do test for mget, where some in the mget fail, and also do for the temp list, in case some don't match T they should be ignored but not stop others being pulled.
-        // See:
-        // https://github.com/redis-rs/redis-rs/issues/746
-        // https://github.com/redis-rs/redis-rs/pull/1093
-        // https://github.com/redis-rs/redis-rs/pull/1144
-        // https://github.com/redis-rs/redis-rs/issues/540
-        // https://github.com/redis-rs/redis-rs/pull/813
-        // https://github.com/redis-rs/redis-rs/issues/1043
+        <span class="prelude-val">Ok</span>(())
+    }
+    <span class="attr">#[rstest]
+    #[tokio::test]
+    </span><span class="kw">async fn </span>test_redis_strange_value_handling(
+        <span class="attr">#[allow(unused_variables)] </span>logging: (),
+    ) -&gt; RResult&lt;(), AnyErr&gt; {
+        <span class="kw">let </span>server = RedisStandalone::new_no_persistence().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>rconn = r.conn();
 
-        // // If something's of the incorrect type in a get as part of a batch, it shouldn't break the batch (historic bug the batch would fail and the outer would be none)
-        // assert_eq!(
-        //     work_conn
-        //         .batch()
-        //         .set("z1", "corrupt1", "bazboo", Some(Duration::from_millis(30)))
-        //         .set("z1", "valid", "str", Some(Duration::from_millis(30)))
-        //         .set("z1", "corrupt2", "foobar", Some(Duration::from_millis(30)))
-        //         .get::&lt;Vec&lt;HashMap&lt;String, String&gt;&gt;&gt;("z1", "corrupt1")
-        //         .get::&lt;String&gt;("z1", "valid")
-        //         .get::&lt;RedisJson&lt;ExampleJson&gt;&gt;("z1", "corrupt2")
-        //         .fire()
-        //         .await,
-        //     Some((None, Some("str".to_string()), None))
-        // );
+        <span class="comment">// THIS ONLY ACTUALLY WORKS FOR STRINGS, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
+        // None::&lt;T&gt;, empty vec![] and "" should all work fine as real stored values,
+        // they shouldn't be hit by the internal invalid type handling (or missing key handling) so each should still be Some():
+        </span>rconn
+            .batch()
+            .set(<span class="string">"n1"</span>, <span class="string">"none"</span>, <span class="prelude-val">None</span>::&lt;String&gt;, <span class="prelude-val">None</span>)
+            .set(<span class="string">"n1"</span>, <span class="string">"empty_vec"</span>, Vec::&lt;String&gt;::new(), <span class="prelude-val">None</span>)
+            .set(<span class="string">"n1"</span>, <span class="string">"empty_str"</span>, <span class="string">""</span>, <span class="prelude-val">None</span>)
+            .fire()
+            .<span class="kw">await</span>;
+        <span class="macro">assert_eq!</span>(
+            rconn
+                .batch()
+                .get::&lt;<span class="prelude-ty">Option</span>&lt;String&gt;&gt;(<span class="string">"n1"</span>, <span class="string">"none"</span>)
+                .get::&lt;Vec&lt;String&gt;&gt;(<span class="string">"n1"</span>, <span class="string">"empty_vec"</span>)
+                .get::&lt;String&gt;(<span class="string">"n1"</span>, <span class="string">"empty_str"</span>)
+                .fire()
+                .<span class="kw">await</span>,
+            <span class="prelude-val">Some</span>((<span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())))
+        );
 
-        // Run the dlock tests:
-        </span>redis_dlock_tests(<span class="kw-2">&amp;</span>work_r).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="comment">// If something's of the incorrect type in a get as part of a batch, it shouldn't break the batch:
+        </span><span class="macro">assert_eq!</span>(
+            rconn
+                .batch()
+                .set(
+                    <span class="string">"z1"</span>,
+                    <span class="string">"corrupt1"</span>,
+                    <span class="string">"bazboo"</span>,
+                    <span class="prelude-val">Some</span>(TimeDelta::milliseconds(<span class="number">30</span>))
+                )
+                .set(<span class="string">"z1"</span>, <span class="string">"valid"</span>, <span class="string">"str"</span>, <span class="prelude-val">Some</span>(TimeDelta::milliseconds(<span class="number">30</span>)))
+                .set(
+                    <span class="string">"z1"</span>,
+                    <span class="string">"corrupt2"</span>,
+                    <span class="string">"foobar"</span>,
+                    <span class="prelude-val">Some</span>(TimeDelta::milliseconds(<span class="number">30</span>))
+                )
+                .get::&lt;Vec&lt;HashMap::&lt;String, String&gt;&gt;&gt;(<span class="string">"z1"</span>, <span class="string">"corrupt1"</span>)
+                .get::&lt;String&gt;(<span class="string">"z1"</span>, <span class="string">"valid"</span>)
+                .get::&lt;RedisJson&lt;ExampleJson&gt;&gt;(<span class="string">"z1"</span>, <span class="string">"corrupt2"</span>)
+                .fire()
+                .<span class="kw">await</span>,
+            <span class="prelude-val">Some</span>((<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">"str"</span>.to_string()), <span class="prelude-val">None</span>))
+        );
 
-        <span class="comment">// Run the temp_list tests:
-        </span>redis_temp_list_tests(<span class="kw-2">&amp;</span>work_r).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="comment">// Mget should also be able to handle individual keys being corrupt:
+        </span><span class="macro">assert_eq!</span>(
+            rconn
+                .batch()
+                .set(<span class="string">"z1"</span>, <span class="string">"valid"</span>, <span class="number">1</span>, <span class="prelude-val">None</span>)
+                .mget::&lt;usize&gt;(<span class="string">"z1"</span>, <span class="macro">vec!</span>[<span class="string">"corrupt1"</span>, <span class="string">"valid"</span>, <span class="string">"corrupt2"</span>])
+                .fire()
+                .<span class="kw">await</span>,
+            <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="number">1</span>), <span class="prelude-val">None</span>])
+        );
+
+        <span class="comment">// RedisJson should also be fine with it:
+        </span><span class="macro">assert_eq!</span>(
+            rconn
+                .batch()
+                .set(
+                    <span class="string">"z1"</span>,
+                    <span class="string">"valid"</span>,
+                    ExampleJson {
+                        ree: <span class="string">"roo"</span>.to_string()
+                    },
+                    <span class="prelude-val">None
+                </span>)
+                .set(<span class="string">"z1"</span>, <span class="string">"corrupt"</span>, <span class="string">"foobar"</span>, <span class="prelude-val">None</span>)
+                .get::&lt;RedisJson&lt;ExampleJson&gt;&gt;(<span class="string">"z1"</span>, <span class="string">"valid"</span>)
+                .get::&lt;RedisJson&lt;ExampleJson&gt;&gt;(<span class="string">"z1"</span>, <span class="string">"corrupt"</span>)
+                .fire()
+                .<span class="kw">await</span>,
+            <span class="prelude-val">Some</span>((
+                <span class="prelude-val">Some</span>(RedisJson(ExampleJson {
+                    ree: <span class="string">"roo"</span>.to_string()
+                })),
+                <span class="prelude-val">None
+            </span>))
+        );
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1015,11 +1113,6 @@
     <span class="attr">#[rstest]
     #[tokio::test]
     </span><span class="kw">async fn </span>test_redis_backoff(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
-        <span class="comment">// Redis can't be run on windows, skip if so:
-        </span><span class="kw">if </span><span class="macro">cfg!</span>(windows) {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-        }
-
         <span class="comment">// TODO using now in here and dlock, should be some test utils we can use cross crate.
         </span><span class="macro">macro_rules!</span> assert_td_in_range {
             (<span class="macro-nonterminal">$td</span>:expr, <span class="macro-nonterminal">$range</span>:expr) =&gt; {
@@ -1033,9 +1126,8 @@
             };
         }
 
-        <span class="kw">let </span>rs = RedisStandalone::new().<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">let </span>r = Redis::new(rs.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
+        <span class="kw">let </span>server = RedisStandalone::new_no_persistence().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>rconn = r.conn();
 
         <span class="macro">macro_rules!</span> call {

@@ -539,6 +539,20 @@
 <a href="#539" id="539">539</a>
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
 </pre></div><pre class="rust"><code><span class="comment">// Derived from https://github.com/hexcowboy/rslock
 
 // Copyright (c) 2014-2021, Jan-Erik Rediger
@@ -780,7 +794,8 @@ end
                             .arg(new_ttl.as_millis() <span class="kw">as </span>usize),
                     )
                     .fire()
-                    .<span class="kw">await</span>;
+                    .<span class="kw">await
+                    </span>.flatten();
 
                 <span class="kw">match </span>result {
                     <span class="prelude-val">Some</span>(val) =&gt; val == <span class="number">1</span>,
@@ -808,7 +823,8 @@ end
                             .batch()
                             .script(UNLOCK_SCRIPT.invoker().key(lock_id).arg(val))
                             .fire()
-                            .<span class="kw">await</span>;
+                            .<span class="kw">await
+                            </span>.flatten();
 
                         <span class="kw">match </span>result {
                             <span class="prelude-val">Some</span>(val) =&gt; val == <span class="number">1</span>,
@@ -891,193 +907,205 @@ end
     buf.to_vec()
 }
 
-<span class="doccomment">/// Run by the main tester that spawns up a redis process.
-</span><span class="attr">#[cfg(test)]
-</span><span class="kw">pub async fn </span>redis_dlock_tests(r: <span class="kw-2">&amp;</span><span class="kw">super</span>::Redis) -&gt; RResult&lt;(), AnyErr&gt; {
+<span class="comment">// Redis server can't be run on windows:
+</span><span class="attr">#[cfg(not(target_os = <span class="string">"windows"</span>))]
+#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+
     <span class="kw">use </span>chrono::TimeDelta;
 
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::chrono::chrono_format_td;
+    <span class="kw">use </span><span class="kw">crate</span>::redis::{Redis, RedisStandalone};
+    <span class="kw">use </span><span class="kw">crate</span>::testing::prelude::<span class="kw-2">*</span>;
 
-    <span class="comment">// Just checking the object is normal: (from upstream)
-    </span><span class="kw">fn </span>is_normal&lt;T: Sized + Send + Sync + Unpin&gt;() {}
-    is_normal::&lt;RedisLock&gt;();
+    <span class="attr">#[rstest]
+    #[tokio::test]
+    </span><span class="kw">async fn </span>test_redis_dlock(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
+        <span class="kw">let </span>server = RedisStandalone::new_no_persistence().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
 
-    <span class="macro">assert_eq!</span>(get_unique_lock_id().len(), <span class="number">20</span>);
-    <span class="kw">let </span>id1 = get_unique_lock_id();
-    <span class="kw">let </span>id2 = get_unique_lock_id();
-    <span class="macro">assert_eq!</span>(<span class="number">20</span>, id1.len());
-    <span class="macro">assert_eq!</span>(<span class="number">20</span>, id2.len());
-    <span class="macro">assert_ne!</span>(id1, id2);
+        <span class="comment">// Just checking the object is normal: (from upstream)
+        </span><span class="kw">fn </span>is_normal&lt;T: Sized + Send + Sync + Unpin&gt;() {}
+        is_normal::&lt;RedisLock&gt;();
 
-    <span class="kw">static </span>NS: <span class="kw-2">&amp;</span>str = <span class="string">"test_lock"</span>;
+        <span class="macro">assert_eq!</span>(get_unique_lock_id().len(), <span class="number">20</span>);
+        <span class="kw">let </span>id1 = get_unique_lock_id();
+        <span class="kw">let </span>id2 = get_unique_lock_id();
+        <span class="macro">assert_eq!</span>(<span class="number">20</span>, id1.len());
+        <span class="macro">assert_eq!</span>(<span class="number">20</span>, id2.len());
+        <span class="macro">assert_ne!</span>(id1, id2);
 
-    <span class="macro">macro_rules!</span> check_lockable {
-        (<span class="macro-nonterminal">$name</span>:expr) =&gt; {{
-            <span class="kw">let </span><span class="kw-2">mut </span>lock = r
-                .dlock(NS, <span class="macro-nonterminal">$name</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
-                .<span class="kw">await
-                </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-            lock.unlock().<span class="kw">await</span>;
-        }};
-    }
+        <span class="kw">static </span>NS: <span class="kw-2">&amp;</span>str = <span class="string">"test_lock"</span>;
 
-    <span class="macro">macro_rules!</span> check_not_lockable {
-        (<span class="macro-nonterminal">$name</span>:expr) =&gt; {{
-            <span class="kw">if </span>(r.dlock(NS, <span class="macro-nonterminal">$name</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>).<span class="kw">await</span>).is_ok() {
-                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Lock acquired, even though it should be locked"</span>));
-            }
-        }};
-    }
+        <span class="macro">macro_rules!</span> check_lockable {
+            (<span class="macro-nonterminal">$name</span>:expr) =&gt; {{
+                <span class="kw">let </span><span class="kw-2">mut </span>lock = r
+                    .dlock(NS, <span class="macro-nonterminal">$name</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
+                    .<span class="kw">await
+                    </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+                lock.unlock().<span class="kw">await</span>;
+            }};
+        }
 
-    <span class="macro">macro_rules!</span> assert_td_in_range {
-        (<span class="macro-nonterminal">$td</span>:expr, <span class="macro-nonterminal">$range</span>:expr) =&gt; {
-            <span class="macro">assert!</span>(
-                <span class="macro-nonterminal">$td </span>&gt;= <span class="macro-nonterminal">$range</span>.start &amp;&amp; <span class="macro-nonterminal">$td </span>&lt;= <span class="macro-nonterminal">$range</span>.end,
-                <span class="string">"Expected '{}' to be in range '{}' - '{}'."</span>,
-                chrono_format_td(<span class="macro-nonterminal">$td</span>, <span class="bool-val">true</span>),
-                chrono_format_td(<span class="macro-nonterminal">$range</span>.start, <span class="bool-val">true</span>),
-                chrono_format_td(<span class="macro-nonterminal">$range</span>.end, <span class="bool-val">true</span>),
-            );
-        };
-    }
+        <span class="macro">macro_rules!</span> check_not_lockable {
+            (<span class="macro-nonterminal">$name</span>:expr) =&gt; {{
+                <span class="kw">if </span>(r.dlock(NS, <span class="macro-nonterminal">$name</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>).<span class="kw">await</span>).is_ok() {
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Lock acquired, even though it should be locked"</span>));
+                }
+            }};
+        }
 
-    <span class="comment">// Manual unlock should work:
-    </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
-        .dlock(NS, <span class="string">"test_lock_lock_unlock"</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="macro">assert_td_in_range!</span>(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(<span class="number">900</span>)..TimeDelta::milliseconds(<span class="number">999</span>)
-    );
-    <span class="comment">// Should fail as instantly locked:
-    </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
-    <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>); <span class="comment">// Purposely checking twice
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">30</span>)).<span class="kw">await</span>;
-    <span class="comment">// Should still be locked after 30ms: (ttl is 1s)
-    </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
-    <span class="comment">// Manual unlock should instantly allow relocking:
-    </span>lock.unlock().<span class="kw">await</span>;
-    <span class="macro">check_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
+        <span class="macro">macro_rules!</span> assert_td_in_range {
+            (<span class="macro-nonterminal">$td</span>:expr, <span class="macro-nonterminal">$range</span>:expr) =&gt; {
+                <span class="macro">assert!</span>(
+                    <span class="macro-nonterminal">$td </span>&gt;= <span class="macro-nonterminal">$range</span>.start &amp;&amp; <span class="macro-nonterminal">$td </span>&lt;= <span class="macro-nonterminal">$range</span>.end,
+                    <span class="string">"Expected '{}' to be in range '{}' - '{}'."</span>,
+                    chrono_format_td(<span class="macro-nonterminal">$td</span>, <span class="bool-val">true</span>),
+                    chrono_format_td(<span class="macro-nonterminal">$range</span>.start, <span class="bool-val">true</span>),
+                    chrono_format_td(<span class="macro-nonterminal">$range</span>.end, <span class="bool-val">true</span>),
+                );
+            };
+        }
 
-    <span class="comment">// Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
-    </span><span class="kw">let </span>lock = r
-        .dlock(NS, <span class="string">"test_lock_autoexpire"</span>, Duration::from_millis(<span class="number">100</span>), <span class="prelude-val">None</span>)
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="macro">assert_td_in_range!</span>(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
-    );
-    <span class="comment">// 50ms shouldn't be enough to unlock:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-    <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_autoexpire"</span>);
-    <span class="comment">// another 50msms should be enough to unlock:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
-    <span class="macro">check_lockable!</span>(<span class="string">"test_lock_autoexpire"</span>);
+        <span class="comment">// Manual unlock should work:
+        </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
+            .dlock(NS, <span class="string">"test_lock_lock_unlock"</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="macro">assert_td_in_range!</span>(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(<span class="number">900</span>)..TimeDelta::milliseconds(<span class="number">999</span>)
+        );
+        <span class="comment">// Should fail as instantly locked:
+        </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
+        <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>); <span class="comment">// Purposely checking twice
+        </span>tokio::time::sleep(Duration::from_millis(<span class="number">30</span>)).<span class="kw">await</span>;
+        <span class="comment">// Should still be locked after 30ms: (ttl is 1s)
+        </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
+        <span class="comment">// Manual unlock should instantly allow relocking:
+        </span>lock.unlock().<span class="kw">await</span>;
+        <span class="macro">check_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
 
-    <span class="comment">// New test, confirm extend does extend by expected amount:
-    </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
-        .dlock(NS, <span class="string">"test_lock_extend"</span>, Duration::from_millis(<span class="number">100</span>), <span class="prelude-val">None</span>)
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="macro">assert_td_in_range!</span>(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
-    );
-    tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-    <span class="comment">// This means should be valid for another 100ms:
-    </span>lock.extend(Duration::from_millis(<span class="number">100</span>))
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="comment">// Sleep for 60, would have expired original, but new will still be valid for another 40:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
-    <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_extend"</span>);
-    <span class="comment">// Should now go over extension, should be relockable:
-    </span>tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-    <span class="macro">check_lockable!</span>(<span class="string">"test_lock_extend"</span>);
+        <span class="comment">// Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
+        </span><span class="kw">let </span>lock = r
+            .dlock(NS, <span class="string">"test_lock_autoexpire"</span>, Duration::from_millis(<span class="number">100</span>), <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="macro">assert_td_in_range!</span>(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
+        );
+        <span class="comment">// 50ms shouldn't be enough to unlock:
+        </span>tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+        <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_autoexpire"</span>);
+        <span class="comment">// another 50msms should be enough to unlock:
+        </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+        <span class="macro">check_lockable!</span>(<span class="string">"test_lock_autoexpire"</span>);
 
-    <span class="comment">// Confirm retries would work to wait for a lock:
-    </span><span class="kw">let </span>lock = r
-        .dlock(NS, <span class="string">"test_lock_retry"</span>, Duration::from_millis(<span class="number">300</span>), <span class="prelude-val">None</span>)
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="macro">assert_td_in_range!</span>(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(<span class="number">250</span>)..TimeDelta::milliseconds(<span class="number">299</span>)
-    );
-    <span class="comment">// This will fail as no wait:
-    </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_retry"</span>);
-    <span class="comment">// This will fail as only waiting 100ms:
-    </span><span class="kw">if </span>r.dlock(
-        NS,
-        <span class="string">"test_lock_retry"</span>,
-        Duration::from_millis(<span class="number">100</span>),
-        <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">100</span>)),
-    )
-    .<span class="kw">await
-    </span>.is_ok()
-    {
-        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Lock acquired, even though it should be locked"</span>));
-    }
-    <span class="comment">// This will succeed as waiting for another 250ms, which should easily hit the 300ms ttl:
-    </span><span class="kw">let </span>lock = r
-        .dlock(
+        <span class="comment">// New test, confirm extend does extend by expected amount:
+        </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
+            .dlock(NS, <span class="string">"test_lock_extend"</span>, Duration::from_millis(<span class="number">100</span>), <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="macro">assert_td_in_range!</span>(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
+        );
+        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+        <span class="comment">// This means should be valid for another 100ms:
+        </span>lock.extend(Duration::from_millis(<span class="number">100</span>))
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="comment">// Sleep for 60, would have expired original, but new will still be valid for another 40:
+        </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+        <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_extend"</span>);
+        <span class="comment">// Should now go over extension, should be relockable:
+        </span>tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+        <span class="macro">check_lockable!</span>(<span class="string">"test_lock_extend"</span>);
+
+        <span class="comment">// Confirm retries would work to wait for a lock:
+        </span><span class="kw">let </span>lock = r
+            .dlock(NS, <span class="string">"test_lock_retry"</span>, Duration::from_millis(<span class="number">300</span>), <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="macro">assert_td_in_range!</span>(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(<span class="number">250</span>)..TimeDelta::milliseconds(<span class="number">299</span>)
+        );
+        <span class="comment">// This will fail as no wait:
+        </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_retry"</span>);
+        <span class="comment">// This will fail as only waiting 100ms:
+        </span><span class="kw">if </span>r.dlock(
             NS,
             <span class="string">"test_lock_retry"</span>,
             Duration::from_millis(<span class="number">100</span>),
-            <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">250</span>)),
+            <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">100</span>)),
         )
         .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="macro">assert_td_in_range!</span>(
-        lock.expires_at - chrono::Utc::now(),
-        TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
-    );
+        </span>.is_ok()
+        {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Lock acquired, even though it should be locked"</span>));
+        }
+        <span class="comment">// This will succeed as waiting for another 250ms, which should easily hit the 300ms ttl:
+        </span><span class="kw">let </span>lock = r
+            .dlock(
+                NS,
+                <span class="string">"test_lock_retry"</span>,
+                Duration::from_millis(<span class="number">100</span>),
+                <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">250</span>)),
+            )
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="macro">assert_td_in_range!</span>(
+            lock.expires_at - chrono::Utc::now(),
+            TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
+        );
 
-    <span class="comment">// Confirm hold_for_fut works as expected:
-    // Lock in one future and run for 2 seconds, try accessing in another, should be blocked the whole time.
-    // Once the select finishes, should straight away be able to lock:
-    </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
-        .dlock(
-            NS,
-            <span class="string">"test_lock_hold_for_fut"</span>,
-            Duration::from_millis(<span class="number">500</span>),
-            <span class="prelude-val">None</span>,
-        )
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-    <span class="kw">let </span>lock_fut = <span class="kw">async </span>{
-        lock.hold_for_fut(<span class="kw">async </span>{
-            tokio::time::sleep(Duration::from_secs(<span class="number">2</span>)).<span class="kw">await</span>;
+        <span class="comment">// Confirm hold_for_fut works as expected:
+        // Lock in one future and run for 2 seconds, try accessing in another, should be blocked the whole time.
+        // Once the select finishes, should straight away be able to lock:
+        </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
+            .dlock(
+                NS,
+                <span class="string">"test_lock_hold_for_fut"</span>,
+                Duration::from_millis(<span class="number">500</span>),
+                <span class="prelude-val">None</span>,
+            )
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+        <span class="kw">let </span>lock_fut = <span class="kw">async </span>{
+            lock.hold_for_fut(<span class="kw">async </span>{
+                tokio::time::sleep(Duration::from_secs(<span class="number">2</span>)).<span class="kw">await</span>;
+                <span class="prelude-val">Ok</span>::&lt;<span class="kw">_</span>, error_stack::Report&lt;AnyErr&gt;&gt;(())
+            })
+            .<span class="kw">await
+            </span>.change_context(AnyErr)<span class="question-mark">?</span>;
+            lock.unlock().<span class="kw">await</span>;
             <span class="prelude-val">Ok</span>::&lt;<span class="kw">_</span>, error_stack::Report&lt;AnyErr&gt;&gt;(())
-        })
-        .<span class="kw">await
-        </span>.change_context(AnyErr)<span class="question-mark">?</span>;
-        lock.unlock().<span class="kw">await</span>;
-        <span class="prelude-val">Ok</span>::&lt;<span class="kw">_</span>, error_stack::Report&lt;AnyErr&gt;&gt;(())
-    };
-    <span class="kw">let </span>try_get = <span class="kw">async </span>{
-        <span class="kw">loop </span>{
-            <span class="kw">if </span>r.dlock(NS, <span class="string">"test_lock_hold_for_fut"</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
-                .<span class="kw">await
-                </span>.is_ok()
-            {
-                <span class="kw">break</span>;
+        };
+        <span class="kw">let </span>try_get = <span class="kw">async </span>{
+            <span class="kw">loop </span>{
+                <span class="kw">if </span>r.dlock(NS, <span class="string">"test_lock_hold_for_fut"</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
+                    .<span class="kw">await
+                    </span>.is_ok()
+                {
+                    <span class="kw">break</span>;
+                }
+                tokio::time::sleep(Duration::from_millis(<span class="number">100</span>)).<span class="kw">await</span>;
             }
-            tokio::time::sleep(Duration::from_millis(<span class="number">100</span>)).<span class="kw">await</span>;
-        }
-        <span class="macro">panic!</span>(<span class="string">"Should not have been able to lock!"</span>);
-    };
-    <span class="macro">futures::select!</span> {
-        result = {lock_fut.fuse()} =&gt; result.change_context(AnyErr),
-        <span class="kw">_ </span>= {try_get.fuse()} =&gt; {
-            <span class="macro">panic!</span>(<span class="string">"Should not have been able to lock!"</span>)
-        }
-    }<span class="question-mark">?</span>;
-    <span class="comment">// Should now be able to lock as the lock should be released the second the closure finishes:
-    </span><span class="macro">check_lockable!</span>(<span class="string">"test_lock_hold_for_fut"</span>);
+            <span class="macro">panic!</span>(<span class="string">"Should not have been able to lock!"</span>);
+        };
+        <span class="macro">futures::select!</span> {
+            result = {lock_fut.fuse()} =&gt; result.change_context(AnyErr),
+            <span class="kw">_ </span>= {try_get.fuse()} =&gt; {
+                <span class="macro">panic!</span>(<span class="string">"Should not have been able to lock!"</span>)
+            }
+        }<span class="question-mark">?</span>;
+        <span class="comment">// Should now be able to lock as the lock should be released the second the closure finishes:
+        </span><span class="macro">check_lockable!</span>(<span class="string">"test_lock_hold_for_fut"</span>);
 
-    <span class="prelude-val">Ok</span>(())
+        <span class="prelude-val">Ok</span>(())
+    }
 }
 </code></pre></div></section></main></body></html>

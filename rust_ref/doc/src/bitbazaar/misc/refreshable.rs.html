@@ -220,6 +220,7 @@
 <a href="#220" id="220">220</a>
 <a href="#221" id="221">221</a>
 <a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::{atomic::AtomicU64, Arc, OnceLock};
 
 <span class="kw">use </span>arc_swap::ArcSwap;
@@ -308,12 +309,13 @@
     <span class="doccomment">/// Internal of `sync`, doesn't set the new data so can be used in mutator.
     </span><span class="kw">async fn </span>sync_no_set(<span class="kw-2">&amp;</span><span class="self">self</span>, conn: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>RedisConnLike) -&gt; RResult&lt;<span class="prelude-ty">Option</span>&lt;T&gt;, AnyErr&gt; {
         <span class="kw">let </span>mutate_id_changed = {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="prelude-val">Some</span>(current_mutate_id)) = conn
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(current_mutate_id) = conn
                 .batch()
                 .get::&lt;u64&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>.redis_namespace, <span class="kw-2">&amp;</span><span class="self">self</span>.redis_mutate_key)
                 .fire()
                 .<span class="kw">await
-            </span>{
+                </span>.flatten()
+            {
                 <span class="comment">// Check if different, simultaneously setting the new value:
                 </span>current_mutate_id
                     != <span class="self">self

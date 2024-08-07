@@ -253,6 +253,22 @@
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
 <a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
 
 <span class="kw">use </span>tracing::Level;
@@ -324,6 +340,9 @@
     <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
     </span><span class="doccomment">/// The url string to connect via http to, e.g. "/otlp" or "localhost/otlp":
     </span><span class="kw">pub </span>http_endpoint: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
+    </span><span class="doccomment">/// The headers to send with the http request:
+    </span><span class="kw">pub </span>http_headers: Vec&lt;(String, String)&gt;,
     <span class="doccomment">/// The name of the service:
     </span><span class="kw">pub </span>service_name: String,
     <span class="doccomment">/// The active version/deployment of the service:
@@ -419,6 +438,8 @@
             grpc_port: <span class="prelude-val">Some</span>(port),
             <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
             </span>http_endpoint: <span class="prelude-val">None</span>,
+            <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
+            </span>http_headers: <span class="macro">vec!</span>[],
             service_name: service_name.into(),
             service_version: service_version.into(),
             shared: SharedOpts::default(),
@@ -443,10 +464,21 @@
             <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-grpc"</span>)]
             </span>grpc_port: <span class="prelude-val">None</span>,
             http_endpoint: <span class="prelude-val">Some</span>(endpoint.into()),
+            http_headers: <span class="macro">vec!</span>[],
             service_name: service_name.into(),
             service_version: service_version.into(),
             shared: SharedOpts::default(),
         }));
+        <span class="self">self
+    </span>}
+
+    <span class="attr">#[cfg(feature = <span class="string">"opentelemetry-http"</span>)]
+    </span><span class="doccomment">/// Add a header to the last configured otlp http requests,
+    /// this will be a no-op if the last output is not an otlp http output.
+    </span><span class="kw">pub fn </span>header(<span class="kw-2">mut </span><span class="self">self</span>, key: <span class="kw">impl </span>Into&lt;String&gt;, value: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(Output::Otlp(conf)) = <span class="self">self</span>.outputs.last_mut() {
+            conf.http_headers.push((key.into(), value.into()));
+        }
         <span class="self">self
     </span>}
 
