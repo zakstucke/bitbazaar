@@ -87,98 +87,6 @@ _ensure_go () {
     fi
 }
 
-_ensure_openobserve() {
-    target_version="0.10.5"
-    old_version=$(./dev_scripts/utils.sh match_substring 'openobserve v(.*)' "$(openobserve --version 2>/dev/null)" || echo "")
-
-    if [ "$old_version" != "$target_version" ]; then
-        echo "Installing openobserve version $target_version..."
-
-        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        if is_arm; then
-            ARCH="arm64"
-        else
-            ARCH="amd64"
-        fi
-
-        curl -L https://github.com/openobserve/openobserve/releases/download/v$target_version/openobserve-v$target_version-${OS}-${ARCH}.tar.gz -o openobserve.tar.gz -f
-        tar -xzf openobserve.tar.gz
-        rm openobserve.tar.gz
-        chmod +x openobserve
-        sudo mv openobserve /usr/local/bin
-    fi
-}
-
-# We don't use the default released binary as it's 250MB!
-# Instead, we compile a custom one that's only 22MB.
-# We manage this by removing a bunch of features we don't need.
-# For custom compilation docs, see https://opentelemetry.io/docs/collector/custom-collector/
-# For a full list of components to add, see https://github.com/open-telemetry/opentelemetry-collector/blob/main/cmd/otelcorecol/builder-config.yaml
-_ensure_otlp_collector () {
-    target_version="0.100.0"
-    install_path="$HOME/compiled_otlp_collector"
-    build_path="$install_path/build"
-    active_version_path="$install_path/active_version.txt"
-
-    # If active_version_path file doesn't exist, or doesn't contain target version, need to install/reinstall:
-    if [ ! -f $active_version_path ] || [ "$(cat $active_version_path)" != "$target_version" ]; then
-        echo "otlp_collector version $target_version needs installing..."
-
-        # We're compiling the otlp go project from src, hence need go:
-        _ensure_go
-
-        # Remove old artifacts:
-        rm -rf $install_path
-        mkdir -p $install_path
-        cd $install_path
-
-        if is_arm; then
-            arch="arm64"
-        else
-            arch="amd64"
-        fi
-        if [ "$(uname)" == "Darwin" ]; then
-            plat="darwin"
-        elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            plat="linux"
-        fi
-
-        # Install the builder:
-        curl --proto '=https' --tlsv1.2 -fL -o ocb \
-        https://github.com/open-telemetry/opentelemetry-collector/releases/download/cmd%2Fbuilder%2Fv${target_version}/ocb_${target_version}_${plat}_${arch}
-        chmod +x ocb
-
-        # Write the builder config yaml file the builder needs, this specifies which components we're actually going to build:
-        printf "%s\n" "dist:" \
-                        "  name: otelcol-dev" \
-                        "  description: Basic OTel Collector distribution for Developers" \
-                        "  output_path: ./otelcol-dev" \
-                        "  otelcol_version: ${target_version}" \
-                        "" \
-                        "exporters:" \
-                        "  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v${target_version}" \
-                        "" \
-                        "processors:" \
-                        "  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v${target_version}" \
-                        "  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v${target_version}" \
-                        "" \
-                        "receivers:" \
-                        "  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v${target_version}" \
-                        "" > builder-config.yaml
-
-        # Run the builder:
-        go env
-        ./ocb --config builder-config.yaml --verbose
-
-        # Make the binary executable:
-        chmod +x otelcol-dev/otelcol-dev
-        # Move the outputted binary to /usr/local/bin and rename to "otlp_collector"
-        sudo mv otelcol-dev/otelcol-dev /usr/local/bin/otlp_collector
-
-        # Update the active version so won't re-install next time unless version changes:
-        echo $target_version > $active_version_path
-    fi
-}
 
 _install_biome () {
     echo "Installing biome version $1..."
@@ -267,11 +175,6 @@ initial_setup () {
     # Make sure zellij installed and correct version:
     _ensure_zellij
 
-    # Make sure openobserve is installed for dev open telemetry logging:
-    _ensure_openobserve
-
-    # Make sure otlp collector is installed as the interface between our processes and openobserve:
-    _ensure_otlp_collector
 
     # Make sure biome is installed for linting and formatting various files:
     _ensure_biome "1.5.3"
