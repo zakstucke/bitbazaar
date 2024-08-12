@@ -133,26 +133,29 @@ impl CollectorStandalone {
                         )
                     })?;
 
-                    // Save the binary
-                    let filepath = workspace_dir.join(COLLECTOR_BINARY_NAME);
-                    let mut file = tokio::fs::File::create(&filepath)
-                        .await
-                        .change_context(AnyErr)?;
-
-                    file.write_all(&binary).await.change_context(AnyErr)?;
-
-                    // TODONOW utility
-                    // Execute permissions:
-                    #[cfg(unix)]
+                    // Inside block to drop the handle to the file after writing.
                     {
-                        use std::os::unix::fs::PermissionsExt;
-                        tokio::fs::set_permissions(
-                            &filepath,
-                            std::fs::Permissions::from_mode(0o755),
-                        )
-                        .await
-                        .change_context(AnyErr)?;
+                        // Save the binary
+                        let filepath = workspace_dir.join(COLLECTOR_BINARY_NAME);
+                        let mut file = tokio::fs::File::create(&filepath)
+                            .await
+                            .change_context(AnyErr)?;
+
+                        file.write_all(&binary).await.change_context(AnyErr)?;
+                        // TODONOW utility
+                        // Execute permissions:
+                        #[cfg(unix)]
+                        {
+                            use std::os::unix::fs::PermissionsExt;
+                            tokio::fs::set_permissions(
+                                &filepath,
+                                std::fs::Permissions::from_mode(0o755),
+                            )
+                            .await
+                            .change_context(AnyErr)?;
+                        }
                     }
+
                     // Before adding a small sleep, on macos I'd randomly get Malformed Mach-o file (os error 88) when instantly trying to run binary after above:
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
