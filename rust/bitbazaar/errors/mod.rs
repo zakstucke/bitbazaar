@@ -1,6 +1,9 @@
 mod any;
 mod macros;
 
+/// Publicly exporting the error stack crate, to prevent every dependent depending on it too.
+pub use error_stack;
+
 pub use any::AnyErr;
 
 /// Shorthand for a [`Result`] with a [`error_stack::Report`] as the error variant

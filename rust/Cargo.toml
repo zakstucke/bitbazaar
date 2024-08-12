@@ -25,7 +25,7 @@ all-features = true
 [dependencies]
 parking_lot = { version = "0.12", features = ["serde"] }
 tracing = "0.1"
-error-stack = "0.4"
+error-stack = { version = "0.5", features = ["anyhow", "serde"] }
 colored = '2'
 tracing-subscriber = { version = "0.3", features = ["fmt", "std", "time"] }
 serde = { version = "1", features = ["derive", "rc"] }

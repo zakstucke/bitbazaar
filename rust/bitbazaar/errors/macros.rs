@@ -8,21 +8,21 @@
 #[macro_export]
 macro_rules! anyerr {
     () => {{
-        use error_stack::Report;
+        use $crate::errors::error_stack::Report;
         use $crate::errors::AnyErr;
 
         Report::new(AnyErr)
     }};
 
     ($str:expr) => {{
-        use error_stack::Report;
+        use $crate::errors::error_stack::Report;
         use $crate::errors::AnyErr;
 
         Report::new(AnyErr).attach_printable($str)
     }};
 
     ($str:expr, $($arg:expr),*) => {{
-        use error_stack::Report;
+        use $crate::errors::error_stack::Report;
         use $crate::errors::AnyErr;
 
         Report::new(AnyErr).attach_printable(format!($str, $($arg),*))
@@ -39,19 +39,19 @@ macro_rules! anyerr {
 #[macro_export]
 macro_rules! err {
     ($err_variant:expr) => {{
-        use error_stack::Report;
+        use $crate::errors::error_stack::Report;
 
         Report::new($err_variant)
     }};
 
     ($err_variant:expr, $str:expr) => {{
-        use error_stack::Report;
+        use $crate::errors::error_stack::Report;
 
         Report::new($err_variant).attach_printable($str)
     }};
 
     ($err_variant:expr, $str:expr, $($arg:expr),*) => {{
-        use error_stack::Report;
+        use $crate::errors::error_stack::Report;
 
         Report::new($err_variant).attach_printable(format!($str, $($arg),*))
     }};
