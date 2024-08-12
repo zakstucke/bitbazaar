@@ -23,7 +23,7 @@ all-features = true
 
 # Add your dependencies here
 [dependencies]
-parking_lot = { version = "0.12", features = ["deadlock_detection", "serde"] }
+parking_lot = { version = "0.12", features = ["serde"] }
 tracing = "0.1"
 error-stack = "0.4"
 colored = '2'
@@ -33,15 +33,16 @@ serde_json = { version = "1" }
 time = { version = "0.3", features = ["local-offset"] }
 futures = { version = "0.3", features = [] }
 async-semaphore = "1.2"
-gloo-timers = { version = "0.3", features = ["futures"] }
 itertools = "0.12"
 tracing-core = "0.1"
 chrono = { version = '0.4', features = ["serde"] }
 chrono-humanize = { version = "0.2" }
 arc-swap = "1"
 paste = "1"
+dashmap = "6"
 
 # Not in default, but randomly useful in features:
+reqwest = { version = "0.12", optional = true }
 strum = { version = "0.25", features = ["derive"], optional = true }
 rand = { version = "0.8", optional = true }
 uuid = { version = "1.6", features = ["v4"], optional = true }
@@ -51,6 +52,13 @@ leptos_axum = { version = "0.6", optional = true }
 http = { version = "1", optional = true }
 portpicker = { version = '0.1', optional = true }
 argon2 = { version = "0.5", optional = true }
+tempfile = { version = '3', optional = true }
+
+# FEAT: collector:
+
+# FEAT: tarball:
+flate2 = { version = "1", optional = true }
+tar = { version = "0.4", optional = true }
 
 # FEAT: indexmap:
 indexmap = { version = "2", optional = true }
@@ -113,17 +121,18 @@ wasm-cookies = { version = "0.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tracing-subscriber-wasm = "0.1.0"
+gloo-timers = { version = "0.3", features = ["futures"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # This includes threading (non-blocking stuff that can't be used in wasm)
 tracing-appender = '0.2'
 hostname = "0.3.1"
-tokio = { version = '1', features = ["time", "sync"] }
+tokio = { version = '1', features = ["time", "sync", "fs", "process"] }
+named-lock = "0.4"
 
 [dev-dependencies]
 rstest = "0.18"
 criterion = { version = "0.3", features = ["html_reports", "async_tokio"] }
-tempfile = '3.8'
 tokio = { version = '1', features = ["full"] }
 
 # When adding new benches, they should be added like this with the name of the file in benches/: (obviously uncommented)
@@ -132,6 +141,8 @@ tokio = { version = '1', features = ["full"] }
 # harness = false
 
 [features]
+collector = ["dep:reqwest", "dep:tempfile", "tarball"]
+tarball = ["dep:flate2", "dep:tar"]
 indexmap = ["dep:indexmap"]
 log-filter = ["dep:regex"]
 aes256 = ['dep:aes-gcm-siv', 'dep:argon2', 'dep:bincode']

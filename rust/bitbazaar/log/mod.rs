@@ -5,6 +5,12 @@ mod macros;
 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
 mod ot_tracing_bridge;
 
+// Can't run a collector on wasm:
+#[cfg(all(not(target_arch = "wasm32"), feature = "collector"))]
+mod standalone_collector;
+#[cfg(all(not(target_arch = "wasm32"), feature = "collector"))]
+pub use standalone_collector::*;
+
 #[cfg(all(
     feature = "system",
     any(feature = "opentelemetry-grpc", feature = "opentelemetry-http")
@@ -36,7 +42,7 @@ pub mod otlp {
 mod tests {
     use std::{
         collections::{HashMap, HashSet},
-        sync::{atomic::AtomicU32, LazyLock},
+        sync::{atomic::AtomicU32, Arc, LazyLock},
     };
 
     use parking_lot::Mutex;
@@ -322,47 +328,90 @@ mod tests {
     #[rstest]
     #[tokio::test(flavor = "multi_thread")]
     async fn test_otlp_grpc() -> RResult<(), AnyErr> {
-        _inner_test_opentelemetry(GlobalLog::builder().otlp_grpc(4317, "rust-test", "0.1.0")).await
+        let (_collector, port, records) = _build_collector(include_str!(
+            "./test_assets/collector_config_example_grpc.yaml"
+        ))
+        .await
+        .change_context(AnyErr)?;
+        _inner_test_opentelemetry(
+            GlobalLog::builder().otlp_grpc(port, "rust-test", "0.1.0"),
+            &records,
+        )
+        .await
     }
 
     #[cfg(feature = "opentelemetry-http")]
     #[rstest]
     #[tokio::test(flavor = "multi_thread")]
     async fn test_otlp_http() -> RResult<(), AnyErr> {
-        _inner_test_opentelemetry(GlobalLog::builder().otlp_http(
-            "http://localhost:4318",
-            "rust-test",
-            "0.1.0",
+        let (_collector, port, records) = _build_collector(include_str!(
+            "./test_assets/collector_config_example_http.yaml"
         ))
+        .await
+        .change_context(AnyErr)?;
+        _inner_test_opentelemetry(
+            GlobalLog::builder().otlp_http(
+                &format!("http://localhost:{}", port),
+                "rust-test",
+                "0.1.0",
+            ),
+            &records,
+        )
         .await
     }
 
-    async fn _inner_test_opentelemetry(builder: GlobalLogBuilder) -> RResult<(), AnyErr> {
-        use std::path::PathBuf;
+    async fn _build_collector(
+        config: &str,
+    ) -> RResult<(CollectorStandalone, u16, Arc<Mutex<Vec<String>>>), AnyErr> {
+        use std::sync::Arc;
 
-        use crate::misc::in_ci;
+        let records = Arc::new(Mutex::new(vec![]));
 
-        // Collector won't be running ci:
-        if in_ci() {
-            return Ok(());
-        }
+        let port = portpicker::pick_unused_port().unwrap();
+        let collector = CollectorStandalone::new(
+            &config.replace("$PORT", &port.to_string()),
+            {
+                let records = records.clone();
+                move |stdout| {
+                    println!("{}", stdout);
+                    records.lock().push(stdout);
+                }
+            },
+            {
+                let records = records.clone();
+                move |stderr| {
+                    println!("{}", stderr);
+                    records.lock().push(stderr);
+                }
+            },
+        )
+        .await
+        .change_context(AnyErr)?;
 
-        let logpath = PathBuf::from("../logs/otlp_telemetry_out.log");
-        let mut cur_str_len = 0;
-        if logpath.exists() {
-            cur_str_len = std::fs::read_to_string(&logpath)
-                .change_context(AnyErr)?
-                .len();
-        }
+        Ok((collector, port, records))
+    }
 
+    async fn _inner_test_opentelemetry(
+        builder: GlobalLogBuilder,
+        records: &Mutex<Vec<String>>,
+    ) -> RResult<(), AnyErr> {
         let log = builder.level_from(Level::DEBUG)?.build()?;
 
+        #[tracing::instrument]
+        fn example_spanned_fn() {
+            error!("NESTED");
+        }
+
+        // Sleeping after each, to try and ensure the correct debug output:
         log.with_tmp_global(|| {
             debug!("BEFORE");
+            std::thread::sleep(std::time::Duration::from_millis(10));
             example_spanned_fn();
+            std::thread::sleep(std::time::Duration::from_millis(10));
             warn!("AFTER");
 
             // Use a metric:
+            std::thread::sleep(std::time::Duration::from_millis(10));
             let meter = log.meter("my_meter").unwrap();
             let counter = meter.u64_counter("my_counter").init();
             counter.add(1, &[]);
@@ -371,195 +420,77 @@ mod tests {
         // Make sure everything's been sent:
         log.flush()?;
 
-        // Wait for a second, as that's how often the collector writes to the debug file:
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        // Logs should now exist:
+        let contents = records.lock();
 
-        // Logs should now exist in the collector, which is configured to write them to ./logs/otlp.log for testing:
-        // Read logpath from filestart:
-        let full = std::fs::read_to_string(&logpath).change_context(AnyErr)?;
-        let contents = &full[cur_str_len..];
-
-        let mut metrics: Vec<GenMetric> = vec![];
-        let mut spans: Vec<GenSpan> = vec![];
-        let mut logs: Vec<GenLog> = vec![];
-        for line in contents.lines() {
-            let value: serde_json::Value = serde_json::from_str(line)
-                .change_context(AnyErr)
-                .attach_printable_lazy(|| {
-                    format!("Couldn't decode line as json. Line: '{}'", line)
-                })?;
-
-            if line.contains("resourceMetrics") {
-                for resource in value
-                    .as_object()
-                    .unwrap()
-                    .get("resourceMetrics")
-                    .unwrap()
-                    .as_array()
-                    .unwrap()
-                {
-                    for scope in resource
-                        .as_object()
-                        .unwrap()
-                        .get("scopeMetrics")
-                        .unwrap()
-                        .as_array()
-                        .unwrap()
-                    {
-                        for metric in scope
-                            .as_object()
-                            .unwrap()
-                            .get("metrics")
-                            .unwrap()
-                            .as_array()
-                            .unwrap()
-                        {
-                            metrics.push(GenMetric {
-                                name: metric
-                                    .as_object()
-                                    .unwrap()
-                                    .get("name")
-                                    .unwrap()
-                                    .as_str()
-                                    .unwrap()
-                                    .into(),
-                            });
-                        }
-                    }
-                }
-            } else if line.contains("resourceSpans") {
-                for resource in value
-                    .as_object()
-                    .unwrap()
-                    .get("resourceSpans")
-                    .unwrap()
-                    .as_array()
-                    .unwrap()
-                {
-                    for scope in resource
-                        .as_object()
-                        .unwrap()
-                        .get("scopeSpans")
-                        .unwrap()
-                        .as_array()
-                        .unwrap()
-                    {
-                        for span in scope
-                            .as_object()
-                            .unwrap()
-                            .get("spans")
-                            .unwrap()
-                            .as_array()
-                            .unwrap()
-                        {
-                            spans.push(GenSpan {
-                                sid: span.get("spanId").unwrap().as_str().unwrap().into(),
-                            });
-                        }
-                    }
-                }
-            } else if line.contains("resourceLogs") {
-                for resource in value
-                    .as_object()
-                    .unwrap()
-                    .get("resourceLogs")
-                    .unwrap()
-                    .as_array()
-                    .unwrap()
-                {
-                    for scope in resource
-                        .as_object()
-                        .unwrap()
-                        .get("scopeLogs")
-                        .unwrap()
-                        .as_array()
-                        .unwrap()
-                    {
-                        for log in scope
-                            .as_object()
-                            .unwrap()
-                            .get("logRecords")
-                            .unwrap()
-                            .as_array()
-                            .unwrap()
-                        {
-                            let log = log.as_object().unwrap();
-                            logs.push(GenLog {
-                                sid: log.get("spanId").unwrap().as_str().unwrap().into(),
-                                body: otlp_value_to_string(log.get("body").unwrap()),
-                                attrs: log
-                                    .get("attributes")
-                                    .unwrap()
-                                    .as_array()
-                                    .unwrap()
-                                    .iter()
-                                    .map(|attr| {
-                                        let attr = attr.as_object().unwrap();
-                                        (
-                                            attr.get("key").unwrap().as_str().unwrap().into(),
-                                            otlp_value_to_string(attr.get("value").unwrap()),
-                                        )
-                                    })
-                                    .collect(),
-                            });
-                        }
-                    }
-                }
+        // Until below issue is resolved, debug logs come in an awful format, so very hacky parsing here to make sure things more or less work:
+        // https://github.com/open-telemetry/opentelemetry-collector/issues/9149
+        let breakpoints = [
+            "LogsExporter",
+            "ResourceLog",
+            "TracesExporter",
+            "MetricsExporter",
+        ];
+        let mut items = vec![];
+        let mut active = HashMap::new();
+        for line in contents.iter() {
+            let trimmed = line.trim().replace("-> ", "").replace("\t", ":");
+            if !active.is_empty() && breakpoints.iter().any(|b| trimmed.contains(b)) {
+                items.push(std::mem::take(&mut active));
+            }
+            if trimmed.contains(":") {
+                let mut parts = trimmed.splitn(2, ":");
+                let key = parts.next().unwrap().trim();
+                let value = parts.next().unwrap().trim();
+                active.insert(key.to_string(), value.to_string());
             } else {
-                return Err(anyerr!("Unexpected line: {}", line));
+                active.insert(trimmed, "".to_string());
             }
         }
+        items.push(active);
+        // Getting rid of junk:
+        items.retain(|item| {
+            !(item.is_empty()
+                || (item.len() == 1
+                    && (item.contains_key("LogsExporter")
+                        || item.contains_key("MetricsExporter")
+                        || item.contains_key("TracesExporter"))))
+        });
 
-        assert_eq!(spans.len(), 1);
-        assert_eq!(logs.len(), 3);
+        // Expecting 5 items, each log and then the span declaration then the metric:
+        assert_eq!(items.len(), 5, "{:#?}", items);
 
-        // Span should be assigned to nested log only, logs should be in order
-        assert_eq!(logs[0].body, "BEFORE");
-        assert_eq!(logs[0].sid, "");
-        assert_eq!(logs[1].body, "NESTED");
-        assert_eq!(logs[1].sid, spans[0].sid);
-        assert_eq!(logs[2].body, "AFTER");
-        assert_eq!(logs[2].sid, "");
+        println!("{:#?}", items);
 
+        // First should be the BEFORE log:
+        assert_eq!(items[0].get("Body").unwrap(), "Str(BEFORE)");
+        assert_eq!(items[0].get("SeverityText").unwrap(), "DEBUG");
+        assert_eq!(items[0].get("Span ID").unwrap(), "");
         // Metadata should be correctly attached:
         assert_eq!(
-            logs[2].attrs.get("code.namespace").unwrap(),
-            "bitbazaar::log::tests"
+            items[0].get("code.namespace").unwrap(),
+            "Str(bitbazaar::log::tests)"
         );
 
-        // Metric should show up:
-        assert_eq!(metrics[0].name, "my_counter");
+        // Second should be the NESTED log inside a span:
+        assert_eq!(items[1].get("Body").unwrap(), "Str(NESTED)");
+        assert_eq!(items[1].get("SeverityText").unwrap(), "ERROR");
+        let sid = items[1].get("Span ID").unwrap();
+        assert!(!sid.is_empty(), "{}", sid);
+
+        // Third should be the AFTER log:
+        assert_eq!(items[2].get("Body").unwrap(), "Str(AFTER)");
+        assert_eq!(items[2].get("SeverityText").unwrap(), "WARN");
+        assert_eq!(items[2].get("Span ID").unwrap(), "");
+
+        // Fourth should be the span definition:
+        // Should be the same span id as the log:
+        assert_eq!(items[3].get("ID").unwrap(), sid);
+
+        // Fifth should be the metric:
+        assert_eq!(items[4].get("Name").unwrap(), "my_counter");
+        assert_eq!(items[4].get("Value").unwrap(), "1");
 
         Ok(())
-    }
-
-    #[tracing::instrument]
-    fn example_spanned_fn() {
-        error!("NESTED");
-    }
-
-    struct GenMetric {
-        name: String,
-    }
-
-    struct GenSpan {
-        sid: String,
-    }
-
-    struct GenLog {
-        sid: String,
-        body: String,
-        attrs: HashMap<String, String>,
-    }
-
-    fn otlp_value_to_string(value: &serde_json::Value) -> String {
-        let val = value.as_object().unwrap();
-        if val.contains_key("stringValue") {
-            val.get("stringValue").unwrap().as_str().unwrap().into()
-        } else if val.contains_key("intValue") {
-            val.get("intValue").unwrap().as_str().unwrap().into()
-        } else {
-            panic!("Unknown value: {:?}", val)
-        }
     }
 }

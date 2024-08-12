@@ -1,7 +1,7 @@
 use error_stack::Context;
 
 /// A generic trace_stack error to use when you don't want to create custom error types.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AnyErr;
 
 impl std::fmt::Display for AnyErr {
