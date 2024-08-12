@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Arch","OsType"],"fn":["architecture_type","in_ci","os_type"]};
