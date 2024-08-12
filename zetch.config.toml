@@ -23,8 +23,6 @@ BUILD_UNIQUE_ID = "foobar"
 [context.env]
 DEBUG = { default = true, coerce = "bool" }
 IN_DOCKER = { default = false, coerce = "bool" }
-OTLP_OO_ENDPOINT = { default = "http://localhost:5080/api/default/" }
-OTLP_OO_AUTH = { default = "Basic ZGV2QGRldi5jb206cGFzcw==" }         # Not security issue! This is just base64('dev@dev.com:pass')
 REDIS_URL = { default = "redis://localhost:6379" }
 
 [context.cli]

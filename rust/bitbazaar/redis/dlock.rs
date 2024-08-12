@@ -492,13 +492,13 @@ mod tests {
         {
             return Err(anyerr!("Lock acquired, even though it should be locked"));
         }
-        // This will succeed as waiting for another 250ms, which should easily hit the 300ms ttl:
+        // This will succeed as waiting for another 300ms, which should easily hit the 300ms ttl:
         let lock = r
             .dlock(
                 NS,
                 "test_lock_retry",
                 Duration::from_millis(100),
-                Some(Duration::from_millis(250)),
+                Some(Duration::from_millis(300)),
             )
             .await
             .change_context(AnyErr)?;

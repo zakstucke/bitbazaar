@@ -7,9 +7,9 @@ mod script;
 mod temp_list;
 mod wrapper;
 
-mod standalone;
+mod standalone_redis;
 
-pub use standalone::*;
+pub use standalone_redis::*;
 
 pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::{RedisConn, RedisConnLike};

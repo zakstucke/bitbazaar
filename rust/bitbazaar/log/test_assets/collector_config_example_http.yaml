@@ -1,0 +1,41 @@
+receivers:
+  # Where programs/open telemetry sdks should send their data:
+  otlp:
+    protocols:
+      http:
+        endpoint: localhost:$PORT
+        cors:
+          allowed_origins:
+            - "*"
+
+processors:
+
+# For testing, all to console which will be captured:
+exporters:
+  debug:
+    verbosity: detailed
+    use_internal_logger: false
+
+service:
+  telemetry:
+    logs:
+      level: "error"
+    metrics:
+      level: "none"
+
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: []
+      exporters:
+        - debug
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters:
+        - debug
+    metrics:  # Don't bother with memory limiting for metrics, traces and logs will be the largest consumers of memory
+      receivers: [otlp]
+      processors: []
+      exporters:
+        - debug
