@@ -375,6 +375,7 @@ mod tests {
                 move |stdout| {
                     println!("{}", stdout);
                     records.lock().push(stdout);
+                    async {}
                 }
             },
             {
@@ -382,6 +383,7 @@ mod tests {
                 move |stderr| {
                     println!("{}", stderr);
                     records.lock().push(stderr);
+                    async {}
                 }
             },
         )

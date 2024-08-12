@@ -13,6 +13,10 @@ mod prelude;
 #[cfg(feature = "cli")]
 /// Command line interface utilities.
 pub mod cli;
+/// OS Command related utilities. Much lighter weight than cli module (which will probably be deprecated as badly written and not maintainable).
+/// Not applicable to wasm
+#[cfg(not(target_arch = "wasm32"))]
+pub mod command;
 
 /// Chrono utilities
 pub mod chrono;
@@ -23,6 +27,10 @@ pub mod cookies;
 pub mod crypto;
 /// Error handling utilities.
 pub mod errors;
+
+/// File related utilities. Therefore disabled on wasm.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod file;
 /// Logging utilities
 pub mod log;
 /// Completely miscellaneous utilities

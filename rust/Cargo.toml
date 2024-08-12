@@ -127,7 +127,7 @@ gloo-timers = { version = "0.3", features = ["futures"] }
 # This includes threading (non-blocking stuff that can't be used in wasm)
 tracing-appender = '0.2'
 hostname = "0.3.1"
-tokio = { version = '1', features = ["time", "sync", "fs", "process"] }
+tokio = { version = '1', features = ["time", "sync", "fs", "process", "rt", "io-util"] }
 named-lock = "0.4"
 
 [dev-dependencies]

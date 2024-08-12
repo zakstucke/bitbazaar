@@ -1,10 +1,12 @@
+use std::future::Future;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 
 use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt;
 
+use crate::command::CmdSpawnExt;
+use crate::file::chmod_executable_async;
 use crate::log::record_exception;
 use crate::misc::{platform, setup_once, tarball_decompress};
 use crate::prelude::*;
@@ -26,10 +28,13 @@ impl CollectorStandalone {
     /// - config: the config file contents to pass to the collector.
     /// - on_stdout: what to do with each stdout line emitted by the process
     /// - on_stderr: what to do with each stderr line emitted by the process
-    pub async fn new(
+    pub async fn new<
+        FutOnStdOut: Future<Output = ()> + Send + 'static,
+        FutOnStdErr: Future<Output = ()> + Send + 'static,
+    >(
         config: &str,
-        on_stdout: impl Fn(String) + Send + 'static + Clone,
-        on_stderr: impl Fn(String) + Send + 'static + Clone,
+        on_stdout: impl Fn(String) -> FutOnStdOut + Send + 'static + Clone,
+        on_stderr: impl Fn(String) -> FutOnStdErr + Send + 'static + Clone,
     ) -> RResult<Self, AnyErr> {
         let mut config_file = NamedTempFile::new().change_context(AnyErr)?;
         config_file
@@ -44,16 +49,22 @@ impl CollectorStandalone {
         };
         static COLLECTOR_VERSION: &str = "0.106.1";
 
-        async fn spawn_child(
+        async fn spawn_child<
+            FutOnStdOut: Future<Output = ()> + Send + 'static,
+            FutOnStdErr: Future<Output = ()> + Send + 'static,
+        >(
             workspace_dir: PathBuf,
             config_filepath: &Path,
-            on_stdout: impl Fn(String) + Send + 'static,
-            on_stderr: impl Fn(String) + Send + 'static + Clone,
+            on_stdout: impl Fn(String) -> FutOnStdOut + Send + 'static,
+            on_stderr: impl Fn(String) -> FutOnStdErr + Send + 'static,
         ) -> RResult<tokio::process::Child, AnyErr> {
             tokio::process::Command::new(workspace_dir.join(COLLECTOR_BINARY_NAME))
                 .arg("--config")
                 .arg(config_filepath)
-                .spawn_with_managed_std(on_stdout, on_stderr)
+                .spawn_builder()
+                .on_stdout(on_stdout)
+                .on_stderr(on_stderr)
+                .spawn()
                 .change_context(AnyErr)
         }
 
@@ -142,18 +153,11 @@ impl CollectorStandalone {
                             .change_context(AnyErr)?;
 
                         file.write_all(&binary).await.change_context(AnyErr)?;
-                        // TODONOW utility
-                        // Execute permissions:
-                        #[cfg(unix)]
-                        {
-                            use std::os::unix::fs::PermissionsExt;
-                            tokio::fs::set_permissions(
-                                &filepath,
-                                std::fs::Permissions::from_mode(0o755),
-                            )
+
+                        // Make runnable:
+                        chmod_executable_async(&filepath)
                             .await
                             .change_context(AnyErr)?;
-                        }
                     }
 
                     // Before adding a small sleep, on macos I'd randomly get Malformed Mach-o file (os error 88) when instantly trying to run binary after above:
@@ -204,110 +208,5 @@ impl CollectorStandalone {
 impl Drop for CollectorStandalone {
     fn drop(&mut self) {
         self.kill_inner()
-    }
-}
-
-/// TODONOW move somewhere else to generalise/expose and finalise name.
-trait CmdSpawnWithManagedStd {
-    type Child;
-
-    fn spawn_with_managed_std(
-        &mut self,
-        on_stdout: impl Fn(String) + Send + 'static,
-        on_stderr: impl Fn(String) + Send + 'static + Clone,
-    ) -> std::io::Result<Self::Child>;
-}
-
-impl CmdSpawnWithManagedStd for std::process::Command {
-    type Child = std::process::Child;
-
-    fn spawn_with_managed_std(
-        &mut self,
-        on_stdout: impl Fn(String) + Send + 'static,
-        on_stderr: impl Fn(String) + Send + 'static + Clone,
-    ) -> std::io::Result<Self::Child> {
-        let mut child = self.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
-
-        use std::io::BufRead;
-
-        // Capture and print stdout in a separate thread
-        if let Some(stdout) = child.stdout.take() {
-            let on_stderr = on_stderr.clone();
-            let stdout_reader = std::io::BufReader::new(stdout);
-            std::thread::spawn(move || {
-                for line in stdout_reader.lines() {
-                    match line {
-                        Ok(line) => on_stdout(line),
-                        Err(e) => on_stderr(format!("Error reading stdout: {:?}", e)),
-                    }
-                }
-            });
-        }
-
-        // Capture and print stderr in a separate thread
-        if let Some(stderr) = child.stderr.take() {
-            let stderr_reader = std::io::BufReader::new(stderr);
-            std::thread::spawn(move || {
-                for line in stderr_reader.lines() {
-                    match line {
-                        Ok(line) => on_stderr(line),
-                        Err(e) => on_stderr(format!("Error reading stderr: {:?}", e)),
-                    }
-                }
-            });
-        }
-
-        Ok(child)
-    }
-}
-
-impl CmdSpawnWithManagedStd for tokio::process::Command {
-    type Child = tokio::process::Child;
-
-    fn spawn_with_managed_std(
-        &mut self,
-        on_stdout: impl Fn(String) + Send + 'static,
-        on_stderr: impl Fn(String) + Send + 'static + Clone,
-    ) -> tokio::io::Result<Self::Child> {
-        use tokio::io::AsyncBufReadExt;
-
-        let mut child = self.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
-
-        // Capture and print stdout in a separate thread
-        if let Some(stdout) = child.stdout.take() {
-            let on_stderr = on_stderr.clone();
-            let stdout_reader = tokio::io::BufReader::new(stdout);
-            tokio::spawn(async move {
-                let mut lines = stdout_reader.lines();
-                loop {
-                    match lines.next_line().await {
-                        Ok(v) => match v {
-                            Some(line) => on_stdout(line),
-                            None => break,
-                        },
-                        Err(e) => on_stderr(format!("Error reading stdout: {:?}", e)),
-                    }
-                }
-            });
-        }
-
-        // Capture and print stderr in a separate thread
-        if let Some(stderr) = child.stderr.take() {
-            let stderr_reader = tokio::io::BufReader::new(stderr);
-            tokio::spawn(async move {
-                let mut lines = stderr_reader.lines();
-                loop {
-                    match lines.next_line().await {
-                        Ok(v) => match v {
-                            Some(line) => on_stderr(line),
-                            None => break,
-                        },
-                        Err(e) => on_stderr(format!("Error reading stderr: {:?}", e)),
-                    }
-                }
-            });
-        }
-
-        Ok(child)
     }
 }

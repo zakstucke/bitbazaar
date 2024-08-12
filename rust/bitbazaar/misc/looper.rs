@@ -1,6 +1,4 @@
-/// TODONOW use this anywhere else we use the pattern, sep from here.
-/// We like the pattern of internalising loops and operating via mutable callbacks.
-/// This standardizes that pattern's interface.
+/// Standardizes pattern for internalised loop that allows mutable callbacks and persistent state.
 /// The state is data that's persisted between iterations, and eventually passed out, this should be customisable by the caller.
 pub struct Looper<State, Value> {
     pub(crate) state: State,

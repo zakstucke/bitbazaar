@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use tracing::{Dispatch, Level, Metadata, Subscriber};
 use tracing_subscriber::{filter::FilterFn, layer::SubscriberExt, registry::LookupSpan, Layer};
 
@@ -222,7 +220,7 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> RResult<GlobalLog, 
                 if let Some(endpoint) = otlp.http_endpoint {
                     use opentelemetry_otlp::{new_exporter, WithExportConfig};
 
-                    let header_map: HashMap<String, String> =
+                    let header_map: std::collections::HashMap<String, String> =
                         otlp.http_headers.iter().cloned().collect();
                     let get_exporter = || {
                         new_exporter()
