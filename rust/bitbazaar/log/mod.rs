@@ -405,13 +405,13 @@ mod tests {
         // Sleeping after each, to try and ensure the correct debug output:
         log.with_tmp_global(|| {
             debug!("BEFORE");
-            std::thread::sleep(std::time::Duration::from_millis(10));
+            std::thread::sleep(std::time::Duration::from_millis(30));
             example_spanned_fn();
-            std::thread::sleep(std::time::Duration::from_millis(10));
+            std::thread::sleep(std::time::Duration::from_millis(30));
             warn!("AFTER");
 
             // Use a metric:
-            std::thread::sleep(std::time::Duration::from_millis(10));
+            std::thread::sleep(std::time::Duration::from_millis(30));
             let meter = log.meter("my_meter").unwrap();
             let counter = meter.u64_counter("my_counter").init();
             counter.add(1, &[]);

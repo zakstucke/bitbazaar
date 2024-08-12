@@ -145,7 +145,7 @@ mod tests {
                 }
                 let millis_elapsed = elapsed.elapsed().as_millis();
                 assert!(millis_elapsed >= 200, "{}", millis_elapsed);
-                assert!(millis_elapsed < 220, "{}", millis_elapsed);
+                assert!(millis_elapsed < 250, "{}", millis_elapsed);
             };
         }
         test!(

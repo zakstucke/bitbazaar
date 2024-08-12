@@ -169,7 +169,16 @@ impl CollectorStandalone {
                     Ok(child)
                 }
             },
-            |workspace_dir| spawn_child(workspace_dir, config_filepath, on_stdout, on_stderr),
+            |workspace_dir| async move {
+                let child =
+                    spawn_child(workspace_dir, config_filepath, on_stdout, on_stderr).await?;
+
+                // Tests variably fail without short wait on otherwise case,
+                // without this CI is dodgy:
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+                Ok(child)
+            },
         )
         .await?;
 
