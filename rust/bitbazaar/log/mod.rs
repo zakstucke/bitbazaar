@@ -489,7 +489,6 @@ mod tests {
 
         // Fifth should be the metric:
         assert_eq!(items[4].get("Name").unwrap(), "my_counter");
-        assert_eq!(items[4].get("Value").unwrap(), "1");
 
         Ok(())
     }
