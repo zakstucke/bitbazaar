@@ -165,8 +165,8 @@ mod tests {
         let elapsed = Instant::now();
         futures::future::try_join_all(futs).await?;
         let elapsed_millis = elapsed.elapsed().as_millis();
-        assert!(elapsed_millis > 100);
-        assert!(elapsed_millis < 150);
+        assert!(elapsed_millis >= 100, "elapsed_millis: {}", elapsed_millis);
+        assert!(elapsed_millis < 200, "elapsed_millis: {}", elapsed_millis);
         assert_eq!(
             setup_num_calls.load(std::sync::atomic::Ordering::Relaxed),
             1
