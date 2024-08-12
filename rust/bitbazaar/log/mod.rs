@@ -420,7 +420,6 @@ mod tests {
             let meter = log.meter("my_meter").unwrap();
             let counter = meter.u64_counter("my_counter").init();
             counter.add(1, &[]);
-            std::thread::sleep(std::time::Duration::from_millis(delay));
         })?;
 
         // Make sure everything's been sent:
