@@ -406,17 +406,21 @@ mod tests {
 
         // Sleeping after each, to try and ensure the correct debug output:
         log.with_tmp_global(|| {
+            // On windows this needs to be really long to get static record ordering for testing:
+            let delay = if cfg!(windows) { 100 } else { 10 };
+
             debug!("BEFORE");
-            std::thread::sleep(std::time::Duration::from_millis(30));
+            std::thread::sleep(std::time::Duration::from_millis(delay));
             example_spanned_fn();
-            std::thread::sleep(std::time::Duration::from_millis(30));
+            std::thread::sleep(std::time::Duration::from_millis(delay));
             warn!("AFTER");
 
             // Use a metric:
-            std::thread::sleep(std::time::Duration::from_millis(30));
+            std::thread::sleep(std::time::Duration::from_millis(delay));
             let meter = log.meter("my_meter").unwrap();
             let counter = meter.u64_counter("my_counter").init();
             counter.add(1, &[]);
+            std::thread::sleep(std::time::Duration::from_millis(delay));
         })?;
 
         // Make sure everything's been sent:
