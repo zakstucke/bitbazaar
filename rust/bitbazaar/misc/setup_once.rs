@@ -1,6 +1,6 @@
 use std::{future::Future, path::PathBuf, sync::LazyLock};
 
-use crate::{misc::global_lock_host_async, prelude::*};
+use crate::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 /// Clear all data for a given id.
@@ -38,7 +38,7 @@ pub async fn setup_once<
     setup: impl FnOnce(PathBuf) -> SetupFut,
     otherwise: impl FnOnce(PathBuf) -> OtherwiseFut,
 ) -> RResult<R, AnyErr> {
-    use crate::log::record_exception;
+    use crate::{log::record_exception, misc::global_lock_host_async};
 
     let workspace_dir = WORKSPACE_DIR_PARENT.join(id).join(version);
 
