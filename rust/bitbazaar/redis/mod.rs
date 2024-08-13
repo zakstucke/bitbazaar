@@ -460,7 +460,7 @@ mod tests {
     ) -> RResult<(), AnyErr> {
         let server = RedisStandalone::new_no_persistence().await?;
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
-        let mut rconn = r.conn();
+        let rconn = r.conn();
 
         // THIS ONLY ACTUALLY WORKS FOR STRINGS and false, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
         // None::<T>, empty vec![] and "" should all work fine as real stored values,
@@ -585,7 +585,7 @@ mod tests {
 
         let server = RedisStandalone::new_no_persistence().await?;
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
-        let mut rconn = r.conn();
+        let rconn = r.conn();
 
         macro_rules! call {
             () => {

@@ -144,10 +144,10 @@ rstest = "0.18"
 criterion = { version = "0.3", features = ["html_reports", "async_tokio"] }
 tokio = { version = '1', features = ["full"] }
 
-# When adding new benches, they should be added like this with the name of the file in benches/: (obviously uncommented)
-# [[bench]]
-# name = "bench_tester"
-# harness = false
+# When adding new benches, they should be added like this with the name of the file in benches/:
+[[bench]]
+name = "bench_default"
+harness = false
 
 [features]
 collector = ["dep:reqwest", "dep:tempfile", "tarball"]

@@ -130,7 +130,7 @@ impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> RedisTempListItem<T
     pub fn into_with_conn(self, conn: impl RedisConnLike) -> RedisTempListItemWithConn<T> {
         RedisTempListItemWithConn {
             item: Mutex::new(self),
-            conn: Mutex::new(conn.into_owned()),
+            conn: Mutex::new(conn.to_owned()),
         }
     }
 
@@ -382,9 +382,6 @@ impl RedisTempList {
                 Some(self.item_inactive_ttl_chrono()),
             )
             // Cleanup old members that have now expired:
-            // (set member expiry is a logical process, not currently part of redis but could be soon)
-            // https://github.com/redis/redis/issues/135#issuecomment-2361996
-            // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
                 &self.namespace,
                 &self.key,
@@ -480,11 +477,7 @@ impl RedisTempList {
 
         let item_info = conn
             .batch()
-            // NOTE: cleaning up first as don't want these to be included in the read.
-            // Cleanup old members that have now expired:
-            // (member expiry is a logical process, not currently part of redis but could be soon)
-            // https://github.com/redis/redis/issues/135#issuecomment-2361996
-            // https://github.com/redis/redis/pull/13172
+            // Cleanup old members that have now expired first because don't want these to be included in the read:
             .zremrangebyscore(
                 &self.namespace,
                 &self.key,
@@ -582,11 +575,7 @@ impl RedisTempList {
     ) -> RedisTempListItem<T> {
         let item = conn
             .batch()
-            // NOTE: cleaning up first as don't want these to be included in the read.
-            // Cleanup old members that have now expired:
-            // (member expiry is a logical process, not currently part of redis but could be soon)
-            // https://github.com/redis/redis/issues/135#issuecomment-2361996
-            // https://github.com/redis/redis/pull/13172
+            // Cleanup old members that have now expired first because don't want these to be included in the read:
             .zremrangebyscore(
                 &self.namespace,
                 &self.key,
@@ -627,11 +616,7 @@ impl RedisTempList {
         uids: impl IntoIterator<Item = S>,
     ) {
         conn.batch()
-            // NOTE: cleaning up first as don't want these to be included in the read.
-            // Cleanup old members that have now expired:
-            // (member expiry is a logical process, not currently part of redis but could be soon)
-            // https://github.com/redis/redis/issues/135#issuecomment-2361996
-            // https://github.com/redis/redis/pull/13172
+            // Cleanup old members that have now expired first because don't want these to be included in the read:
             .zremrangebyscore(
                 &self.namespace,
                 &self.key,
@@ -684,9 +669,6 @@ impl RedisTempList {
                 Some(self.item_inactive_ttl_chrono()),
             )
             // Cleanup old members that have now expired:
-            // (member expiry is a logical process, not currently part of redis but could be soon)
-            // https://github.com/redis/redis/issues/135#issuecomment-2361996
-            // https://github.com/redis/redis/pull/13172
             .zremrangebyscore(
                 &self.namespace,
                 &self.key,

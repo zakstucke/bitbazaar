@@ -111,18 +111,18 @@ impl<'a> RedisLock<'a> {
         // Need to actually lock for the first time:
         let lock_id = lock.lock_id.clone();
         let val = lock.val.clone();
-        lock.exec_or_retry(ttl, move |mut conn| {
+        lock.exec_or_retry(ttl, move |conn| {
             let lock_id = lock_id.clone();
             let val = val.clone();
             async move {
-                if let Some(conn) = conn.get_inner_conn().await {
+                if let Some(mut conn) = conn.get_inner_conn().await {
                     let result: RedisResult<Value> = redis::cmd("SET")
                         .arg(lock_id)
                         .arg(val)
                         .arg("NX")
                         .arg("PX")
                         .arg(ttl.as_millis() as usize)
-                        .query_async(conn)
+                        .query_async(&mut conn)
                         .await;
 
                     match result {
@@ -225,7 +225,7 @@ impl<'a> RedisLock<'a> {
 
         let lock_id = self.lock_id.clone();
         let val = self.val.clone();
-        self.exec_or_retry(new_ttl, move |mut conn| {
+        self.exec_or_retry(new_ttl, move |conn| {
             let lock_id = lock_id.clone();
             let val = val.clone();
             async move {
@@ -260,7 +260,7 @@ impl<'a> RedisLock<'a> {
     pub async fn unlock(&mut self) -> bool {
         let result =
             futures::future::join_all(self.redis.get_conn_to_each_server().into_iter().map(
-                |mut conn| {
+                |conn| {
                     let lock_id = self.lock_id.clone();
                     let val = self.val.clone();
                     async move {

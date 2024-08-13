@@ -27,14 +27,14 @@ static MSET_WITH_EXPIRY_SCRIPT: LazyLock<RedisScript> =
 /// Note each command may be run twice, if scripts needed caching to redis.
 pub struct RedisBatch<'a, 'c, ConnType: RedisConnLike, ReturnType> {
     _returns: PhantomData<ReturnType>,
-    redis_conn: &'a mut ConnType,
+    redis_conn: &'a ConnType,
     pipe: Pipeline,
     /// Need to keep a reference to used scripts, these will all be reloaded to redis errors because one wasn't cached on the server.
     used_scripts: HashSet<&'c RedisScript>,
 }
 
 impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, ReturnType> {
-    pub(crate) fn new(redis_conn: &'a mut ConnType) -> Self {
+    pub(crate) fn new(redis_conn: &'a ConnType) -> Self {
         Self {
             _returns: PhantomData,
             redis_conn,
@@ -43,8 +43,8 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
         }
     }
 
-    async fn inner_fire<R: FromRedisValue>(&mut self) -> Option<R> {
-        if let Some(conn) = self.redis_conn.get_inner_conn().await {
+    async fn inner_fire<R: FromRedisValue>(&self) -> Option<R> {
+        if let Some(mut conn) = self.redis_conn.get_inner_conn().await {
             // Handling retryable errors internally:
             let retry = Retry::<redis::RedisError>::fibonacci(chrono::Duration::milliseconds(10))
             // Will cumulatively delay for up to 6 seconds.
@@ -68,7 +68,7 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                     _ => Some(info.last_error),
                 });
 
-            match retry_flexi!(retry.clone(), { self.pipe.query_async(conn).await }) {
+            match retry_flexi!(retry.clone(), { self.pipe.query_async(&mut conn).await }) {
                 Ok(v) => Some(v),
                 Err(e) => {
                     // Load the scripts into Redis if the any of the scripts weren't there before.
@@ -90,10 +90,10 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                             load_pipe.add_command(script.load_cmd());
                         }
                         match retry_flexi!(retry, {
-                            load_pipe.query_async::<redis::Value>(conn).await
+                            load_pipe.query_async::<redis::Value>(&mut conn).await
                         }) {
                             // Now loaded the scripts, rerun the batch:
-                            Ok(_) => match self.pipe.query_async(conn).await {
+                            Ok(_) => match self.pipe.query_async(&mut conn).await {
                                 Ok(result) => Some(result),
                                 Err(err) => {
                                     record_exception("Redis batch failed. Pipe returned NoScriptError, but we've just loaded all scripts.", format!("{:?}", err));
@@ -411,7 +411,7 @@ impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap> Redi
 {
     type ReturnType = R;
 
-    async fn fire(mut self) -> <Option<Self::ReturnType> as RedisFuzzyUnwrap>::Output {
+    async fn fire(self) -> <Option<Self::ReturnType> as RedisFuzzyUnwrap>::Output {
         self.inner_fire::<(R,)>().await.map(|(r,)| r).fuzzy_unwrap()
     }
 }
@@ -421,7 +421,7 @@ macro_rules! impl_batch_fire {
         impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue + RedisFuzzyUnwrap),*> RedisBatchFire for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
             type ReturnType = ($($tup_item,)*);
 
-            async fn fire(mut self) -> <Option<($($tup_item,)*)> as RedisFuzzyUnwrap>::Output {
+            async fn fire(self) -> <Option<($($tup_item,)*)> as RedisFuzzyUnwrap>::Output {
                 self.inner_fire::<($($tup_item,)*)>().await.fuzzy_unwrap()
             }
         }
