@@ -8,7 +8,10 @@ use std::{
 
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 
-use super::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
+use super::{
+    batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps},
+    fuzzy::RedisFuzzy,
+};
 use crate::{errors::prelude::*, log::record_exception, redis::RedisScript};
 
 /// A lazy redis connection.
@@ -94,18 +97,14 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// Convert to the owned variant.
     fn to_owned(&self) -> RedisConnOwned;
 
-    // TODONOW test.
-    // TODONOW for this, should implement with a fallback on batch, saves touching underlying like this.
     /// Ping redis, returning true if it's up and responsive.
     async fn ping(&self) -> bool {
-        if let Some(mut conn) = self.get_inner_conn().await {
-            redis::cmd("PING")
-                .query_async::<String>(&mut conn)
-                .await
-                .is_ok()
-        } else {
-            false
-        }
+        self.batch()
+            .custom::<RedisFuzzy<String>>("PING")
+            .fire()
+            .await
+            .flatten()
+            .is_some()
     }
 
     // async fn pubsub(self) {
@@ -152,24 +151,15 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     // }
 
     /// Flush the whole redis cache, will delete all data.
+    /// Returns the resulting string from the command, or None if failed for some reason.
     async fn dev_flushall(&self, sync: bool) -> Option<String> {
-        if let Some(mut conn) = self.get_inner_conn().await {
-            let mut cmd = redis::cmd("FLUSHALL");
-            if sync {
-                cmd.arg("SYNC");
-            } else {
-                cmd.arg("ASYNC");
-            }
-            match cmd.query_async::<String>(&mut conn).await {
-                Ok(s) => Some(s),
-                Err(e) => {
-                    record_exception("Failed to reset redis cache.", format!("{:?}", e));
-                    None
-                }
-            }
+        let mut batch = self.batch().custom::<RedisFuzzy<String>>("FLUSHALL");
+        if sync {
+            batch = batch.custom_arg("SYNC");
         } else {
-            None
+            batch = batch.custom_arg("ASYNC");
         }
+        batch.fire().await.flatten()
     }
 
     /// A simple rate_limiter/backoff helper.

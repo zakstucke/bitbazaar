@@ -59,6 +59,19 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    async fn test_redis_ping(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        let (_server, work_r, fail_r) = setup_conns().await?;
+        let work_conn = work_r.conn();
+        let fail_conn = fail_r.conn();
+
+        assert!(work_conn.ping().await);
+        assert!(!(fail_conn.ping().await));
+
+        Ok(())
+    }
+
+    #[rstest]
+    #[tokio::test]
     async fn test_redis_scripts(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
         let (_server, work_r, fail_r) = setup_conns().await?;
         let mut work_conn = work_r.conn();

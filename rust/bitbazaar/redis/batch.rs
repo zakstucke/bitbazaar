@@ -132,6 +132,26 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
         }
     }
 
+    /// Low-level backdoor. Pass in a custom redis command to run, but don't expect a return value.
+    /// After calling this, custom_arg() can be used to add arguments.
+    ///
+    /// E.g. `batch.custom_no_return("SET").custom_arg("key").custom_arg("value").fire().await;`
+    pub fn custom_no_return(mut self, cmd: &str) -> Self {
+        self.pipe.cmd(cmd).ignore();
+        RedisBatch {
+            _returns: PhantomData,
+            redis_conn: self.redis_conn,
+            pipe: self.pipe,
+            used_scripts: self.used_scripts,
+        }
+    }
+
+    /// Low-level backdoor. Add a custom argument to the last custom command added with either `custom_no_return()` or `custom()`.
+    pub fn custom_arg(mut self, arg: impl ToRedisArgs) -> Self {
+        self.pipe.arg(arg);
+        self
+    }
+
     /// Expire an existing key with a new/updated ttl.
     ///
     /// <https://redis.io/commands/pexpire/>
@@ -447,6 +467,9 @@ pub trait RedisBatchReturningOps<'c> {
         script_invokation: RedisScriptInvoker<'c>,
     ) -> Self::NextType<RedisFuzzy<ScriptOutput>>;
 
+    /// Low-level backdoor. Pass in a custom redis command to run, specifying the return value to coerce to.
+    fn custom<T: FromRedisValue>(self, cmd: &str) -> Self::NextType<T>;
+
     /// Check if a key exists.
     fn exists(self, namespace: &str, key: &str) -> Self::NextType<bool>;
 
@@ -541,6 +564,16 @@ macro_rules! impl_batch_ops {
                 script_invokation: RedisScriptInvoker<'c>,
             ) -> Self::NextType<RedisFuzzy<ScriptOutput>> {
                 self.script_no_decode_protection(script_invokation)
+            }
+
+            fn custom<T: FromRedisValue>(mut self, cmd: &str) -> Self::NextType<T> {
+                self.pipe.cmd(cmd);
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: self.redis_conn,
+                    pipe: self.pipe,
+                    used_scripts: self.used_scripts
+                }
             }
 
             fn exists(mut self, namespace: &str, key: &str) -> Self::NextType<bool> {
