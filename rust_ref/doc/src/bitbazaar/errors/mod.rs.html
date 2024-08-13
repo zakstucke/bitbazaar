@@ -20,8 +20,12 @@
 <a href="#20" id="20">20</a>
 <a href="#21" id="21">21</a>
 <a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
+<a href="#25" id="25">25</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>any;
 <span class="kw">mod </span>macros;
+<span class="kw">mod </span>result_ext;
 
 <span class="doccomment">/// Publicly exporting the error stack crate, to prevent every dependent depending on it too.
 </span><span class="kw">pub use </span>error_stack;
@@ -31,13 +35,15 @@
 <span class="doccomment">/// Shorthand for a [`Result`] with a [`error_stack::Report`] as the error variant
 </span><span class="kw">pub type </span>RResult&lt;T, C&gt; = <span class="prelude-ty">Result</span>&lt;T, error_stack::Report&lt;C&gt;&gt;;
 
+<span class="kw">pub use </span>result_ext::<span class="kw-2">*</span>;
+
 <span class="doccomment">/// Easily import all useful error items. Useful to put inside a crate prelude.
 </span><span class="kw">pub mod </span>prelude {
     <span class="attr">#[allow(unused_imports)]
     </span><span class="kw">pub use </span>error_stack::{Report, ResultExt};
 
     <span class="attr">#[allow(unused_imports)]
-    </span><span class="kw">pub use super</span>::{AnyErr, RResult};
+    </span><span class="kw">pub use super</span>::{AnyErr, BitbazaarResultExt, RResult};
 
     <span class="attr">#[allow(unused_imports)]
     </span><span class="kw">pub use crate</span>::{anyerr, err, panic_on_err, panic_on_err_async};
