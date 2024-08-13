@@ -18,7 +18,7 @@ impl std::hash::Hash for RedisScript {
 impl RedisScript {
     /// Create the script object.
     /// Use `include_str!()` to allow the script to exist in its own file for highlighting etc.
-    pub fn new(code: &'static str) -> RedisScript {
+    pub fn new(code: &str) -> RedisScript {
         let mut hash = Sha1::new();
         hash.update(code.as_bytes());
         RedisScript {

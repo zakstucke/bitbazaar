@@ -1,8 +1,8 @@
 mod batch;
 mod conn;
 mod dlock;
+mod fuzzy;
 mod json;
-mod rval;
 mod script;
 mod temp_list;
 mod wrapper;
@@ -46,41 +46,90 @@ mod tests {
         ree: String,
     }
 
-    struct AddScript {
-        script: RedisScript,
+    async fn setup_conns() -> RResult<(RedisStandalone, Redis, Redis), AnyErr> {
+        let server = RedisStandalone::new_no_persistence().await?;
+        let work_r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
+        // Also create a fake version on a random port, this will be used to check failure cases.
+        let fail_r = Redis::new(
+            "redis://FAKKEEEE:6372",
+            format!("test_{}", uuid::Uuid::new_v4()),
+        )?;
+        Ok((server, work_r, fail_r))
     }
 
-    impl Default for AddScript {
-        fn default() -> Self {
-            Self {
-                script: RedisScript::new(
-                    r#"
-                        return tonumber(ARGV[1]) + tonumber(ARGV[2]);
-                    "#,
-                ),
-            }
-        }
-    }
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_scripts(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        let (_server, work_r, fail_r) = setup_conns().await?;
+        let mut work_conn = work_r.conn();
+        let mut fail_conn = fail_r.conn();
 
-    impl AddScript {
-        pub fn invoke(&self, a: isize, b: isize) -> RedisScriptInvoker<'_> {
-            self.script.invoker().arg(a).arg(b)
+        // Confirm simple true/false scripts works for both the fuzzy and hard versions:
+        // (this was a bug where the falsey value failed in fuzzy version)
+        for expected in [true, false] {
+            let script = RedisScript::new(&format!("return {};", expected));
+            assert_eq!(
+                work_conn
+                    .batch()
+                    .script_no_decode_protection::<bool>(script.invoker())
+                    .fire()
+                    .await,
+                Some(expected)
+            );
+            assert_eq!(
+                work_conn.batch().script(script.invoker()).fire().await,
+                Some(Some(expected))
+            );
         }
+
+        let add_script = RedisScript::new(
+            r#"
+                return tonumber(ARGV[1]) + tonumber(ARGV[2]);
+            "#,
+        );
+
+        for (conn, exp) in [(&mut work_conn, Some(3)), (&mut fail_conn, None)] {
+            assert_eq!(
+                conn.batch()
+                    .script(add_script.invoker().arg(1).arg(2))
+                    .fire()
+                    .await
+                    .flatten(),
+                exp
+            );
+        }
+        assert_eq!(
+            work_conn
+                .batch()
+                .script(add_script.invoker().arg(1).arg(2))
+                .script(add_script.invoker().arg(2).arg(5))
+                .script(add_script.invoker().arg(9).arg(1))
+                .fire()
+                .await,
+            Some((Some(3), Some(7), Some(10)))
+        );
+
+        // Make sure script_no_decode_protection ones work too (not wrapped in fuzzy):
+        assert_eq!(
+            work_conn
+                .batch()
+                .script_no_decode_protection::<i64>(add_script.invoker().arg(1).arg(2))
+                .script(add_script.invoker().arg(2).arg(5))
+                .script_no_decode_protection::<i64>(add_script.invoker().arg(9).arg(1))
+                .fire()
+                .await,
+            Some((3, Some(7), 10))
+        );
+
+        Ok(())
     }
 
     /// Test functionality working as it should when redis up and running fine.
     #[rstest]
     #[tokio::test]
     async fn test_redis_misc(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
-        let server = RedisStandalone::new_no_persistence().await?;
-        let work_r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
+        let (_server, work_r, fail_r) = setup_conns().await?;
         let mut work_conn = work_r.conn();
-
-        // Also create a fake version on a random port, this will be used to check failure cases.
-        let fail_r = Redis::new(
-            "redis://FAKKEEEE:6372",
-            format!("test_{}", uuid::Uuid::new_v4()),
-        )?;
         let mut fail_conn = fail_r.conn();
 
         // <--- get/set:
@@ -203,30 +252,6 @@ mod tests {
                     Some("baz".to_string())
                 ]
             ))
-        );
-
-        // <--- Scripts:
-        let script = AddScript::default();
-
-        for (conn, exp) in [(&mut work_conn, Some(3)), (&mut fail_conn, None)] {
-            assert_eq!(
-                conn.batch()
-                    .script(script.invoke(1, 2))
-                    .fire()
-                    .await
-                    .flatten(),
-                exp
-            );
-        }
-        assert_eq!(
-            work_conn
-                .batch()
-                .script(script.invoke(1, 2))
-                .script(script.invoke(2, 5))
-                .script(script.invoke(9, 1))
-                .fire()
-                .await,
-            Some((Some(3), Some(7), Some(10)))
         );
 
         // <--- Json:
@@ -437,7 +462,7 @@ mod tests {
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
         let mut rconn = r.conn();
 
-        // THIS ONLY ACTUALLY WORKS FOR STRINGS, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
+        // THIS ONLY ACTUALLY WORKS FOR STRINGS and false, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
         // None::<T>, empty vec![] and "" should all work fine as real stored values,
         // they shouldn't be hit by the internal invalid type handling (or missing key handling) so each should still be Some():
         rconn
@@ -445,17 +470,37 @@ mod tests {
             .set("n1", "none", None::<String>, None)
             .set("n1", "empty_vec", Vec::<String>::new(), None)
             .set("n1", "empty_str", "", None)
+            .set("n1", "false", false, None)
             .fire()
             .await;
+
+        // Check both get and mget as they're decoded slightly differently.
         assert_eq!(
             rconn
                 .batch()
                 .get::<Option<String>>("n1", "none")
                 .get::<Vec<String>>("n1", "empty_vec")
                 .get::<String>("n1", "empty_str")
+                .get::<bool>("n1", "false")
                 .fire()
                 .await,
-            Some((None, None, Some("".to_string())))
+            Some((None, None, Some("".to_string()), Some(false)))
+        );
+        assert_eq!(
+            rconn
+                .batch()
+                .mget::<Option<String>>("n1", vec!["none"])
+                .mget::<Vec<String>>("n1", vec!["empty_vec"])
+                .mget::<String>("n1", vec!["empty_str"])
+                .mget::<bool>("n1", vec!["false"])
+                .fire()
+                .await,
+            Some((
+                vec![],
+                vec![],
+                vec![Some("".to_string())],
+                vec![Some(false)]
+            ))
         );
 
         // If something's of the incorrect type in a get as part of a batch, it shouldn't break the batch:

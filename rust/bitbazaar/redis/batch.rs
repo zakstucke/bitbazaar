@@ -8,7 +8,7 @@ use crate::{log::record_exception, misc::Retry, retry_flexi};
 
 use super::{
     conn::RedisConnLike,
-    rval::{RVal, RValIntoSensible},
+    fuzzy::{RedisFuzzy, RedisFuzzyUnwrap},
     RedisScript, RedisScriptInvoker,
 };
 
@@ -396,36 +396,33 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
 pub trait RedisBatchFire {
     /// The final return type of the batch.
     #[allow(private_bounds)]
-    type ReturnType: RValIntoSensible;
+    type ReturnType: RedisFuzzyUnwrap;
 
     /// Commit the batch and return the result.
     /// If redis unavailable, or the types didn't match causing decoding to fail, `None` will be returned and the error logged.
     fn fire(
         self,
-    ) -> impl std::future::Future<Output = <Option<Self::ReturnType> as RValIntoSensible>::Output>;
+    ) -> impl std::future::Future<Output = <Option<Self::ReturnType> as RedisFuzzyUnwrap>::Output>;
 }
 
 // The special singular variant that returns the command output directly.
-impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue + RValIntoSensible> RedisBatchFire
+impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap> RedisBatchFire
     for RedisBatch<'a, 'c, ConnType, (R,)>
 {
     type ReturnType = R;
 
-    async fn fire(mut self) -> <Option<Self::ReturnType> as RValIntoSensible>::Output {
-        self.inner_fire::<(R,)>()
-            .await
-            .map(|(r,)| r)
-            .into_sensible()
+    async fn fire(mut self) -> <Option<Self::ReturnType> as RedisFuzzyUnwrap>::Output {
+        self.inner_fire::<(R,)>().await.map(|(r,)| r).fuzzy_unwrap()
     }
 }
 
 macro_rules! impl_batch_fire {
     ( $($tup_item:ident)* ) => (
-        impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue + RValIntoSensible),*> RedisBatchFire for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
+        impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue + RedisFuzzyUnwrap),*> RedisBatchFire for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
             type ReturnType = ($($tup_item,)*);
 
-            async fn fire(mut self) -> <Option<($($tup_item,)*)> as RValIntoSensible>::Output {
-                self.inner_fire::<($($tup_item,)*)>().await.into_sensible()
+            async fn fire(mut self) -> <Option<($($tup_item,)*)> as RedisFuzzyUnwrap>::Output {
+                self.inner_fire::<($($tup_item,)*)>().await.fuzzy_unwrap()
             }
         }
     );
@@ -436,7 +433,7 @@ pub trait RedisBatchReturningOps<'c> {
     /// The producer for the next batch struct sig.
     type NextType<T>;
 
-    /// Run an arbitrary redis (lua script), but doesn't add the decode safe RVal wrapper.
+    /// Run an arbitrary redis (lua script), but doesn't add the decode safe RedisFuzzy wrapper.
     /// Meaning if the returned value doesn't match the type, this can fail the pipeline.
     /// Useful internally in crate, external user scripts should probably not use this.
     fn script_no_decode_protection<ScriptOutput: FromRedisValue>(
@@ -448,7 +445,7 @@ pub trait RedisBatchReturningOps<'c> {
     fn script<ScriptOutput: FromRedisValue>(
         self,
         script_invokation: RedisScriptInvoker<'c>,
-    ) -> Self::NextType<RVal<ScriptOutput>>;
+    ) -> Self::NextType<RedisFuzzy<ScriptOutput>>;
 
     /// Check if a key exists.
     fn exists(self, namespace: &str, key: &str) -> Self::NextType<bool>;
@@ -461,14 +458,18 @@ pub trait RedisBatchReturningOps<'c> {
     ) -> Self::NextType<Vec<bool>>;
 
     /// Get a value from a key. Returning `None` if the key doesn't exist.
-    fn get<Value: FromRedisValue>(self, namespace: &str, key: &str) -> Self::NextType<RVal<Value>>;
+    fn get<Value: FromRedisValue>(
+        self,
+        namespace: &str,
+        key: &str,
+    ) -> Self::NextType<RedisFuzzy<Value>>;
 
     /// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
     fn mget<Value: FromRedisValue>(
         self,
         namespace: &str,
         keys: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Self::NextType<Vec<RVal<Value>>>;
+    ) -> Self::NextType<Vec<RedisFuzzy<Value>>>;
 
     /// HIGHEST TO LOWEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -492,7 +493,7 @@ pub trait RedisBatchReturningOps<'c> {
         min: i64,
         max: i64,
         limit: Option<isize>,
-    ) -> Self::NextType<Vec<(RVal<Value>, i64)>>;
+    ) -> Self::NextType<Vec<(RedisFuzzy<Value>, i64)>>;
 
     /// LOWEST TO HIGHEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -513,7 +514,7 @@ pub trait RedisBatchReturningOps<'c> {
         min: i64,
         max: i64,
         limit: Option<isize>,
-    ) -> Self::NextType<Vec<(RVal<Value>, i64)>>;
+    ) -> Self::NextType<Vec<(RedisFuzzy<Value>, i64)>>;
 }
 
 macro_rules! impl_batch_ops {
@@ -538,7 +539,7 @@ macro_rules! impl_batch_ops {
             fn script<ScriptOutput: FromRedisValue>(
                 self,
                 script_invokation: RedisScriptInvoker<'c>,
-            ) -> Self::NextType<RVal<ScriptOutput>> {
+            ) -> Self::NextType<RedisFuzzy<ScriptOutput>> {
                 self.script_no_decode_protection(script_invokation)
             }
 
@@ -569,7 +570,7 @@ macro_rules! impl_batch_ops {
                 mut self,
                 namespace: &str,
                 key: &str,
-            ) -> Self::NextType<RVal<Value>> {
+            ) -> Self::NextType<RedisFuzzy<Value>> {
                 self.pipe.get(self.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -583,7 +584,7 @@ macro_rules! impl_batch_ops {
                 mut self,
                 namespace: &str,
                 keys: impl IntoIterator<Item = impl AsRef<str>>,
-            ) -> Self::NextType<Vec<RVal<Value>>> {
+            ) -> Self::NextType<Vec<RedisFuzzy<Value>>> {
                 let final_keys = keys.into_iter().map(|key| self.redis_conn.final_key(namespace, key.as_ref().into())).collect::<Vec<_>>();
                 self.pipe.get(final_keys);
                 RedisBatch {
@@ -601,7 +602,7 @@ macro_rules! impl_batch_ops {
                 min: i64,
                 max: i64,
                 limit: Option<isize>,
-            ) -> Self::NextType<Vec<(RVal<Value>, i64)>> {
+            ) -> Self::NextType<Vec<(RedisFuzzy<Value>, i64)>> {
                 self.pipe.zrevrangebyscore_limit_withscores(
                     self.redis_conn.final_key(set_namespace, set_key.into()),
                     max,
@@ -624,7 +625,7 @@ macro_rules! impl_batch_ops {
                 min: i64,
                 max: i64,
                 limit: Option<isize>,
-            ) -> Self::NextType<Vec<(RVal<Value>, i64)>> {
+            ) -> Self::NextType<Vec<(RedisFuzzy<Value>, i64)>> {
                 self.pipe.zrangebyscore_limit_withscores(
                     self.redis_conn.final_key(set_namespace, set_key.into()),
                     min,

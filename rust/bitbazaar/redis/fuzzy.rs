@@ -2,11 +2,11 @@ use redis::FromRedisValue;
 
 use crate::log::record_exception;
 
-/// A wrapper for returned entries from redis.
+/// A wrapper for returned entries from redis which won't fail the surrounding context if the type is wrong.
 /// - When missing, i.e. redis returns nil, sets to None.
 /// - When decoding for the target type fails, value set to None, rather than the whole batch failing.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct RVal<T: FromRedisValue>(Option<T>);
+pub struct RedisFuzzy<T: FromRedisValue>(Option<T>);
 
 // Copied from upstream redis-rs/redis/src/types.rs
 fn get_inner_value(v: &redis::Value) -> &redis::Value {
@@ -21,10 +21,14 @@ fn get_inner_value(v: &redis::Value) -> &redis::Value {
     }
 }
 
-impl<T: FromRedisValue> FromRedisValue for RVal<T> {
+impl<T: FromRedisValue> FromRedisValue for RedisFuzzy<T> {
     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
         let v = get_inner_value(v);
-        if *v == redis::Value::Nil {
+
+        // Nil is an annoying case, it's returned for both vec![] and false.
+        // For empty vec, we take the tradeoff of correct None values when missing in mget and vec<T> etc, but empty vecs return as None.
+        // For bool we manually handle here using type_name (tested in mod.rs), as there's no downside and this fixes returning None from certains fns.
+        if *v == redis::Value::Nil && std::any::type_name::<T>() != "bool" {
             Ok(Self(None))
         } else {
             Ok(Self(match T::from_redis_value(v) {
@@ -44,44 +48,42 @@ impl<T: FromRedisValue> FromRedisValue for RVal<T> {
     }
 }
 
-/// Used internally to hide all usage of RVal in public API.
-pub(crate) trait RValIntoSensible {
+/// Used internally to hide all usage of RedisFuzzy in public API.
+pub trait RedisFuzzyUnwrap {
     type Output;
-    fn into_sensible(self) -> Self::Output;
+    fn fuzzy_unwrap(self) -> Self::Output;
 }
 
 // Core:
-impl<T: FromRedisValue> RValIntoSensible for RVal<T> {
+impl<T: FromRedisValue> RedisFuzzyUnwrap for RedisFuzzy<T> {
     type Output = Option<T>;
-    fn into_sensible(self) -> Self::Output {
+    fn fuzzy_unwrap(self) -> Self::Output {
         self.0
     }
 }
 
 // Layered options:
-impl<T: RValIntoSensible> RValIntoSensible for Option<T> {
+impl<T: RedisFuzzyUnwrap> RedisFuzzyUnwrap for Option<T> {
     type Output = Option<T::Output>;
-    fn into_sensible(self) -> Self::Output {
-        self.map(|inner| inner.into_sensible())
+    fn fuzzy_unwrap(self) -> Self::Output {
+        self.map(|inner| inner.fuzzy_unwrap())
     }
 }
 
 // vecs:
-impl<T: RValIntoSensible> RValIntoSensible for Vec<T> {
+impl<T: RedisFuzzyUnwrap> RedisFuzzyUnwrap for Vec<T> {
     type Output = Vec<T::Output>;
-    fn into_sensible(self) -> Self::Output {
-        self.into_iter()
-            .map(|inner| inner.into_sensible())
-            .collect()
+    fn fuzzy_unwrap(self) -> Self::Output {
+        self.into_iter().map(|inner| inner.fuzzy_unwrap()).collect()
     }
 }
 
 // Macro for basic types that need to be implemented for internal usage:
 macro_rules! impl_basic {
     ($t:ty) => {
-        impl RValIntoSensible for $t {
+        impl RedisFuzzyUnwrap for $t {
             type Output = $t;
-            fn into_sensible(self) -> Self::Output {
+            fn fuzzy_unwrap(self) -> Self::Output {
                 self
             }
         }
@@ -89,18 +91,19 @@ macro_rules! impl_basic {
 }
 
 impl_basic!(i64);
+impl_basic!(u64);
 impl_basic!(bool);
 
 // Macro to generate impls for tuples:
 macro_rules! impl_tuple {
     ($($n:ident),*) => {
-        impl<$($n: RValIntoSensible),*> RValIntoSensible for ($($n,)*) {
+        impl<$($n: RedisFuzzyUnwrap),*> RedisFuzzyUnwrap for ($($n,)*) {
             type Output = ($($n::Output,)*);
-            fn into_sensible(self) -> Self::Output {
+            fn fuzzy_unwrap(self) -> Self::Output {
                 #[allow(non_snake_case)]
                 let ($($n,)*) = self;
                 #[allow(clippy::unused_unit)]
-                ($($n.into_sensible(),)*)
+                ($($n.fuzzy_unwrap(),)*)
             }
         }
     };
