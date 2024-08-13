@@ -672,6 +672,7 @@
 <a href="#672" id="672">672</a>
 <a href="#673" id="673">673</a>
 <a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(private_interfaces)]
 
 </span><span class="kw">use </span>std::{collections::HashSet, marker::PhantomData, sync::LazyLock};
@@ -682,7 +683,7 @@
 
 <span class="kw">use super</span>::{
     conn::RedisConnLike,
-    rval::{RVal, RValIntoSensible},
+    fuzzy::{RedisFuzzy, RedisFuzzyUnwrap},
     RedisScript, RedisScriptInvoker,
 };
 
@@ -1070,36 +1071,33 @@
 </span><span class="kw">pub trait </span>RedisBatchFire {
     <span class="doccomment">/// The final return type of the batch.
     </span><span class="attr">#[allow(private_bounds)]
-    </span><span class="kw">type </span>ReturnType: RValIntoSensible;
+    </span><span class="kw">type </span>ReturnType: RedisFuzzyUnwrap;
 
     <span class="doccomment">/// Commit the batch and return the result.
     /// If redis unavailable, or the types didn't match causing decoding to fail, `None` will be returned and the error logged.
     </span><span class="kw">fn </span>fire(
         <span class="self">self</span>,
-    ) -&gt; <span class="kw">impl </span>std::future::Future&lt;Output = &lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt; <span class="kw">as </span>RValIntoSensible&gt;::Output&gt;;
+    ) -&gt; <span class="kw">impl </span>std::future::Future&lt;Output = &lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output&gt;;
 }
 
 <span class="comment">// The special singular variant that returns the command output directly.
-</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, R: FromRedisValue + RValIntoSensible&gt; RedisBatchFire
+</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap&gt; RedisBatchFire
     <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, (R,)&gt;
 {
     <span class="kw">type </span>ReturnType = R;
 
-    <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt; <span class="kw">as </span>RValIntoSensible&gt;::Output {
-        <span class="self">self</span>.inner_fire::&lt;(R,)&gt;()
-            .<span class="kw">await
-            </span>.map(|(r,)| r)
-            .into_sensible()
+    <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output {
+        <span class="self">self</span>.inner_fire::&lt;(R,)&gt;().<span class="kw">await</span>.map(|(r,)| r).fuzzy_unwrap()
     }
 }
 
 <span class="macro">macro_rules!</span> impl_batch_fire {
     ( $(<span class="macro-nonterminal">$tup_item</span>:ident)* ) =&gt; (
-        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, $(<span class="macro-nonterminal">$tup_item</span>: FromRedisValue + RValIntoSensible),<span class="kw-2">*</span>&gt; RedisBatchFire <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, $(<span class="macro-nonterminal">$tup_item</span>: FromRedisValue + RedisFuzzyUnwrap),<span class="kw-2">*</span>&gt; RedisBatchFire <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
             <span class="kw">type </span>ReturnType = ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>);
 
-            <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; <span class="kw">as </span>RValIntoSensible&gt;::Output {
-                <span class="self">self</span>.inner_fire::&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt;().<span class="kw">await</span>.into_sensible()
+            <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output {
+                <span class="self">self</span>.inner_fire::&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt;().<span class="kw">await</span>.fuzzy_unwrap()
             }
         }
     );
@@ -1110,7 +1108,7 @@
     <span class="doccomment">/// The producer for the next batch struct sig.
     </span><span class="kw">type </span>NextType&lt;T&gt;;
 
-    <span class="doccomment">/// Run an arbitrary redis (lua script), but doesn't add the decode safe RVal wrapper.
+    <span class="doccomment">/// Run an arbitrary redis (lua script), but doesn't add the decode safe RedisFuzzy wrapper.
     /// Meaning if the returned value doesn't match the type, this can fail the pipeline.
     /// Useful internally in crate, external user scripts should probably not use this.
     </span><span class="kw">fn </span>script_no_decode_protection&lt;ScriptOutput: FromRedisValue&gt;(
@@ -1122,7 +1120,7 @@
     </span><span class="kw">fn </span>script&lt;ScriptOutput: FromRedisValue&gt;(
         <span class="self">self</span>,
         script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;,
-    ) -&gt; <span class="self">Self</span>::NextType&lt;RVal&lt;ScriptOutput&gt;&gt;;
+    ) -&gt; <span class="self">Self</span>::NextType&lt;RedisFuzzy&lt;ScriptOutput&gt;&gt;;
 
     <span class="doccomment">/// Check if a key exists.
     </span><span class="kw">fn </span>exists(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt;;
@@ -1135,14 +1133,18 @@
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt;;
 
     <span class="doccomment">/// Get a value from a key. Returning `None` if the key doesn't exist.
-    </span><span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;RVal&lt;Value&gt;&gt;;
+    </span><span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(
+        <span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span>str,
+        key: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;RedisFuzzy&lt;Value&gt;&gt;;
 
     <span class="doccomment">/// Get multiple values (MGET) of the same type at once. Returning `None` for each key that didn't exist.
     </span><span class="kw">fn </span>mget&lt;Value: FromRedisValue&gt;(
         <span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
-    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RVal&lt;Value&gt;&gt;&gt;;
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RedisFuzzy&lt;Value&gt;&gt;&gt;;
 
     <span class="doccomment">/// HIGHEST TO LOWEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -1166,7 +1168,7 @@
         min: i64,
         max: i64,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
-    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RVal&lt;Value&gt;, i64)&gt;&gt;;
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RedisFuzzy&lt;Value&gt;, i64)&gt;&gt;;
 
     <span class="doccomment">/// LOWEST TO HIGHEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -1187,7 +1189,7 @@
         min: i64,
         max: i64,
         limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
-    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RVal&lt;Value&gt;, i64)&gt;&gt;;
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RedisFuzzy&lt;Value&gt;, i64)&gt;&gt;;
 }
 
 <span class="macro">macro_rules!</span> impl_batch_ops {
@@ -1212,7 +1214,7 @@
             <span class="kw">fn </span>script&lt;ScriptOutput: FromRedisValue&gt;(
                 <span class="self">self</span>,
                 script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;,
-            ) -&gt; <span class="self">Self</span>::NextType&lt;RVal&lt;ScriptOutput&gt;&gt; {
+            ) -&gt; <span class="self">Self</span>::NextType&lt;RedisFuzzy&lt;ScriptOutput&gt;&gt; {
                 <span class="self">self</span>.script_no_decode_protection(script_invokation)
             }
 
@@ -1243,7 +1245,7 @@
                 <span class="kw-2">mut </span><span class="self">self</span>,
                 namespace: <span class="kw-2">&amp;</span>str,
                 key: <span class="kw-2">&amp;</span>str,
-            ) -&gt; <span class="self">Self</span>::NextType&lt;RVal&lt;Value&gt;&gt; {
+            ) -&gt; <span class="self">Self</span>::NextType&lt;RedisFuzzy&lt;Value&gt;&gt; {
                 <span class="self">self</span>.pipe.get(<span class="self">self</span>.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
                     _returns: PhantomData,
@@ -1257,7 +1259,7 @@
                 <span class="kw-2">mut </span><span class="self">self</span>,
                 namespace: <span class="kw-2">&amp;</span>str,
                 keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
-            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RVal&lt;Value&gt;&gt;&gt; {
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RedisFuzzy&lt;Value&gt;&gt;&gt; {
                 <span class="kw">let </span>final_keys = keys.into_iter().map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into())).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
                 <span class="self">self</span>.pipe.get(final_keys);
                 RedisBatch {
@@ -1275,7 +1277,7 @@
                 min: i64,
                 max: i64,
                 limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
-            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RVal&lt;Value&gt;, i64)&gt;&gt; {
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RedisFuzzy&lt;Value&gt;, i64)&gt;&gt; {
                 <span class="self">self</span>.pipe.zrevrangebyscore_limit_withscores(
                     <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
                     max,
@@ -1298,7 +1300,7 @@
                 min: i64,
                 max: i64,
                 limit: <span class="prelude-ty">Option</span>&lt;isize&gt;,
-            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RVal&lt;Value&gt;, i64)&gt;&gt; {
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;(RedisFuzzy&lt;Value&gt;, i64)&gt;&gt; {
                 <span class="self">self</span>.pipe.zrangebyscore_limit_withscores(
                     <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
                     min,

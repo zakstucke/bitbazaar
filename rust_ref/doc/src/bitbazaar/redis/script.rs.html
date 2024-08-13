@@ -102,7 +102,7 @@
 <span class="kw">impl </span>RedisScript {
     <span class="doccomment">/// Create the script object.
     /// Use `include_str!()` to allow the script to exist in its own file for highlighting etc.
-    </span><span class="kw">pub fn </span>new(code: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; RedisScript {
+    </span><span class="kw">pub fn </span>new(code: <span class="kw-2">&amp;</span>str) -&gt; RedisScript {
         <span class="kw">let </span><span class="kw-2">mut </span>hash = Sha1::new();
         hash.update(code.as_bytes());
         RedisScript {
