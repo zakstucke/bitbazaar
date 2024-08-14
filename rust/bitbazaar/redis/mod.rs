@@ -3,6 +3,8 @@ mod conn;
 mod dlock;
 mod fuzzy;
 mod json;
+mod pubsub;
+mod redis_retry;
 mod script;
 mod temp_list;
 mod wrapper;
@@ -15,6 +17,7 @@ pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::{RedisConn, RedisConnLike};
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonBorrowed};
+pub use pubsub::RedisChannelListener;
 // Re-exporting redis and deadpool_redis to be used outside if needed:
 pub use deadpool_redis;
 pub use redis;

@@ -4,11 +4,12 @@ use std::{collections::HashSet, marker::PhantomData, sync::LazyLock};
 
 use deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
 
-use crate::{log::record_exception, misc::Retry, retry_flexi};
+use crate::{log::record_exception, retry_flexi};
 
 use super::{
     conn::RedisConnLike,
     fuzzy::{RedisFuzzy, RedisFuzzyUnwrap},
+    redis_retry::redis_retry_config,
     RedisScript, RedisScriptInvoker,
 };
 
@@ -46,29 +47,9 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     async fn inner_fire<R: FromRedisValue>(&self) -> Option<R> {
         if let Some(mut conn) = self.redis_conn.get_inner_conn().await {
             // Handling retryable errors internally:
-            let retry = Retry::<redis::RedisError>::fibonacci(chrono::Duration::milliseconds(10))
-            // Will cumulatively delay for up to 6 seconds.
-            // SHOULDN'T BE LONGER, considering outer code may then handle the redis failure,
-            // in e.g. web request, any longer would then be harmful.
-            .until_total_delay(chrono::Duration::seconds(5))
-                .on_retry(move |info| match info.last_error.kind() {
-                    // These should all be automatically retried:
-                    redis::ErrorKind::BusyLoadingError
-                    | redis::ErrorKind::TryAgain
-                    | redis::ErrorKind::MasterDown => {
-                        tracing::warn!(
-                            "Redis command failed with retryable error, retrying in {}. Last attempt no: '{}'.\nErr:\n{:?}.",
-                            info.delay_till_next_attempt,
-                            info.last_attempt_no,
-                            info.last_error
-                        );
-                        None
-                    },
-                    // Everything else should just exit straight away, no point retrying internally.
-                    _ => Some(info.last_error),
-                });
-
-            match retry_flexi!(retry.clone(), { self.pipe.query_async(&mut conn).await }) {
+            match retry_flexi!(redis_retry_config(), {
+                self.pipe.query_async(&mut conn).await
+            }) {
                 Ok(v) => Some(v),
                 Err(e) => {
                     // Load the scripts into Redis if the any of the scripts weren't there before.
@@ -89,7 +70,7 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                         for script in &self.used_scripts {
                             load_pipe.add_command(script.load_cmd());
                         }
-                        match retry_flexi!(retry, {
+                        match retry_flexi!(redis_retry_config(), {
                             load_pipe.query_async::<redis::Value>(&mut conn).await
                         }) {
                             // Now loaded the scripts, rerun the batch:
@@ -138,17 +119,24 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     /// E.g. `batch.custom_no_return("SET").custom_arg("key").custom_arg("value").fire().await;`
     pub fn custom_no_return(mut self, cmd: &str) -> Self {
         self.pipe.cmd(cmd).ignore();
-        RedisBatch {
-            _returns: PhantomData,
-            redis_conn: self.redis_conn,
-            pipe: self.pipe,
-            used_scripts: self.used_scripts,
-        }
+        self
     }
 
     /// Low-level backdoor. Add a custom argument to the last custom command added with either `custom_no_return()` or `custom()`.
     pub fn custom_arg(mut self, arg: impl ToRedisArgs) -> Self {
         self.pipe.arg(arg);
+        self
+    }
+
+    /// Publish a message to a pubsub channel.
+    /// Use [`RedisConnLike::pubsub_listen`] to listen for messages.
+    pub fn publish(mut self, namespace: &str, channel: &str, message: impl ToRedisArgs) -> Self {
+        self.pipe
+            .publish(
+                self.redis_conn.final_key(namespace, channel.into()),
+                message,
+            )
+            .ignore();
         self
     }
 

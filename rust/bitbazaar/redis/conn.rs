@@ -11,13 +11,17 @@ use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 use super::{
     batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps},
     fuzzy::RedisFuzzy,
+    pubsub::{pubsub_global::RedisPubSubGlobal, RedisChannelListener},
 };
 use crate::{errors::prelude::*, log::record_exception, redis::RedisScript};
 
 /// A lazy redis connection.
+#[derive(Debug, Clone)]
 pub struct RedisConn<'a> {
     pub(crate) prefix: &'a str,
     pool: &'a deadpool_redis::Pool,
+    // It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
+    pubsub_global: &'a Arc<RedisPubSubGlobal>,
     // We used to cache the [`deadpool_redis::Connection`] conn in here,
     // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
     // so getting for each usage is fine, given:
@@ -28,27 +32,28 @@ pub struct RedisConn<'a> {
 }
 
 impl<'a> RedisConn<'a> {
-    pub(crate) fn new(pool: &'a deadpool_redis::Pool, prefix: &'a str) -> Self {
-        Self { pool, prefix }
-    }
-}
-
-// Cloning is still technically heavy for the un-owned, as the active connection can't be reused.
-impl<'a> Clone for RedisConn<'a> {
-    fn clone(&self) -> Self {
+    pub(crate) fn new(
+        pool: &'a deadpool_redis::Pool,
+        prefix: &'a str,
+        pubsub_global: &'a Arc<RedisPubSubGlobal>,
+    ) -> Self {
         Self {
-            prefix: self.prefix,
-            pool: self.pool,
+            pool,
+            prefix,
+            pubsub_global,
         }
     }
 }
 
 /// An owned variant of [`RedisConn`].
 /// Just requires a couple of Arc clones, so still quite lightweight.
+#[derive(Debug, Clone)]
 pub struct RedisConnOwned {
     // Prefix and pool both Arced now at top level for easy cloning.
     pub(crate) prefix: Arc<String>,
     pool: deadpool_redis::Pool,
+    // It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
+    pubsub_global: Arc<RedisPubSubGlobal>,
     // We used to cache the [`deadpool_redis::Connection`] conn in here,
     // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
     // so getting for each usage is fine, given:
@@ -57,31 +62,6 @@ pub struct RedisConnOwned {
     // - prevents the chance of a stale cached connection, had issues before with this, deadpool handles internally.
     // conn: Option<deadpool_redis::Connection>,
 }
-
-impl Clone for RedisConnOwned {
-    fn clone(&self) -> Self {
-        Self {
-            prefix: self.prefix.clone(),
-            pool: self.pool.clone(),
-        }
-    }
-}
-
-macro_rules! impl_debug_for_conn {
-    ($conn_type:ty, $name:literal) => {
-        impl std::fmt::Debug for $conn_type {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_struct($name)
-                    .field("prefix", &self.prefix)
-                    .field("pool", &self.pool)
-                    .finish()
-            }
-        }
-    };
-}
-
-impl_debug_for_conn!(RedisConn<'_>, "RedisConn");
-impl_debug_for_conn!(RedisConnOwned, "RedisConnOwned");
 
 /// Generic methods over the RedisConn and RedisConnOwned types.
 pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
@@ -93,6 +73,9 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
 
     /// Get the redis configured prefix.
     fn prefix(&self) -> &str;
+
+    /// Get the redis pubsub global manager.
+    fn _pubsub_global(&self) -> &Arc<RedisPubSubGlobal>;
 
     /// Convert to the owned variant.
     fn to_owned(&self) -> RedisConnOwned;
@@ -107,23 +90,23 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
             .is_some()
     }
 
-    // async fn pubsub(self) {
-    //     if let Some(conn) = self.get_inner_conn().await {
-    //         let mut pubsub = deadpool_redis::Connection::take(conn).into_pubsub();
-    //         let mut pubsub = conn.publish().await;
-    //         conn.subscribe(channel_name);
-    //         conn.into_pubsub();
-    //         loop {
-    //             let msg = pubsub.get_message().await.unwrap();
-    //             let payload: String = msg.get_payload().unwrap();
-    //             println!("channel '{}': {}", msg.get_channel_name(), payload);
-    //             if payload == "exit" {
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
+    /// Subscribe to a channel via pubsub, receiving messages through the returned receiver.
+    /// The subscription will be dropped when the receiver is dropped.
+    ///
+    /// Sending can be done via normal batches using [`RedisBatch::publish`].
+    ///
+    /// Returns None when redis unavailable for some reason, after a few seconds of trying to connect.
+    async fn subscribe<T: ToRedisArgs + FromRedisValue>(
+        &self,
+        namespace: &str,
+        channel: &str,
+    ) -> Option<RedisChannelListener<T>> {
+        self._pubsub_global()
+            .subscribe(self.final_key(namespace, channel.into()))
+            .await
+    }
 
+    /// TODONOW update and test.
     // Commented out as untested, not sure if works.
     // /// Get all data from redis, only really useful during testing.
     // ///
@@ -283,10 +266,15 @@ impl<'a> RedisConnLike for RedisConn<'a> {
         self.prefix
     }
 
+    fn _pubsub_global(&self) -> &Arc<RedisPubSubGlobal> {
+        self.pubsub_global
+    }
+
     fn to_owned(&self) -> RedisConnOwned {
         RedisConnOwned {
             prefix: Arc::new(self.prefix.to_string()),
             pool: self.pool.clone(),
+            pubsub_global: self.pubsub_global.clone(),
         }
     }
 }
@@ -304,6 +292,10 @@ impl RedisConnLike for RedisConnOwned {
 
     fn prefix(&self) -> &str {
         &self.prefix
+    }
+
+    fn _pubsub_global(&self) -> &Arc<RedisPubSubGlobal> {
+        &self.pubsub_global
     }
 
     fn to_owned(&self) -> RedisConnOwned {

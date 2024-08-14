@@ -1,9 +1,9 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use deadpool_redis::{Config, Runtime};
 use futures::Future;
 
-use super::{RedisConn, RedisLock, RedisLockErr};
+use super::{pubsub::pubsub_global::RedisPubSubGlobal, RedisConn, RedisLock, RedisLockErr};
 use crate::errors::prelude::*;
 
 /// A wrapper around redis to make it more concise to use and not need redis in the downstream Cargo.toml.
@@ -12,7 +12,9 @@ use crate::errors::prelude::*;
 /// All redis errors (availability, unexpected content) will be logged as errors and results returned as `None` (or similar) where possible.
 #[derive(Debug, Clone)]
 pub struct Redis {
+    // deadpool arced internally.
     pool: deadpool_redis::Pool,
+    pub(crate) pubsub_listener: Arc<RedisPubSubGlobal>,
     prefix: String,
 }
 
@@ -20,24 +22,27 @@ impl Redis {
     /// Create a new global redis wrapper from the given Redis URL (like `redis://127.0.0.1`).
     ///
     /// Note this should only be done once at startup.
-    pub fn new<A: Into<String>, B: Into<String>>(
-        redis_conn_str: A,
-        prefix: B,
+    pub fn new(
+        redis_conn_str: impl Into<String>,
+        prefix: impl Into<String>,
     ) -> RResult<Self, AnyErr> {
-        let cfg = Config::from_url(redis_conn_str);
+        let redis_conn_str = redis_conn_str.into();
+        let prefix = prefix.into();
+        let cfg = Config::from_url(&redis_conn_str);
         let pool = cfg
             .create_pool(Some(Runtime::Tokio1))
             .change_context(AnyErr)?;
-
+        let pubsub_listener = Arc::new(RedisPubSubGlobal::new(&redis_conn_str)?);
         Ok(Self {
             pool,
-            prefix: prefix.into(),
+            prefix,
+            pubsub_listener,
         })
     }
 
     /// Get a [`RedisConn`] redis can be called with.
     pub fn conn(&self) -> RedisConn<'_> {
-        RedisConn::new(&self.pool, &self.prefix)
+        RedisConn::new(&self.pool, &self.prefix, &self.pubsub_listener)
     }
 
     /// Get a distributed redis lock.

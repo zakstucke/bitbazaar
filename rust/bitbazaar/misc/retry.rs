@@ -84,6 +84,12 @@ impl<'a, E> Retry<'a, E> {
         self
     }
 
+    /// Never stop retrying.
+    pub fn until_forever(mut self) -> Self {
+        self.until = RetryUntil::TotalAttempts(usize::MAX);
+        self
+    }
+
     /// Stop retrying after the total delay reaches the given duration.
     pub fn until_total_delay(mut self, max_total_delay: Duration) -> Self {
         self.until = RetryUntil::TotalDelay(max_total_delay);
