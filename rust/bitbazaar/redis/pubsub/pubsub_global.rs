@@ -17,6 +17,28 @@ use crate::{
 
 use super::RedisChannelListener;
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub(crate) enum ChannelSubscription {
+    Concrete(String),
+    Pattern(String),
+}
+
+impl ChannelSubscription {
+    fn is_pattern(&self) -> bool {
+        match self {
+            ChannelSubscription::Concrete(_) => false,
+            ChannelSubscription::Pattern(_) => true,
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        match self {
+            ChannelSubscription::Concrete(s) => s,
+            ChannelSubscription::Pattern(s) => s,
+        }
+    }
+}
+
 /// The lazy pubsub manager.
 pub struct RedisPubSubGlobal {
     client: redis::Client,
@@ -25,12 +47,14 @@ pub struct RedisPubSubGlobal {
     active_conn: tokio::sync::RwLock<Option<MultiplexedConnection>>,
     /// The downstream configured listeners for different channels, messages will be pushed to all active listeners.
     /// Putting in a nested hashmap for easy cleanup when listeners are dropped.
-    pub(crate) listeners:
-        DashMap<String, HashMap<u64, tokio::sync::mpsc::UnboundedSender<redis::Value>>>,
+    pub(crate) listeners: DashMap<
+        ChannelSubscription,
+        HashMap<u64, tokio::sync::mpsc::UnboundedSender<redis::Value>>,
+    >,
 
     /// Below used to trigger unsubscriptions and listeners dashmap cleanup when listeners are dropped.
     /// (The tx is called when a listener is dropped, and the spawned process listens for these and does the cleanup.)
-    listener_drop_tx: Arc<tokio::sync::mpsc::UnboundedSender<(String, u64)>>,
+    listener_drop_tx: Arc<tokio::sync::mpsc::UnboundedSender<(ChannelSubscription, u64)>>,
 
     /// Will be taken when the listener is lazily spawned.
     spawn_init: tokio::sync::Mutex<Option<SpawnInit>>,
@@ -56,7 +80,7 @@ struct SpawnInit {
     rx: tokio::sync::mpsc::UnboundedReceiver<redis::PushInfo>,
 
     // Will receive whenever a listener is dropped:
-    listener_drop_rx: tokio::sync::mpsc::UnboundedReceiver<(String, u64)>,
+    listener_drop_rx: tokio::sync::mpsc::UnboundedReceiver<(ChannelSubscription, u64)>,
 
     // Received when the redis instance dropped, meaning the spawned listener should shutdown.
     on_drop_rx: tokio::sync::oneshot::Receiver<()>,
@@ -100,9 +124,8 @@ impl RedisPubSubGlobal {
         })
     }
 
-    pub(crate) async fn unsubscribe(&self, channel: impl Into<String>) {
-        let channel = channel.into();
-        self.listeners.remove(&channel);
+    pub(crate) async fn unsubscribe(&self, channel_sub: &ChannelSubscription) {
+        self.listeners.remove(channel_sub);
 
         let force_new_connection = AtomicBool::new(false);
         match redis_retry_config()
@@ -114,7 +137,12 @@ impl RedisPubSubGlobal {
                     )
                     .await
                 {
-                    conn.unsubscribe(&channel).await
+                    match &channel_sub {
+                        ChannelSubscription::Concrete(channel) => conn.unsubscribe(&channel).await,
+                        ChannelSubscription::Pattern(channel_pattern) => {
+                            conn.punsubscribe(&channel_pattern).await
+                        }
+                    }
                 } else {
                     // Doing nothing when None as that'll have been logged lower down.
                     Ok(())
@@ -137,8 +165,24 @@ impl RedisPubSubGlobal {
         self: &Arc<Self>,
         channel: impl Into<String>,
     ) -> Option<RedisChannelListener<T>> {
-        let channel = channel.into();
+        self._subscribe_inner(ChannelSubscription::Concrete(channel.into()))
+            .await
+    }
 
+    /// Returns None when redis down/acting up and couldn't get over a few seconds.
+    pub(crate) async fn psubscribe<T: ToRedisArgs + FromRedisValue>(
+        self: &Arc<Self>,
+        channel_pattern: impl Into<String>,
+    ) -> Option<RedisChannelListener<T>> {
+        self._subscribe_inner(ChannelSubscription::Pattern(channel_pattern.into()))
+            .await
+    }
+
+    /// Returns None when redis down/acting up and couldn't get over a few seconds.
+    pub(crate) async fn _subscribe_inner<T: ToRedisArgs + FromRedisValue>(
+        self: &Arc<Self>,
+        channel_sub: ChannelSubscription,
+    ) -> Option<RedisChannelListener<T>> {
         let force_new_connection = AtomicBool::new(false);
         match redis_retry_config()
             .call(|| async {
@@ -149,7 +193,12 @@ impl RedisPubSubGlobal {
                     )
                     .await
                 {
-                    conn.subscribe(&channel).await
+                    match &channel_sub {
+                        ChannelSubscription::Concrete(channel) => conn.subscribe(channel).await,
+                        ChannelSubscription::Pattern(channel_pattern) => {
+                            conn.psubscribe(channel_pattern).await
+                        }
+                    }
                 } else {
                     // Doing nothing when None as that'll have been logged lower down.
                     Err(redis::RedisError::from(std::io::Error::new(
@@ -163,7 +212,14 @@ impl RedisPubSubGlobal {
             Ok(()) => {}
             Err(e) => {
                 record_exception(
-                    "Pubsub: failed to subscribe to channel.",
+                    format!(
+                        "Pubsub: failed to subscribe to channel {}.",
+                        if channel_sub.is_pattern() {
+                            format!("pattern '{}'", channel_sub.as_str())
+                        } else {
+                            format!("'{}'", channel_sub.as_str())
+                        }
+                    ),
                     format!("{:?}", e),
                 );
                 return None;
@@ -174,7 +230,7 @@ impl RedisPubSubGlobal {
 
         let listener_key = random_u64_rolling();
         self.listeners
-            .entry(channel.clone())
+            .entry(channel_sub.clone())
             .or_default()
             .insert(listener_key, tx);
 
@@ -216,7 +272,7 @@ impl RedisPubSubGlobal {
         Some(RedisChannelListener {
             key: listener_key,
             on_drop_tx: self.listener_drop_tx.clone(),
-            channel,
+            channel_sub,
             rx,
             _t: std::marker::PhantomData,
         })
@@ -244,12 +300,22 @@ impl RedisPubSubGlobal {
             Ok(mut conn) => {
                 // Need to re-subscribe to all actively listened to channels for the new connection:
                 for entry in self.listeners.iter() {
-                    let channel = entry.key();
-                    match conn.subscribe(channel).await {
+                    let channel_sub = entry.key();
+                    let sub_result = match channel_sub {
+                        ChannelSubscription::Concrete(channel) => conn.subscribe(channel).await,
+                        ChannelSubscription::Pattern(channel_pattern) => {
+                            conn.psubscribe(channel_pattern).await
+                        }
+                    };
+                    match sub_result {
                         Ok(()) => {}
                         Err(e) => {
                             record_exception(
-                                format!("Pubsub: failed to re-subscribe to channel '{}' with newly acquired connection, discarding.", channel),
+                                format!("Pubsub: failed to re-subscribe to channel {} with newly acquired connection, discarding.", if channel_sub.is_pattern() {
+                                    format!("pattern '{}'", channel_sub.as_str())
+                                } else {
+                                    format!("'{}'", channel_sub.as_str())
+                                }),
                                 format!("{:?}", e),
                             );
                             *maybe_conn = None;
@@ -280,11 +346,11 @@ impl RedisPubSubGlobal {
     /// The cleanup channel gets called in the drop fn of each [`RedisChannelListener`].
     async fn spawned_handle_listener_dropped(
         self: &Arc<Self>,
-        channel_and_key: Option<(String, u64)>,
+        channel_sub_and_key: Option<(ChannelSubscription, u64)>,
     ) {
-        match channel_and_key {
-            Some((channel, key)) => {
-                let unsub = if let Some(mut listeners) = self.listeners.get_mut(&channel) {
+        match channel_sub_and_key {
+            Some((channel_sub, key)) => {
+                let unsub = if let Some(mut listeners) = self.listeners.get_mut(&channel_sub) {
                     listeners.remove(&key);
                     listeners.is_empty()
                 } else {
@@ -292,7 +358,7 @@ impl RedisPubSubGlobal {
                 };
                 // Need to come after otherwise dashmap could deadlock.
                 if unsub {
-                    self.unsubscribe(&channel).await;
+                    self.unsubscribe(&channel_sub).await;
                 }
             }
             None => {
@@ -309,6 +375,7 @@ impl RedisPubSubGlobal {
         match message {
             Some(push_info) => {
                 match push_info.kind.clone() {
+                    redis::PushKind::PSubscribe | redis::PushKind::PUnsubscribe => {}
                     redis::PushKind::Subscribe => {
                         // Example received:
                         // PushInfo { kind: Subscribe, data: [bulk-string('"foo"'), int(1)] }
@@ -385,18 +452,32 @@ impl RedisPubSubGlobal {
                             push_info.data,
                         )) {
                             Ok((channel, msg)) => {
-                                if let Some(listeners) = self.listeners.get(&channel) {
-                                    for (msg, tx) in listeners.values().with_clone_lazy(msg) {
-                                        // Given we have a separate future for cleaning up,
-                                        // this shouldn't be a big issue if this ever errors with dead listeners,
-                                        // as they should immediately be cleaned up by the cleanup future.
-                                        let _ = tx.send(msg);
-                                    }
-                                }
+                                self.handle_msg(ChannelSubscription::Concrete(channel), msg)
+                                    .await;
                             }
                             Err(e) => {
                                 record_exception(
                                     "Pubsub: failed to decode redis::PushKind::Message.",
+                                    format!("{:?}", e),
+                                );
+                            }
+                        }
+                    }
+                    // Patterns come in separately.
+                    redis::PushKind::PMessage => {
+                        // Example received:
+                        // PushInfo { kind: PMessage, data: [bulk-string('"f*o"'), bulk-string('"foo"'), bulk-string('"only_pattern"')] }
+
+                        match from_owned_redis_value::<(String, redis::Value, redis::Value)>(
+                            redis::Value::Array(push_info.data),
+                        ) {
+                            Ok((channel_pattern, _concrete_channel, msg)) => {
+                                self.handle_msg(ChannelSubscription::Pattern(channel_pattern), msg)
+                                    .await;
+                            }
+                            Err(e) => {
+                                record_exception(
+                                    "Pubsub: failed to decode redis::PushKind::PMessage.",
                                     format!("{:?}", e),
                                 );
                             }
@@ -415,6 +496,17 @@ impl RedisPubSubGlobal {
                     "Pubsub: redis listener channel died. Tx sender supposedly dropped.",
                     "",
                 );
+            }
+        }
+    }
+
+    async fn handle_msg(&self, channel_sub: ChannelSubscription, msg: redis::Value) {
+        if let Some(listeners) = self.listeners.get(&channel_sub) {
+            for (msg, tx) in listeners.values().with_clone_lazy(msg) {
+                // Given we have a separate future for cleaning up,
+                // this shouldn't be a big issue if this ever errors with dead listeners,
+                // as they should immediately be cleaned up by the cleanup future.
+                let _ = tx.send(msg);
             }
         }
     }
