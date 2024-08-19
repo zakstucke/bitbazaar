@@ -106,6 +106,28 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
             .await
     }
 
+    /// Subscribe to a channel pattern via pubsub, receiving messages through the returned receiver.
+    /// The subscription will be dropped when the receiver is dropped.
+    ///
+    /// Sending can be done via normal batches using [`RedisBatch::publish`].
+    ///
+    /// Returns None when redis unavailable for some reason, after a few seconds of trying to connect.
+    ///
+    /// According to redis (<https://redis.io/docs/latest/commands/psubscribe/>):
+    /// Supported glob-style patterns:
+    /// - h?llo subscribes to hello, hallo and hxllo
+    /// - h*llo subscribes to hllo and heeeello
+    /// - h[ae]llo subscribes to hello and hallo, but not hillo
+    async fn psubscribe<T: ToRedisArgs + FromRedisValue>(
+        &self,
+        namespace: &str,
+        channel_pattern: &str,
+    ) -> Option<RedisChannelListener<T>> {
+        self._pubsub_global()
+            .psubscribe(self.final_key(namespace, channel_pattern.into()))
+            .await
+    }
+
     // Commented out as untested, not sure if works.
     // /// Get all data from redis, only really useful during testing.
     // ///

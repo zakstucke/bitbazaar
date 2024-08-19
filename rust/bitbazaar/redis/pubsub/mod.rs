@@ -281,6 +281,60 @@ mod tests {
         Ok(())
     }
 
+    // Patterns should work with conn.psubscribe(), confirm patterns match correctly, but don't if pattern passed through normal subscribe.
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_pubsub_pattern(
+        #[allow(unused_variables)] logging: (),
+    ) -> RResult<(), AnyErr> {
+        let (_server, work_r, _fail_r) = setup_conns().await?;
+        let work_conn = work_r.conn();
+
+        let mut rx_normal = work_conn.subscribe::<String>("n1", "f*o").await.unwrap();
+        let mut rx_pattern = work_conn.psubscribe::<String>("n1", "f*o").await.unwrap();
+
+        assert!(work_conn
+            .batch()
+            .publish("n1", "foo", "only_pattern")
+            .publish("n1", "f*o", "both")
+            .fire()
+            .await
+            .is_some());
+        with_timeout(
+            TimeDelta::seconds(3),
+            || {
+                panic!("Timeout waiting for pubsub message");
+            },
+            async move {
+                assert_eq!(Some("both".to_string()), rx_normal.recv().await);
+                with_timeout(
+                    TimeDelta::milliseconds(100),
+                    || Ok::<_, Report<AnyErr>>(()),
+                    async {
+                        let msg = rx_normal.recv().await;
+                        panic!("Shouldn't have received any more messages, got: {:?}", msg);
+                    },
+                )
+                .await?;
+                assert_eq!(Some("only_pattern".to_string()), rx_pattern.recv().await);
+                assert_eq!(Some("both".to_string()), rx_pattern.recv().await);
+                with_timeout(
+                    TimeDelta::milliseconds(100),
+                    || Ok::<_, Report<AnyErr>>(()),
+                    async {
+                        let msg = rx_pattern.recv().await;
+                        panic!("Shouldn't have received any more messages, got: {:?}", msg);
+                    },
+                )
+                .await?;
+                Ok::<_, Report<AnyErr>>(())
+            },
+        )
+        .await?;
+
+        Ok(())
+    }
+
     // Nothing should break when no ones subscribed to a channel when a message is published.
     #[rstest]
     #[tokio::test]
