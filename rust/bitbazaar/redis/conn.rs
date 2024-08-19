@@ -106,7 +106,6 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
             .await
     }
 
-    /// TODONOW update and test.
     // Commented out as untested, not sure if works.
     // /// Get all data from redis, only really useful during testing.
     // ///

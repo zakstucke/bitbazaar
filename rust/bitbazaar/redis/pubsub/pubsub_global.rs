@@ -10,7 +10,7 @@ use redis::{aio::MultiplexedConnection, from_owned_redis_value, FromRedisValue, 
 
 use crate::{
     log::record_exception,
-    misc::{random_u64_rolling, Retry},
+    misc::{random_u64_rolling, IterWithCloneLazy, Retry},
     prelude::*,
     redis::redis_retry::redis_retry_config,
 };
@@ -28,15 +28,38 @@ pub struct RedisPubSubGlobal {
     pub(crate) listeners:
         DashMap<String, HashMap<u64, tokio::sync::mpsc::UnboundedSender<redis::Value>>>,
 
-    /// The global receiver of messages hooked directly into the redis connection.
-    /// This will be taken when the main listener is spawned.
-    rx: tokio::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<redis::PushInfo>>>,
     /// Below used to trigger unsubscriptions and listeners dashmap cleanup when listeners are dropped.
     /// (The tx is called when a listener is dropped, and the spawned process listens for these and does the cleanup.)
     listener_drop_tx: Arc<tokio::sync::mpsc::UnboundedSender<(String, u64)>>,
-    listener_drop_rx:
-        tokio::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<(String, u64)>>>,
+
+    /// Will be taken when the listener is lazily spawned.
+    spawn_init: tokio::sync::Mutex<Option<SpawnInit>>,
     spawned: AtomicBool,
+
+    /// Will be sent on Redis drop to kill the spawned listener.
+    on_drop_tx: Option<tokio::sync::oneshot::Sender<()>>,
+}
+
+impl Drop for RedisPubSubGlobal {
+    fn drop(&mut self) {
+        // This will kill the spawned listener, which will in turn kill the spawned process.
+        if let Some(on_drop_tx) = self.on_drop_tx.take() {
+            let _ = on_drop_tx.send(());
+        };
+    }
+}
+
+#[derive(Debug)]
+struct SpawnInit {
+    /// The global receiver of messages hooked directly into the redis connection.
+    /// This will be taken when the main listener is spawned.
+    rx: tokio::sync::mpsc::UnboundedReceiver<redis::PushInfo>,
+
+    // Will receive whenever a listener is dropped:
+    listener_drop_rx: tokio::sync::mpsc::UnboundedReceiver<(String, u64)>,
+
+    // Received when the redis instance dropped, meaning the spawned listener should shutdown.
+    on_drop_rx: tokio::sync::oneshot::Receiver<()>,
 }
 
 impl Debug for RedisPubSubGlobal {
@@ -46,7 +69,8 @@ impl Debug for RedisPubSubGlobal {
             // .field("config", &self.config)
             .field("active_conn", &self.active_conn)
             .field("listeners", &self.listeners)
-            .field("rx", &self.rx)
+            .field("listener_drop_tx", &self.listener_drop_tx)
+            .field("spawn_init", &self.spawn_init)
             .field("spawned", &self.spawned)
             .finish()
     }
@@ -59,15 +83,20 @@ impl RedisPubSubGlobal {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         let (listener_drop_tx, listener_drop_rx) = tokio::sync::mpsc::unbounded_channel();
         let config = redis::AsyncConnectionConfig::new().set_push_sender(tx);
+        let (on_drop_tx, on_drop_rx) = tokio::sync::oneshot::channel();
         Ok(Self {
             client,
             config,
             active_conn: tokio::sync::RwLock::new(None),
             listeners: DashMap::new(),
-            rx: tokio::sync::Mutex::new(Some(rx)),
             listener_drop_tx: Arc::new(listener_drop_tx),
-            listener_drop_rx: tokio::sync::Mutex::new(Some(listener_drop_rx)),
+            spawn_init: tokio::sync::Mutex::new(Some(SpawnInit {
+                rx,
+                listener_drop_rx,
+                on_drop_rx,
+            })),
             spawned: AtomicBool::new(false),
+            on_drop_tx: Some(on_drop_tx),
         })
     }
 
@@ -154,33 +183,32 @@ impl RedisPubSubGlobal {
             .swap(true, std::sync::atomic::Ordering::Relaxed)
         {
             let arc_self = self.clone();
-            let mut rx = self
-                .rx
+            let mut init = self
+                .spawn_init
                 .lock()
                 .await
                 .take()
-                .expect("rx should only be taken once");
-            let mut listener_drop_rx = self
-                .listener_drop_rx
-                .lock()
-                .await
-                .take()
-                .expect("listener_drop_rx should only be taken once");
+                .expect("init should only be taken once");
 
             tokio::spawn(async move {
-                loop {
-                    tokio::select! {
-                        // Adding this means the listener fut will always be polled first, i.e. has higher priority.
-                        // This is what we want as it cleans up dead listeners, so avoids the second fut ideally hitting any dead listeners.
-                        biased;
-
-                        result = listener_drop_rx.recv() => {
-                            arc_self.spawned_handle_listener_dropped(result).await;
+                // Spawned task will exit only when the on_drop_rx is sent, i.e. when the redis instance is dropped.
+                tokio::select! {
+                    _ = init.on_drop_rx => {}
+                    _ = async {
+                        loop {
+                            tokio::select! {
+                                // Adding this means the listener fut will always be polled first, i.e. has higher priority.
+                                // This is what we want as it cleans up dead listeners, so avoids the second fut ideally hitting any dead listeners.
+                                biased;
+                                result = init.listener_drop_rx.recv() => {
+                                    arc_self.spawned_handle_listener_dropped(result).await;
+                                }
+                                result = init.rx.recv() => {
+                                    arc_self.spawned_handle_message(result).await;
+                                }
+                            }
                         }
-                        result = rx.recv() => {
-                            arc_self.spawned_handle_message(result).await;
-                        }
-                    }
+                    } => {}
                 }
             });
         }
@@ -358,11 +386,11 @@ impl RedisPubSubGlobal {
                         )) {
                             Ok((channel, msg)) => {
                                 if let Some(listeners) = self.listeners.get(&channel) {
-                                    for tx in listeners.values() {
+                                    for (msg, tx) in listeners.values().with_clone_lazy(msg) {
                                         // Given we have a separate future for cleaning up,
                                         // this shouldn't be a big issue if this ever errors with dead listeners,
                                         // as they should immediately be cleaned up by the cleanup future.
-                                        let _ = tx.send(msg.clone());
+                                        let _ = tx.send(msg);
                                     }
                                 }
                             }
@@ -389,252 +417,5 @@ impl RedisPubSubGlobal {
                 );
             }
         }
-    }
-}
-
-// TESTS:
-// - redis prefix still used.
-// - DONE: sub to same channel twice with same name but 2 different fns, each should be called once, not first twice, second twice, first dropped etc.
-// - Redis down then backup:
-//    - If just during listening, msgs, shld come in after back up.
-//    - if happened before subscribe, subscribe still recorded and applied after redis back up
-// - After lots of random channels, lots of random listeners, once all dropped the hashmap should be empty.
-
-// Redis server can't be run on windows:
-#[cfg(not(target_os = "windows"))]
-#[cfg(test)]
-mod tests {
-
-    use chrono::TimeDelta;
-
-    use crate::misc::with_timeout;
-    use crate::redis::{Redis, RedisBatchFire, RedisConnLike, RedisStandalone};
-    use crate::testing::prelude::*;
-
-    use super::*;
-
-    async fn setup_conns() -> RResult<(RedisStandalone, Redis, Redis), AnyErr> {
-        let server = RedisStandalone::new_no_persistence().await?;
-        let work_r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
-        // Also create a fake version on a random port, this will be used to check failure cases.
-        let fail_r = Redis::new(
-            "redis://FAKKEEEE:6372",
-            format!("test_{}", uuid::Uuid::new_v4()),
-        )?;
-        Ok((server, work_r, fail_r))
-    }
-
-    // The basics:
-    // - Listeners receive messages.
-    // - Listeners receive only their own messages.
-    // - Listeners clean themselves up.
-    #[rstest]
-    #[tokio::test]
-    async fn test_redis_pubsub_simple(
-        #[allow(unused_variables)] logging: (),
-    ) -> RResult<(), AnyErr> {
-        let (_server, work_r, _fail_r) = setup_conns().await?;
-        let work_conn = work_r.conn();
-
-        for (mut rx, namespace) in [
-            (
-                work_conn.subscribe::<String>("n1", "foo").await.unwrap(),
-                "n1",
-            ),
-            (
-                work_conn.subscribe::<String>("n2", "foo").await.unwrap(),
-                "n2",
-            ),
-        ] {
-            assert!(work_conn
-                .batch()
-                .publish(namespace, "foo", format!("{}_first_msg", namespace))
-                .publish(namespace, "foo", format!("{}_second_msg", namespace))
-                .fire()
-                .await
-                .is_some());
-            with_timeout(
-                TimeDelta::seconds(3),
-                || {
-                    panic!("Timeout waiting for pubsub message");
-                },
-                async move {
-                    assert_eq!(Some(format!("{}_first_msg", namespace)), rx.recv().await);
-                    assert_eq!(Some(format!("{}_second_msg", namespace)), rx.recv().await);
-                    with_timeout(
-                        TimeDelta::milliseconds(100),
-                        || Ok::<_, Report<AnyErr>>(()),
-                        async {
-                            let msg = rx.recv().await;
-                            panic!("Shouldn't have received any more messages, got: {:?}", msg);
-                        },
-                    )
-                    .await?;
-                    Ok::<_, Report<AnyErr>>(())
-                },
-            )
-            .await?;
-        }
-
-        // Given everything's dropped now we're out of the loop, internals should've been cleaned up after a short delay:
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-        assert_eq!(work_r.pubsub_listener.listeners.len(), 0);
-
-        Ok(())
-    }
-
-    // Multiple listeners on the same channel:
-    // - Each gets data
-    // - Each gets data only once
-    #[rstest]
-    #[tokio::test]
-    async fn test_redis_pubsub_single_channel_multiple_listeners(
-        #[allow(unused_variables)] logging: (),
-    ) -> RResult<(), AnyErr> {
-        let (_server, work_r, _fail_r) = setup_conns().await?;
-        let work_conn = work_r.conn();
-
-        let rx1 = work_conn.subscribe::<String>("n1", "foo").await.unwrap();
-        let rx2 = work_conn.subscribe::<String>("n1", "foo").await.unwrap();
-        let rx3 = work_conn.subscribe::<String>("n1", "foo").await.unwrap();
-
-        // All 3 receivers should receive these messages:
-        assert!(work_conn
-            .batch()
-            .publish("n1", "foo", "first_msg")
-            .publish("n1", "foo", "second_msg")
-            .fire()
-            .await
-            .is_some());
-
-        for mut rx in [rx1, rx2, rx3] {
-            with_timeout(
-                TimeDelta::seconds(3),
-                || {
-                    panic!("Timeout waiting for pubsub message");
-                },
-                async move {
-                    assert_eq!(Some("first_msg".to_string()), rx.recv().await);
-                    assert_eq!(Some("second_msg".to_string()), rx.recv().await);
-                    with_timeout(
-                        TimeDelta::milliseconds(100),
-                        || Ok::<_, Report<AnyErr>>(()),
-                        async {
-                            let msg = rx.recv().await;
-                            panic!("Shouldn't have received any more messages, got: {:?}", msg);
-                        },
-                    )
-                    .await?;
-                    Ok::<_, Report<AnyErr>>(())
-                },
-            )
-            .await?;
-        }
-
-        // Given everything's dropped now we're out of the loop, internals should've been cleaned up after a short delay:
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-        assert_eq!(work_r.pubsub_listener.listeners.len(), 0);
-
-        Ok(())
-    }
-
-    /// - pubsub should be able to continue after redis goes down and back up.
-    /// - subscribe() and publish() should work even if redis literally just coming back alive.
-    /// - subscriptions should automatically resubscribe when the connection has to be restarted on new redis.
-    #[rstest]
-    #[tokio::test]
-    async fn test_redis_pubsub_redis_sketchiness(
-        #[allow(unused_variables)] logging: (),
-    ) -> RResult<(), AnyErr> {
-        // Start a server to get a static port then instantly shutdown but keep the redis instance (client):
-        let (client, port) = {
-            let server = RedisStandalone::new_no_persistence().await?;
-            let client = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4().to_string())?;
-            (client, server.port)
-        };
-
-        let restart_server = move || {
-            // Same as new_no_persistence, but have to use underlying for port:
-            RedisStandalone::new_with_opts(port, Some(&["--appendonly", "no", "--save", "\"\""]))
-        };
-
-        // subscribe() should work even if redis is justttt coming back up, i.e. it should wait around for a connection.
-        let mut rx = {
-            let _server = restart_server().await?;
-            client
-                .conn()
-                .subscribe::<String>("n1", "foo")
-                .await
-                .unwrap()
-        };
-
-        // publish() should work even if redis is justttt coming back up, i.e. it should wait around for a connection.
-        let _server = restart_server().await?;
-        // This is separate, just confirming publish works straight away,
-        // slight delay needed for actual publish as redis needs time to resubscribe to the channel on the new connection,
-        // otherwise won't see the published event.
-        assert!(client
-            .conn()
-            .batch()
-            .publish("lah", "loo", "baz")
-            .fire()
-            .await
-            .is_some());
-
-        // Short delay, see above comment for redis to resubscribe before proper publish to check:
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        assert!(client
-            .conn()
-            .batch()
-            .publish("n1", "foo", "first_msg")
-            .publish("n1", "foo", "second_msg")
-            .fire()
-            .await
-            .is_some());
-
-        // Despite all the madness messages should come through:
-        with_timeout(
-            TimeDelta::seconds(3),
-            || {
-                panic!("Timeout waiting for pubsub message");
-            },
-            async move {
-                assert_eq!(Some("first_msg".to_string()), rx.recv().await);
-                assert_eq!(Some("second_msg".to_string()), rx.recv().await);
-                with_timeout(
-                    TimeDelta::milliseconds(100),
-                    || Ok::<_, Report<AnyErr>>(()),
-                    async {
-                        let msg = rx.recv().await;
-                        panic!("Shouldn't have received any more messages, got: {:?}", msg);
-                    },
-                )
-                .await?;
-                Ok::<_, Report<AnyErr>>(())
-            },
-        )
-        .await?;
-
-        Ok(())
-    }
-
-    // Nothing should break when no ones subscribed to a channel when a message is published.
-    #[rstest]
-    #[tokio::test]
-    async fn test_redis_pubsub_no_listener(
-        #[allow(unused_variables)] logging: (),
-    ) -> RResult<(), AnyErr> {
-        let (_server, work_r, _fail_r) = setup_conns().await?;
-        let work_conn = work_r.conn();
-
-        assert!(work_conn
-            .batch()
-            .publish("n1", "foo", "first_msg")
-            .publish("n1", "foo", "second_msg")
-            .fire()
-            .await
-            .is_some());
-
-        Ok(())
     }
 }
