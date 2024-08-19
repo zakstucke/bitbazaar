@@ -3,6 +3,8 @@ mod conn;
 mod dlock;
 mod fuzzy;
 mod json;
+mod pubsub;
+mod redis_retry;
 mod script;
 mod temp_list;
 mod wrapper;
@@ -15,6 +17,7 @@ pub use batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
 pub use conn::{RedisConn, RedisConnLike};
 pub use dlock::{RedisLock, RedisLockErr};
 pub use json::{RedisJson, RedisJsonBorrowed};
+pub use pubsub::RedisChannelListener;
 // Re-exporting redis and deadpool_redis to be used outside if needed:
 pub use deadpool_redis;
 pub use redis;
@@ -55,6 +58,19 @@ mod tests {
             format!("test_{}", uuid::Uuid::new_v4()),
         )?;
         Ok((server, work_r, fail_r))
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_redis_ping(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
+        let (_server, work_r, fail_r) = setup_conns().await?;
+        let work_conn = work_r.conn();
+        let fail_conn = fail_r.conn();
+
+        assert!(work_conn.ping().await);
+        assert!(!(fail_conn.ping().await));
+
+        Ok(())
     }
 
     #[rstest]
@@ -460,7 +476,7 @@ mod tests {
     ) -> RResult<(), AnyErr> {
         let server = RedisStandalone::new_no_persistence().await?;
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
-        let mut rconn = r.conn();
+        let rconn = r.conn();
 
         // THIS ONLY ACTUALLY WORKS FOR STRINGS and false, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
         // None::<T>, empty vec![] and "" should all work fine as real stored values,
@@ -585,7 +601,7 @@ mod tests {
 
         let server = RedisStandalone::new_no_persistence().await?;
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
-        let mut rconn = r.conn();
+        let rconn = r.conn();
 
         macro_rules! call {
             () => {

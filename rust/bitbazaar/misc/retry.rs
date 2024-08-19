@@ -84,6 +84,12 @@ impl<'a, E> Retry<'a, E> {
         self
     }
 
+    /// Never stop retrying.
+    pub fn until_forever(mut self) -> Self {
+        self.until = RetryUntil::Forever;
+        self
+    }
+
     /// Stop retrying after the total delay reaches the given duration.
     pub fn until_total_delay(mut self, max_total_delay: Duration) -> Self {
         self.until = RetryUntil::TotalDelay(max_total_delay);
@@ -193,6 +199,8 @@ pub enum RetryUntil {
     TotalDelay(Duration),
     /// UNSTABLE: ONLY PUBLIC FOR MACRO USE.
     Delay(Duration),
+    /// UNSTABLE: ONLY PUBLIC FOR MACRO USE.
+    Forever,
 }
 
 impl RetryUntil {
@@ -223,6 +231,7 @@ impl RetryUntil {
                     return true;
                 }
             }
+            RetryUntil::Forever => return false,
         }
         false
     }

@@ -407,7 +407,7 @@ mod tests {
         // Sleeping after each, to try and ensure the correct debug output:
         log.with_tmp_global(|| {
             // On windows this needs to be really long to get static record ordering for testing:
-            let delay = if cfg!(windows) { 100 } else { 10 };
+            let delay = if cfg!(windows) { 100 } else { 30 };
 
             debug!("BEFORE");
             std::thread::sleep(std::time::Duration::from_millis(delay));
