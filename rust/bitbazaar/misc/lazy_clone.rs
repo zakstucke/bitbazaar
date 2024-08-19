@@ -9,7 +9,7 @@ pub trait IterWithCloneLazy {
     fn with_clone_lazy<ItemT: Clone>(
         self,
         item: ItemT,
-    ) -> impl Iterator<Item = (ItemT, Self::IterT)>
+    ) -> impl Iterator<Item = (Self::IterT, ItemT)>
     where
         Self: Sized;
 }
@@ -20,7 +20,7 @@ impl<IterT, I: IntoIterator<Item = IterT>> IterWithCloneLazy for I {
     fn with_clone_lazy<ItemT: Clone>(
         self,
         item: ItemT,
-    ) -> impl Iterator<Item = (ItemT, Self::IterT)>
+    ) -> impl Iterator<Item = (Self::IterT, ItemT)>
     where
         Self: Sized,
     {
@@ -41,15 +41,15 @@ struct LazyCloneIter<I: Iterator, ItemT: Clone> {
 }
 
 impl<I: Iterator, ItemT: Clone> Iterator for LazyCloneIter<I, ItemT> {
-    type Item = (ItemT, I::Item);
+    type Item = (I::Item, ItemT);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_in_iter.take().map(|next| {
             self.next_in_iter = self.iter.next();
             if self.next_in_iter.is_none() {
-                (self.item.take().unwrap(), next)
+                (next, self.item.take().unwrap())
             } else {
-                (self.item.clone().unwrap(), next)
+                (next, self.item.clone().unwrap())
             }
         })
     }
@@ -83,7 +83,7 @@ mod tests {
             let test = Test {
                 tot_clones: tot_clones.clone(),
             };
-            for (t, index) in (0..count).with_clone_lazy(test) {
+            for (index, t) in (0..count).with_clone_lazy(test) {
                 assert_eq!(
                     t.tot_clones.load(std::sync::atomic::Ordering::Relaxed),
                     if index < count - 1 { index + 1 } else { index }

@@ -502,7 +502,7 @@ impl RedisPubSubGlobal {
 
     async fn handle_msg(&self, channel_sub: ChannelSubscription, msg: redis::Value) {
         if let Some(listeners) = self.listeners.get(&channel_sub) {
-            for (msg, tx) in listeners.values().with_clone_lazy(msg) {
+            for (tx, msg) in listeners.values().with_clone_lazy(msg) {
                 // Given we have a separate future for cleaning up,
                 // this shouldn't be a big issue if this ever errors with dead listeners,
                 // as they should immediately be cleaned up by the cleanup future.
