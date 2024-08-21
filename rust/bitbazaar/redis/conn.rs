@@ -6,6 +6,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
+use dashmap::DashSet;
 use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
 
 use super::{
@@ -22,6 +23,7 @@ pub struct RedisConn<'a> {
     pool: &'a deadpool_redis::Pool,
     // It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
     pubsub_global: &'a Arc<RedisPubSubGlobal>,
+    scripts_loaded: &'a Arc<DashSet<String>>,
     // We used to cache the [`deadpool_redis::Connection`] conn in here,
     // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
     // so getting for each usage is fine, given:
@@ -36,11 +38,13 @@ impl<'a> RedisConn<'a> {
         pool: &'a deadpool_redis::Pool,
         prefix: &'a str,
         pubsub_global: &'a Arc<RedisPubSubGlobal>,
+        scripts_loaded: &'a Arc<DashSet<String>>,
     ) -> Self {
         Self {
             pool,
             prefix,
             pubsub_global,
+            scripts_loaded,
         }
     }
 }
@@ -54,6 +58,7 @@ pub struct RedisConnOwned {
     pool: deadpool_redis::Pool,
     // It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
     pubsub_global: Arc<RedisPubSubGlobal>,
+    scripts_loaded: Arc<DashSet<String>>,
     // We used to cache the [`deadpool_redis::Connection`] conn in here,
     // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
     // so getting for each usage is fine, given:
@@ -73,6 +78,9 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
 
     /// Get the redis configured prefix.
     fn prefix(&self) -> &str;
+
+    /// Get the scripts_loaded dashset of script hashes.
+    fn scripts_loaded(&self) -> &Arc<DashSet<String>>;
 
     /// Get the redis pubsub global manager.
     fn _pubsub_global(&self) -> &Arc<RedisPubSubGlobal>;
@@ -296,7 +304,12 @@ impl<'a> RedisConnLike for RedisConn<'a> {
             prefix: Arc::new(self.prefix.to_string()),
             pool: self.pool.clone(),
             pubsub_global: self.pubsub_global.clone(),
+            scripts_loaded: self.scripts_loaded.clone(),
         }
+    }
+
+    fn scripts_loaded(&self) -> &Arc<DashSet<String>> {
+        self.scripts_loaded
     }
 }
 
@@ -321,5 +334,9 @@ impl RedisConnLike for RedisConnOwned {
 
     fn to_owned(&self) -> RedisConnOwned {
         self.clone()
+    }
+
+    fn scripts_loaded(&self) -> &Arc<DashSet<String>> {
+        &self.scripts_loaded
     }
 }

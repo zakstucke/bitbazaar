@@ -47,7 +47,7 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     async fn inner_fire<R: FromRedisValue>(&self) -> Option<R> {
         if let Some(mut conn) = self.redis_conn.get_inner_conn().await {
             // Handling retryable errors internally:
-            match retry_flexi!(redis_retry_config(), {
+            let result = match retry_flexi!(redis_retry_config(), {
                 self.pipe.query_async(&mut conn).await
             }) {
                 Ok(v) => Some(v),
@@ -60,7 +60,7 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                         }
 
                         tracing::debug!(
-                            "Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Err: '{:?}'",
+                            "Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Probably occurred due to a redis restart during this program's execution. Err: '{:?}'",
                             self.used_scripts.len(),
                             if self.used_scripts.len() == 1 { "" } else { "s" },
                             e
@@ -94,7 +94,17 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                         None
                     }
                 }
+            };
+
+            // When the pipeline is successful, update internally the scripts we know to be loaded.
+            if result.is_some() {
+                let sl = self.redis_conn.scripts_loaded();
+                for script in self.used_scripts.iter() {
+                    sl.insert(script.hash.clone());
+                }
             }
+
+            result
         } else {
             None
         }
@@ -103,7 +113,15 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     /// Run an arbitrary redis (lua script). But discards any return value.
     pub fn script_no_return(mut self, script_invokation: RedisScriptInvoker<'c>) -> Self {
         // Adding ignore() to ignore response.
-        self.pipe.add_command(script_invokation.eval_cmd()).ignore();
+        self.pipe
+            .add_command(
+                script_invokation.eval_cmd(
+                    self.redis_conn
+                        .scripts_loaded()
+                        .contains(&script_invokation.script.hash),
+                ),
+            )
+            .ignore();
         self.used_scripts.insert(script_invokation.script);
         RedisBatch {
             _returns: PhantomData,
@@ -537,7 +555,9 @@ macro_rules! impl_batch_ops {
                 mut self,
                 script_invokation: RedisScriptInvoker<'c>,
             ) -> Self::NextType<ScriptOutput> {
-                self.pipe.add_command(script_invokation.eval_cmd());
+                self.pipe.add_command(script_invokation.eval_cmd(
+                    self.redis_conn.scripts_loaded().contains(&script_invokation.script.hash)
+                ));
                 self.used_scripts.insert(script_invokation.script);
                 RedisBatch {
                     _returns: PhantomData,

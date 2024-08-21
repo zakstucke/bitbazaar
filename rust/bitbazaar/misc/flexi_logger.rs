@@ -369,6 +369,18 @@ impl FlexiLog for FlexiLogBridge {
     }
 }
 
+impl<'a, F: FlexiLog> FlexiLog for &'a F {
+    type Writer = F::Writer;
+
+    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send) -> impl Future<Output = ()> + Send {
+        (*self).batch(cb)
+    }
+
+    fn phase(&self) -> impl Future<Output = FlexiLogPhase> + Send {
+        (*self).phase()
+    }
+}
+
 /// Flexi logging bridge writer, doesn't require any generics.
 pub struct FlexiLogBridgeWriter {
     inner: Mutex<FlexiLogBridgeWriterInner>,

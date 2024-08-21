@@ -25,7 +25,9 @@ pub use redis;
 // Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
 pub use redis_macros::{FromRedisValue, ToRedisArgs};
 pub use script::{RedisScript, RedisScriptInvoker};
-pub use temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
+pub use temp_list::{
+    RedisTempList, RedisTempListChangeEvent, RedisTempListItem, RedisTempListItemWithConn,
+};
 pub use wrapper::Redis;
 
 // Redis server can't be run on windows:
