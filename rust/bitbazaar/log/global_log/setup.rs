@@ -110,11 +110,6 @@ pub fn builder_into_global_log(builder: GlobalLogBuilder) -> RResult<GlobalLog, 
                     );
                 };
             }
-            // File obvs can't be written in wasm, excluding to keep tracing_appender out of build etc.
-            #[cfg(target_arch = "wasm32")]
-            super::builder::Output::File(_) => {
-                return Err(anyerr!("File logging not supported in wasm."));
-            }
             #[cfg(not(target_arch = "wasm32"))]
             super::builder::Output::File(file) => {
                 // Throw if dir is an existing file:

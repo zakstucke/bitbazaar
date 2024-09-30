@@ -144,11 +144,11 @@ impl<T: Clone> Refreshable<T> {
     /// - Updates the setter, thanks to above guaranteed no sibling node overwrites etc.
     ///
     /// NOTE: returns a double result to allow custom internal error types to be passed out.
-    pub async fn mutate<E>(
+    pub async fn mutate<R, E>(
         &self,
         conn: &impl RedisConnLike,
-        mutator: impl FnOnce(&mut T) -> Result<(), E>,
-    ) -> RResult<Result<(), E>, AnyErr> {
+        mutator: impl FnOnce(&mut T) -> Result<R, E>,
+    ) -> RResult<Result<R, E>, AnyErr> {
         self.redis
             .dlock_for_fut(
                 &self.redis_namespace,
@@ -164,7 +164,7 @@ impl<T: Clone> Refreshable<T> {
                     };
                     // Mutate the up-to-date data:
                     match mutator(&mut data) {
-                        Ok(_) => {
+                        Ok(result) => {
                             // Run the on_mutate hook if there:
                             if let Some(on_mutate) = &self.on_mutate {
                                 on_mutate(&mut data)?;
@@ -186,7 +186,7 @@ impl<T: Clone> Refreshable<T> {
                             self.mutate_id
                                 .store(new_mutate_id, std::sync::atomic::Ordering::Relaxed);
                             self.set_data(data).await?;
-                            Ok::<_, Report<AnyErr>>(Ok(()))
+                            Ok::<_, Report<AnyErr>>(Ok(result))
                         }
                         Err(e) => Ok(Err(e)),
                     }

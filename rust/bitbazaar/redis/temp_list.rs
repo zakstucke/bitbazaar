@@ -19,7 +19,7 @@ use crate::{
 #[derive(Debug)]
 pub struct RedisTempListItemWithConn<T> {
     // Mutability kept internal.
-    item: Mutex<RedisTempListItem<T>>,
+    item: Arc<Mutex<RedisTempListItem<T>>>,
     conn: RedisConnOwned,
 }
 
@@ -29,13 +29,18 @@ impl<
 {
     type Writer = T;
 
-    fn batch(
-        &self,
-        cb: impl FnOnce(&mut Self::Writer) + Send,
-    ) -> impl std::future::Future<Output = ()> + Send {
-        self.update(move |updater| {
-            cb(updater);
-        })
+    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send + 'static) {
+        // Sync function but async internals, so have to spawn:
+        let conn = self.conn.clone();
+        let item = self.item.clone();
+        tokio::spawn(async move {
+            let mut locked = item.lock().await;
+            locked
+                .update(&conn, move |updater| {
+                    cb(updater);
+                })
+                .await;
+        });
     }
 
     async fn phase(&self) -> FlexiLogPhase {
@@ -44,6 +49,15 @@ impl<
             inner.phase()
         } else {
             crate::misc::FlexiLogPhase::Pending
+        }
+    }
+
+    async fn progress(&self) -> f64 {
+        let maybe_item = self.item().await;
+        if let Some(inner) = maybe_item.as_ref() {
+            inner.progress()
+        } else {
+            0.0
         }
     }
 }
@@ -122,8 +136,8 @@ impl<T: serde::Serialize + for<'de> serde::Deserialize<'de>> RedisTempListItem<T
     /// Useful for combining a connection with an item, to prevent needing to pass both around.
     pub fn into_with_conn(self, conn: impl RedisConnLike) -> RedisTempListItemWithConn<T> {
         RedisTempListItemWithConn {
-            item: Mutex::new(self),
-            conn: conn.to_owned(),
+            item: Arc::new(Mutex::new(self)),
+            conn: conn.to_conn_owned(),
         }
     }
 

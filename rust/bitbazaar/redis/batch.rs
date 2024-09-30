@@ -10,7 +10,7 @@ use super::{
     conn::RedisConnLike,
     fuzzy::{RedisFuzzy, RedisFuzzyUnwrap},
     redis_retry::redis_retry_config,
-    RedisScript, RedisScriptInvoker,
+    RedisJson, RedisScript, RedisScriptInvoker,
 };
 
 static CLEAR_NAMESPACE_SCRIPT: LazyLock<RedisScript> =
@@ -147,12 +147,17 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     }
 
     /// Publish a message to a pubsub channel.
-    /// Use [`RedisConnLike::pubsub_listen`] to listen for messages.
-    pub fn publish(mut self, namespace: &str, channel: &str, message: impl ToRedisArgs) -> Self {
+    /// Json wrapped internally, makes easier to work with.
+    pub fn publish(
+        mut self,
+        namespace: &str,
+        channel: &str,
+        message: impl serde::Serialize + for<'b> serde::Deserialize<'b>,
+    ) -> Self {
         self.pipe
             .publish(
                 self.redis_conn.final_key(namespace, channel.into()),
-                message,
+                RedisJson(message),
             )
             .ignore();
         self
