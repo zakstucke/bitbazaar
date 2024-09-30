@@ -1,84 +1,81 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, future::Future, sync::Arc};
 
-use futures::{future::BoxFuture, Future, FutureExt};
 use parking_lot::Mutex;
 
 /// An interface that can be used to track arbitrary logging "flows".
-pub trait FlexiLog: std::fmt::Debug + Sync + Send {
+pub trait FlexiLog: std::fmt::Debug + Send + Sync {
     /// The actual object used to apply logs.
     type Writer: FlexiLogWriter;
 
     /// Can be used to synchronously batch together multiple changes.
-    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send) -> impl Future<Output = ()> + Send;
+    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send + 'static);
 
     /// Get the current phase. Just always return e,g, Pending if not supported.
+    /// Async as it's a getter, can't spawn off async tasks like the setters if underlying is async.
     fn phase(&self) -> impl Future<Output = FlexiLogPhase> + Send;
 
+    /// Set the current progress.
+    /// Just return 0.0 if not supported.
+    /// Async as it's a getter, can't spawn off async tasks like the setters if underlying is async.
+    fn progress(&self) -> impl Future<Output = f64> + Send;
+
     /// Set the current progress. Depending on the underlying imp this could e.g. log a message, or write a progress bar etc.
-    fn set_progress(&self, progress: f64) -> impl Future<Output = ()> + Send {
+    fn set_progress(&self, progress: f64) {
         self.batch(move |w| w.set_progress(progress))
     }
 
     /// Set the current phase. The underlying imp might not do anything for phases.
-    fn set_phase(&self, phase: FlexiLogPhase) -> impl Future<Output = ()> + Send {
+    fn set_phase(&self, phase: FlexiLogPhase) {
         self.batch(move |w| w.set_phase(phase))
     }
 
     /// Underlying log adder with more options.
     /// If the actual output doesn't support force_replace_prior, just ignore it and add like normal. (Same with lvl.)
-    fn log_with_opts(
-        &self,
-        lvl: tracing::Level,
-        msg: String,
-        force_replace_prior: bool,
-    ) -> impl Future<Output = ()> + Send {
+    fn log_with_opts(&self, lvl: tracing::Level, msg: String, force_replace_prior: bool) {
         self.batch(move |w| w.log_with_opts(lvl, msg, force_replace_prior))
     }
 
     /// Log a debug message.
-    fn log_debug(&self, msg: impl Into<String>) -> impl Future<Output = ()> + Send {
+    fn log_debug(&self, msg: impl Into<String>) {
         let msg = msg.into();
         self.batch(move |w| w.log_debug(msg))
     }
 
     /// Log an info message.
-    fn log_info(&self, msg: impl Into<String>) -> impl Future<Output = ()> + Send {
+    fn log_info(&self, msg: impl Into<String>) {
         let msg = msg.into();
         self.batch(move |w| w.log_info(msg))
     }
 
     /// Log a warning message.
-    fn log_warn(&self, msg: impl Into<String>) -> impl Future<Output = ()> + Send {
+    fn log_warn(&self, msg: impl Into<String>) {
         let msg = msg.into();
         self.batch(move |w| w.log_warn(msg))
     }
 
     /// Log an error message.
-    fn log_error(&self, msg: impl Into<String>) -> impl Future<Output = ()> + Send {
+    fn log_error(&self, msg: impl Into<String>) {
         let msg = msg.into();
         self.batch(move |w| w.log_error(msg))
     }
 
     /// Set the state of the flow to failed.
-    fn set_failed(&self) -> impl Future<Output = ()> + Send {
+    fn set_failed(&self) {
         self.batch(move |w| w.set_failed())
     }
 
     /// Set the state of the flow to completed.
-    fn set_completed(&self) -> impl Future<Output = ()> + Send {
+    fn set_completed(&self) {
         self.batch(move |w| w.set_completed())
     }
 
     /// Set the state of the flow to running.
-    fn set_running(&self) -> impl Future<Output = ()> + Send {
+    fn set_running(&self) {
         self.batch(move |w| w.set_running())
     }
 
     /// Set the state of the flow to failed pending retry.
-    fn set_failed_pending_retry(
-        &self,
-        scheduled_for: chrono::DateTime<chrono::Utc>,
-    ) -> impl Future<Output = ()> + Send {
+    fn set_failed_pending_retry(&self, scheduled_for: chrono::DateTime<chrono::Utc>) {
         self.batch(move |w| w.set_failed_pending_retry(scheduled_for))
     }
 }
@@ -89,7 +86,12 @@ pub trait FlexiLogWriter: std::fmt::Debug {
     /// Get the current phase. Just always return e,g, Pending if not supported.
     fn phase(&self) -> FlexiLogPhase;
 
-    /// Set the current progress. Depending on the underlying imp this could e.g. log a message, or write a progress bar etc.
+    /// Set the current progress.
+    /// Just return 0.0 if not supported.
+    fn progress(&self) -> f64;
+
+    /// Set the current progress.
+    /// Depending on the underlying imp this could be a noop or e.g. log a message, or write a progress bar etc.
     fn set_progress(&self, progress: f64);
 
     /// Set the current phase. The underlying imp might not do anything for phases.
@@ -259,6 +261,10 @@ impl FlexiLogWriter for () {
         FlexiLogPhase::Pending
     }
 
+    fn progress(&self) -> f64 {
+        0.0
+    }
+
     fn set_progress(&self, _progress: f64) {}
 
     fn set_phase(&self, _phase: FlexiLogPhase) {}
@@ -269,10 +275,14 @@ impl FlexiLogWriter for () {
 impl FlexiLog for () {
     type Writer = ();
 
-    async fn batch(&self, _cb: impl FnOnce(&mut Self::Writer)) {}
+    fn batch(&self, _cb: impl FnOnce(&mut Self::Writer)) {}
 
     async fn phase(&self) -> FlexiLogPhase {
         FlexiLogPhase::Pending
+    }
+
+    async fn progress(&self) -> f64 {
+        0.0
     }
 }
 
@@ -286,19 +296,25 @@ impl FlexiLogFromRedis for () {
 impl<W: FlexiLogWriter, T: FlexiLog<Writer = W>> FlexiLog for Option<T> {
     type Writer = W;
 
-    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send) -> impl Future<Output = ()> + Send {
+    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send + 'static) {
         if let Some(inner) = self {
-            inner.batch(cb).left_future()
-        } else {
-            async {}.right_future()
+            inner.batch(cb);
         }
     }
 
-    fn phase(&self) -> impl Future<Output = FlexiLogPhase> + Send {
+    async fn phase(&self) -> FlexiLogPhase {
         if let Some(inner) = self {
-            inner.phase().left_future()
+            inner.phase().await
         } else {
-            async { FlexiLogPhase::Pending }.right_future()
+            FlexiLogPhase::Pending
+        }
+    }
+
+    async fn progress(&self) -> f64 {
+        if let Some(inner) = self {
+            inner.progress().await
+        } else {
+            0.0
         }
     }
 }
@@ -306,36 +322,34 @@ impl<W: FlexiLogWriter, T: FlexiLog<Writer = W>> FlexiLog for Option<T> {
 /// Flexi logging bridge to wrap arbitrary flexi logging implementers, doesn't require any generics.
 pub struct FlexiLogBridge {
     phase: Mutex<FlexiLogPhase>,
-    on_batch: Box<dyn Fn(&mut FlexiLogBridgeWriter) -> BoxFuture<'static, ()> + Send + Sync>,
+    progress: Mutex<f64>,
+    on_batch: Box<dyn Fn(&mut FlexiLogBridgeWriter) + Send + Sync>,
 }
 
 impl FlexiLogBridge {
     /// Create a new flexi log bridge.
-    pub fn new(flexilog: impl FlexiLog + 'static) -> Self {
+    pub async fn new(flexilog: impl FlexiLog + 'static) -> Self {
         let flexilog = Arc::new(flexilog);
         Self {
-            phase: Mutex::new(FlexiLogPhase::Pending),
+            phase: Mutex::new(flexilog.phase().await),
+            progress: Mutex::new(flexilog.progress().await),
             on_batch: Box::new(move |bridge| {
                 let mut updates = bridge.inner.lock();
                 let phase = updates.phase.clone();
                 let logs = std::mem::take(&mut updates.logs);
                 let progress = updates.progress;
                 let flexilog = flexilog.clone();
-                Box::pin(async move {
-                    flexilog
-                        .batch(move |inner| {
-                            if phase != inner.phase() {
-                                inner.set_phase(phase);
-                            }
-                            if let Some(progress) = progress {
-                                inner.set_progress(progress);
-                            }
-                            for (lvl, msg, force_replace_prior) in logs {
-                                inner.log_with_opts(lvl, msg, force_replace_prior);
-                            }
-                        })
-                        .await;
-                })
+                flexilog.batch(move |inner| {
+                    if phase != inner.phase() {
+                        inner.set_phase(phase);
+                    }
+                    if let Some(progress) = progress {
+                        inner.set_progress(progress);
+                    }
+                    for (lvl, msg, force_replace_prior) in logs {
+                        inner.log_with_opts(lvl, msg, force_replace_prior);
+                    }
+                });
             }),
         }
     }
@@ -350,7 +364,7 @@ impl Debug for FlexiLogBridge {
 impl FlexiLog for FlexiLogBridge {
     type Writer = FlexiLogBridgeWriter;
 
-    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send) -> impl Future<Output = ()> + Send {
+    fn batch(&self, cb: impl FnOnce(&mut Self::Writer)) {
         let mut writer = FlexiLogBridgeWriter {
             inner: Mutex::new(FlexiLogBridgeWriterInner {
                 phase: self.phase.lock().clone(),
@@ -360,12 +374,32 @@ impl FlexiLog for FlexiLogBridge {
         };
         cb(&mut writer);
         *self.phase.lock() = writer.phase();
-        (self.on_batch)(&mut writer)
+        *self.progress.lock() = writer.progress();
+        (self.on_batch)(&mut writer);
     }
 
-    fn phase(&self) -> impl Future<Output = FlexiLogPhase> + Send {
-        let res = self.phase.lock().clone();
-        async move { res }
+    async fn phase(&self) -> FlexiLogPhase {
+        self.phase.lock().clone()
+    }
+
+    async fn progress(&self) -> f64 {
+        *self.progress.lock()
+    }
+}
+
+impl<'a, F: FlexiLog> FlexiLog for &'a F {
+    type Writer = F::Writer;
+
+    fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send + 'static) {
+        (*self).batch(cb)
+    }
+
+    async fn phase(&self) -> FlexiLogPhase {
+        (*self).phase().await
+    }
+
+    async fn progress(&self) -> f64 {
+        (*self).progress().await
     }
 }
 
@@ -383,6 +417,10 @@ impl Debug for FlexiLogBridgeWriter {
 impl FlexiLogWriter for FlexiLogBridgeWriter {
     fn phase(&self) -> FlexiLogPhase {
         self.inner.lock().phase.clone()
+    }
+
+    fn progress(&self) -> f64 {
+        self.inner.lock().progress.unwrap_or(0.0)
     }
 
     fn set_progress(&self, progress: f64) {
@@ -430,6 +468,10 @@ mod tests {
                 self.phase.lock().clone()
             }
 
+            fn progress(&self) -> f64 {
+                *self.progress.lock()
+            }
+
             fn set_progress(&self, progress: f64) {
                 *self.progress.lock() = progress;
             }
@@ -446,13 +488,17 @@ mod tests {
         impl FlexiLog for LogBackend {
             type Writer = LogBackendInner;
 
-            async fn batch(&self, cb: impl FnOnce(&mut Self::Writer) + Send) {
+            fn batch(&self, cb: impl FnOnce(&mut Self::Writer)) {
                 let mut inner = self.inner.lock();
                 cb(&mut inner);
             }
 
             async fn phase(&self) -> FlexiLogPhase {
                 self.inner.lock().phase.lock().clone()
+            }
+
+            async fn progress(&self) -> f64 {
+                *self.inner.lock().progress.lock()
             }
         }
 
@@ -464,11 +510,12 @@ mod tests {
             })),
         };
 
-        let bridge = FlexiLogBridge::new(backend.clone());
+        let bridge = FlexiLogBridge::new(backend.clone()).await;
 
-        let running_started_at = OnceLock::new();
-        bridge
-            .batch(|w| {
+        let running_started_at = Arc::new(OnceLock::new());
+        {
+            let running_started_at = running_started_at.clone();
+            bridge.batch(move |w| {
                 let started_at = chrono::Utc::now();
                 let _ = running_started_at.set(started_at);
 
@@ -476,12 +523,13 @@ mod tests {
                 w.set_phase(FlexiLogPhase::Running { started_at });
                 w.log_info("Hello world");
                 w.log_warn("foo");
-            })
-            .await;
+            });
+        }
 
         let inner = backend.inner.lock();
         assert_eq!(inner.logs.lock().len(), 2);
         assert_eq!(*inner.progress.lock().deref(), 0.5);
+        assert_eq!(inner.progress(), 0.5);
         assert_eq!(
             inner.logs.lock()[0],
             (tracing::Level::INFO, "Hello world".to_string(), false)

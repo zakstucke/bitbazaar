@@ -25,7 +25,9 @@ pub use redis;
 // Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
 pub use redis_macros::{FromRedisValue, ToRedisArgs};
 pub use script::{RedisScript, RedisScriptInvoker};
-pub use temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
+pub use temp_list::{
+    RedisTempList, RedisTempListChangeEvent, RedisTempListItem, RedisTempListItemWithConn,
+};
 pub use wrapper::Redis;
 
 // Redis server can't be run on windows:
@@ -310,7 +312,7 @@ mod tests {
                     conn.cached_fn("my_fn_group", "foo", None, || async {
                         // Add one to the call count, should only be called once:
                         called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                        Ok(ExampleJson {
+                        Ok::<_, Report<AnyErr>>(ExampleJson {
                             ree: "roo".to_string(),
                         })
                     })
@@ -338,7 +340,7 @@ mod tests {
                         || async {
                             // Add one to the call count, should only be called once:
                             called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                            Ok(ExampleJson {
+                            Ok::<_, Report<AnyErr>>(ExampleJson {
                                 ree: "roo".to_string(),
                             })
                         }

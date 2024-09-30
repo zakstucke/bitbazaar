@@ -2,10 +2,10 @@ use redis::{cmd, Cmd, ToRedisArgs};
 use sha1_smol::Sha1;
 
 /// A lua script wrapper. Should be created once per script.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct RedisScript {
     code: String,
-    hash: String,
+    pub(crate) hash: String,
 }
 
 // Implement hash for RedisScript as its used in a HashSet in batching:
@@ -14,6 +14,14 @@ impl std::hash::Hash for RedisScript {
         self.hash.hash(state);
     }
 }
+
+impl PartialEq for RedisScript {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for RedisScript {}
 
 impl RedisScript {
     /// Create the script object.
@@ -72,13 +80,18 @@ impl<'a> RedisScriptInvoker<'a> {
         self
     }
 
-    /// The command to run the script invocation. Will fail if script not loaded yet.
-    pub(crate) fn eval_cmd(&self) -> Cmd {
-        let mut cmd = cmd("EVALSHA");
-        cmd.arg(self.script.hash.as_bytes())
-            .arg(self.keys.len())
-            .arg(&*self.keys)
-            .arg(&*self.args);
+    /// The command to run the script invocation.
+    pub(crate) fn eval_cmd(&self, already_loaded: bool) -> Cmd {
+        let mut cmd = if already_loaded {
+            let mut cmd = cmd("EVALSHA");
+            cmd.arg(self.script.hash.as_bytes());
+            cmd
+        } else {
+            let mut cmd = cmd("EVAL");
+            cmd.arg(&self.script.code);
+            cmd
+        };
+        cmd.arg(self.keys.len()).arg(&*self.keys).arg(&*self.args);
         cmd
     }
 }

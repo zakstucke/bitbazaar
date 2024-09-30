@@ -12,8 +12,17 @@ use crate::prelude::*;
 /// - `stacktrace`: All of the location information for the exception, (maybe also the exception itself if e.g. from `Report<T>`).
 #[track_caller]
 pub fn record_exception(message: impl Into<String>, stacktrace: impl Into<String>) {
-    let mut stacktrace = stacktrace.into();
     let caller = std::panic::Location::caller();
+    record_exception_custom_caller(caller, message, stacktrace);
+}
+
+/// Same as [`record_exception`] except you pass a custom caller.
+pub fn record_exception_custom_caller(
+    caller: &std::panic::Location<'_>,
+    message: impl Into<String>,
+    stacktrace: impl Into<String>,
+) {
+    let mut stacktrace = stacktrace.into();
     stacktrace = if stacktrace.trim().is_empty() {
         format!("╰╴at {}", caller)
     } else {

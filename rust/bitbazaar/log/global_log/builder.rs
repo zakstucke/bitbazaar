@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use tracing::Level;
 
 use super::GlobalLog;
@@ -35,11 +33,13 @@ pub struct StdoutConf {
     pub shared: SharedOpts,
 }
 
+// Files logging obviously not available in browser.
+#[cfg(not(target_arch = "wasm32"))]
 pub struct FileConf {
     /// The prefix for the filenames, e.g. "graphs.log" which will come out as "graphs.log.2021-01-21,
     pub file_prefix: String,
     /// The directory to hold the log files, e.g. "./logs/", will create if missing.
-    pub dir: PathBuf,
+    pub dir: std::path::PathBuf,
     pub shared: SharedOpts,
 }
 
@@ -105,12 +105,17 @@ impl GlobalLogBuilder {
         self
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     /// Write to a file:
     ///
     /// Arguments:
     /// - `file_prefix`: The prefix for the filenames, e.g. "graphs.log" which will come out as "graphs.log.2021-01-21,
     /// - `dir`: The directory to hold the log files, e.g. "./logs/", will create if missing.
-    pub fn file(mut self, file_prefix: impl Into<String>, dir: impl Into<PathBuf>) -> Self {
+    pub fn file(
+        mut self,
+        file_prefix: impl Into<String>,
+        dir: impl Into<std::path::PathBuf>,
+    ) -> Self {
         self.outputs.push(Output::File(FileConf {
             file_prefix: file_prefix.into(),
             dir: dir.into(),
@@ -236,6 +241,7 @@ impl GlobalLogBuilder {
         if let Some(output) = self.outputs.last_mut() {
             Ok(match output {
                 Output::Stdout(conf) => &mut conf.shared,
+                #[cfg(not(target_arch = "wasm32"))]
                 Output::File(conf) => &mut conf.shared,
                 Output::Custom(conf) => &mut conf.shared,
                 #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
@@ -251,6 +257,7 @@ impl GlobalLogBuilder {
 
 pub enum Output {
     Stdout(StdoutConf),
+    #[cfg(not(target_arch = "wasm32"))]
     File(FileConf),
     Custom(CustomConf),
     #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
@@ -262,6 +269,7 @@ impl Output {
     pub fn shared_opts(&self) -> &SharedOpts {
         match self {
             Output::Stdout(conf) => &conf.shared,
+            #[cfg(not(target_arch = "wasm32"))]
             Output::File(conf) => &conf.shared,
             Output::Custom(conf) => &conf.shared,
             #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]

@@ -7,7 +7,8 @@ pub struct Looper<State, Value> {
 }
 
 impl<State, Value> Looper<State, Value> {
-    pub(crate) fn new(state: State, value: Value) -> Self {
+    /// Create a new looper.
+    pub fn new(state: State, value: Value) -> Self {
         Self {
             state,
             value,

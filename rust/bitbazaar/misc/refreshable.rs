@@ -84,7 +84,7 @@ impl<T: Clone> Refreshable<T> {
     }
 
     /// Internal of `sync`, doesn't set the new data so can be used in mutator.
-    async fn sync_no_set(&self, conn: &mut impl RedisConnLike) -> RResult<Option<T>, AnyErr> {
+    async fn sync_no_set(&self, conn: &impl RedisConnLike) -> RResult<Option<T>, AnyErr> {
         let mutate_id_changed = {
             if let Some(current_mutate_id) = conn
                 .batch()
@@ -116,7 +116,7 @@ impl<T: Clone> Refreshable<T> {
     }
 
     /// Resyncs the data with the source, when it becomes stale (hard refresh), or redis mutate id changes, meaning a different node has updated the data.
-    async fn sync(&self, conn: &mut impl RedisConnLike) -> RResult<(), AnyErr> {
+    async fn sync(&self, conn: &impl RedisConnLike) -> RResult<(), AnyErr> {
         if let Some(new_data) = self.sync_no_set(conn).await? {
             self.set_data(new_data).await?;
         }
@@ -144,11 +144,11 @@ impl<T: Clone> Refreshable<T> {
     /// - Updates the setter, thanks to above guaranteed no sibling node overwrites etc.
     ///
     /// NOTE: returns a double result to allow custom internal error types to be passed out.
-    pub async fn mutate<E>(
+    pub async fn mutate<R, E>(
         &self,
-        conn: &mut impl RedisConnLike,
-        mutator: impl FnOnce(&mut T) -> Result<(), E>,
-    ) -> RResult<Result<(), E>, AnyErr> {
+        conn: &impl RedisConnLike,
+        mutator: impl FnOnce(&mut T) -> Result<R, E>,
+    ) -> RResult<Result<R, E>, AnyErr> {
         self.redis
             .dlock_for_fut(
                 &self.redis_namespace,
@@ -164,7 +164,7 @@ impl<T: Clone> Refreshable<T> {
                     };
                     // Mutate the up-to-date data:
                     match mutator(&mut data) {
-                        Ok(_) => {
+                        Ok(result) => {
                             // Run the on_mutate hook if there:
                             if let Some(on_mutate) = &self.on_mutate {
                                 on_mutate(&mut data)?;
@@ -186,7 +186,7 @@ impl<T: Clone> Refreshable<T> {
                             self.mutate_id
                                 .store(new_mutate_id, std::sync::atomic::Ordering::Relaxed);
                             self.set_data(data).await?;
-                            Ok::<_, Report<AnyErr>>(Ok(()))
+                            Ok::<_, Report<AnyErr>>(Ok(result))
                         }
                         Err(e) => Ok(Err(e)),
                     }
@@ -210,7 +210,7 @@ impl<T: Clone> Refreshable<T> {
     /// If you need long access to the underlying data, consider cloning it.
     pub async fn get(
         &self,
-        conn: &mut impl RedisConnLike,
+        conn: &impl RedisConnLike,
     ) -> RResult<RefreshableGuard<Arc<T>>, AnyErr> {
         // Refresh if stale or mutate id in redis changes:
         self.sync(conn).await?;

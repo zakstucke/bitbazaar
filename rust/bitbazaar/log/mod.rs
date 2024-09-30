@@ -351,7 +351,7 @@ mod tests {
         .change_context(AnyErr)?;
         _inner_test_opentelemetry(
             GlobalLog::builder().otlp_http(
-                &format!("http://localhost:{}", port),
+                format!("http://localhost:{}", port),
                 "rust-test",
                 "0.1.0",
             ),
