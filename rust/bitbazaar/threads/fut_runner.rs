@@ -997,7 +997,8 @@ where
     }
 }
 
-#[cfg(test)]
+// Timing related testing, disable for windows as always inaccurate:
+#[cfg(all(test, not(windows)))]
 mod test {
     use std::sync::atomic::AtomicUsize;
 

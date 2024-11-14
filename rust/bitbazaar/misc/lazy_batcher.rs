@@ -127,7 +127,8 @@ gen!(
     spawn_local_fut
 );
 
-#[cfg(test)]
+// Timing related testing, disable for windows as always inaccurate:
+#[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
