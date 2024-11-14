@@ -15,7 +15,7 @@ path = "bitbazaar/lib.rs"
 # redis = { path = "../../redis-rs/redis" }
 
 [build-dependencies]
-rustc_version = "0.4.0"
+rustc_version = "0.4.1"
 
 [package.metadata.docs.rs]
 # For the features to show in docs.rs, need to tell it to include them:
@@ -32,7 +32,6 @@ serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1" }
 time = { version = "0.3", features = ["local-offset"] }
 futures = { version = "0.3", features = [] }
-async-semaphore = "1.2"
 itertools = "0.12"
 tracing-core = "0.1"
 chrono = { version = '0.4', features = ["serde"] }
@@ -40,28 +39,28 @@ chrono-humanize = { version = "0.2" }
 arc-swap = "1"
 paste = "1"
 dashmap = "6"
+cfg-if = "1"
+send_wrapper = "0.6"
 
-# Not in default, but randomly useful in features:
+# Not in default, but likely used in multiple features:
 reqwest = { version = "0.12", optional = true }
 strum = { version = "0.25", features = ["derive"], optional = true }
 rand = { version = "0.8", optional = true }
-uuid = { version = "1.6", features = ["v4"], optional = true }
+uuid = { version = "1.11", features = ["v4"], optional = true }
 axum-extra = { version = "0.9", features = [], optional = true }
-leptos = { version = "0.6", optional = true }
-leptos_axum = { version = "0.6", optional = true }
+leptos = { version = "0.7.0-rc1", optional = true }
+leptos_axum = { version = "0.7.0-rc1", optional = true }
 http = { version = "1", optional = true }
 portpicker = { version = '0.1', optional = true }
 argon2 = { version = "0.5", optional = true }
 tempfile = { version = '3', optional = true }
+pin-project-lite = "0.2"
 
 # FEAT: collector:
 
 # FEAT: tarball:
 flate2 = { version = "1", optional = true }
 tar = { version = "0.4", optional = true }
-
-# FEAT: indexmap:
-indexmap = { version = "2", optional = true }
 
 # FEAT: aes256:
 aes-gcm-siv = { version = "0.11", optional = true }
@@ -81,18 +80,20 @@ regex = { version = '1', optional = true }
 # FEAT: timing:
 comfy-table = { version = "7.1", optional = true }
 
+# FEAT: test
+rstest = { version = "0.23", optional = true }
+
 # FEAT: cli:
-normpath = { version = '1.1', optional = true }
+normpath = { version = "1.3", optional = true }
 conch-parser = { version = "0.1.1", optional = true }
 homedir = { version = "0.2", optional = true }
 
 # FEAT: redis:
-deadpool-redis = { version = "0.16", features = ["rt_tokio_1"], optional = true }
-redis = { version = "0.26", default-features = false, features = [
+deadpool-redis = { version = "0.18", features = ["rt_tokio_1"], optional = true }
+redis = { version = "0.27", default-features = false, features = [
   "tokio-comp",
   "json",
 ], optional = true }
-redis-macros = { version = "0.4.0", optional = true }
 sha1_smol = { version = "1.0", optional = true }
 
 # FEAT: opentelemetry-(grpc|http):
@@ -119,11 +120,12 @@ rayon = { version = "1", optional = true }
 # FEAT: cookies:
 wasm-cookies = { version = "0.2", optional = true }
 
-# These features are included in all builds, need tokio sync feature for mutex, which is fine on wasm.
+# These features are included in all builds, need tokio sync feature for mutex and semaphore, which is fine on wasm.
+# rt needed for local keys
 # Wasm supported features: https://docs.rs/tokio/latest/tokio/#wasm-support
 [dependencies.tokio]
 version = "1"
-features = ["sync"]
+features = ["sync", "rt"]
 # These are included on top of above features when not wasm:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio]
 version = "1"
@@ -132,15 +134,18 @@ features = ["time", "fs", "process", "rt", "io-util", "macros"]
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tracing-subscriber-wasm = "0.1.0"
 gloo-timers = { version = "0.3", features = ["futures"] }
+wasm-bindgen-futures = "0.4"
+web-time = "1"
+web-sys = { version = "0.3" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # This includes threading (non-blocking stuff that can't be used in wasm)
 tracing-appender = '0.2'
 hostname = "0.3.1"
 named-lock = "0.4"
+percent-encoding = { version = "2" }
 
 [dev-dependencies]
-rstest = "0.18"
 criterion = { version = "0.3", features = ["html_reports", "async_tokio"] }
 tokio = { version = '1', features = ["full"] }
 
@@ -152,19 +157,18 @@ harness = false
 [features]
 collector = ["dep:reqwest", "dep:tempfile", "tarball"]
 tarball = ["dep:flate2", "dep:tar"]
-indexmap = ["dep:indexmap"]
 log-filter = ["dep:regex"]
 aes256 = ['dep:aes-gcm-siv', 'dep:argon2', 'dep:bincode']
 md5 = ['dep:md-5']
 sha = ['dep:sha2']
 password = ['dep:argon2', 'rand/getrandom']
 timing = ['dep:comfy-table']
+test = ['dep:rstest']
 cli = ['dep:normpath', 'dep:conch-parser', 'dep:homedir', 'dep:strum']
 system = ['dep:sysinfo']
 redis = [
   'dep:deadpool-redis',
   'dep:redis',
-  "dep:redis-macros",
   'dep:sha1_smol',
   'dep:rand',
   'dep:uuid',

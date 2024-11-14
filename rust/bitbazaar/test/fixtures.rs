@@ -1,7 +1,11 @@
-use crate::log::GlobalLog;
+#![allow(missing_docs)]
+// Above needed because rstest fixture macro seems to produce undocumented functions and structs.
+
+use rstest::*;
 use tracing::Level;
 
-use crate::testing::prelude::*;
+use crate::log::GlobalLog;
+use crate::prelude::*;
 
 /// Include this in a test to turn on logging globally.
 #[fixture]

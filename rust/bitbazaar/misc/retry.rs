@@ -311,25 +311,10 @@ mod tests {
     use std::sync::atomic::AtomicI32;
     use std::sync::atomic::Ordering;
 
-    use rstest::*;
-
     use super::*;
 
-    use crate::chrono::chrono_format_td;
     use crate::prelude::*;
-
-    // TODO using now in here and dlock, should be some test utils we can use cross crate.
-    macro_rules! assert_td_in_range {
-        ($td:expr, $range:expr) => {
-            assert!(
-                $td >= $range.start && $td <= $range.end,
-                "Expected '{}' to be in range '{}' - '{}'.",
-                chrono_format_td($td, true),
-                chrono_format_td($range.start, true),
-                chrono_format_td($range.end, true),
-            );
-        };
-    }
+    use crate::test::prelude::*;
 
     #[rstest]
     #[tokio::test]

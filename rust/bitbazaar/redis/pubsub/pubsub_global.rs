@@ -6,7 +6,7 @@ use std::{
 
 use chrono::TimeDelta;
 use dashmap::DashMap;
-use redis::{aio::MultiplexedConnection, from_owned_redis_value, FromRedisValue, ToRedisArgs};
+use redis::{aio::MultiplexedConnection, from_owned_redis_value};
 
 use crate::{
     log::record_exception,
@@ -161,7 +161,7 @@ impl RedisPubSubGlobal {
     }
 
     /// Returns None when redis down/acting up and couldn't get over a few seconds.
-    pub(crate) async fn subscribe<T: ToRedisArgs + FromRedisValue>(
+    pub(crate) async fn subscribe<T: serde::Serialize + serde::de::DeserializeOwned>(
         self: &Arc<Self>,
         channel: impl Into<String>,
     ) -> Option<RedisChannelListener<T>> {
@@ -170,7 +170,7 @@ impl RedisPubSubGlobal {
     }
 
     /// Returns None when redis down/acting up and couldn't get over a few seconds.
-    pub(crate) async fn psubscribe<T: ToRedisArgs + FromRedisValue>(
+    pub(crate) async fn psubscribe<T: serde::Serialize + serde::de::DeserializeOwned>(
         self: &Arc<Self>,
         channel_pattern: impl Into<String>,
     ) -> Option<RedisChannelListener<T>> {
@@ -179,7 +179,7 @@ impl RedisPubSubGlobal {
     }
 
     /// Returns None when redis down/acting up and couldn't get over a few seconds.
-    pub(crate) async fn _subscribe_inner<T: ToRedisArgs + FromRedisValue>(
+    pub(crate) async fn _subscribe_inner<T: serde::Serialize + serde::de::DeserializeOwned>(
         self: &Arc<Self>,
         channel_sub: ChannelSubscription,
     ) -> Option<RedisChannelListener<T>> {

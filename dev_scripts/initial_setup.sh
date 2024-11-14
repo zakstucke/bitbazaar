@@ -19,7 +19,7 @@ is_arm() {
 
 
 _ensure_zellij () {
-    target_version="0.40.1"
+    target_version="0.41.1"
     old_version=$(./dev_scripts/utils.sh match_substring 'zellij (.*)' "$(zellij --version 2>&1)" || echo "")
     if [ "$old_version" != "$target_version" ]; then
         echo "Installing zelliji version $target_version..."

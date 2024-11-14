@@ -3,7 +3,7 @@
 #![warn(clippy::disallowed_types)]
 
 use colored::Colorize;
-use pyo3::prelude::*;
+use pyo3::{prelude::*, wrap_pymodule};
 
 mod utils;
 
@@ -17,12 +17,12 @@ pub fn hello() -> String {
 /// import the module.
 #[pymodule]
 #[pyo3(name = "_rs")]
-fn root_module(py: Python, m: &PyModule) -> PyResult<()> {
+fn root_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // A top level function:
     m.add_function(wrap_pyfunction!(hello, m)?)?;
 
     // A submodule:
-    m.add_submodule(utils::build_module(py)?)?;
+    m.add_wrapped(wrap_pymodule!(utils::submodule))?;
 
     Ok(())
 }

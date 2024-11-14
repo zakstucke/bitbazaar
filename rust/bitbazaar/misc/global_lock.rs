@@ -5,6 +5,7 @@ use std::{
 
 use dashmap::DashMap;
 
+#[allow(unused_imports)]
 use crate::prelude::*;
 
 /// APPLIES TO ALL PROCESSES ON HOST MACHINE.
@@ -43,6 +44,7 @@ pub async fn global_lock_host_async<R>(
     .await
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn final_host_lock_id(lock_id: &str) -> String {
     static HOST_LOCK_PREFIX: &str = "rs_bitbazaar_global_lock_";
     format!("{}{}", HOST_LOCK_PREFIX, lock_id)
@@ -123,7 +125,7 @@ mod tests {
 
     use super::*;
 
-    use crate::testing::prelude::*;
+    use crate::test::prelude::*;
 
     /// Confirm correct when spawning onto different tokio threads.
     /// Testing all 4 variants as technically applies to all given multiple os threads with tokio.

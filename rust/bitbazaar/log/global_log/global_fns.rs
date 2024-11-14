@@ -12,8 +12,17 @@ use crate::prelude::*;
 /// - `stacktrace`: All of the location information for the exception, (maybe also the exception itself if e.g. from `Report<T>`).
 #[track_caller]
 pub fn record_exception(message: impl Into<String>, stacktrace: impl Into<String>) {
-    let mut stacktrace = stacktrace.into();
     let caller = std::panic::Location::caller();
+    record_exception_custom_caller(caller, message, stacktrace);
+}
+
+/// Same as [`record_exception`] except you pass a custom caller.
+pub fn record_exception_custom_caller(
+    caller: &std::panic::Location<'_>,
+    message: impl Into<String>,
+    stacktrace: impl Into<String>,
+) {
+    let mut stacktrace = stacktrace.into();
     stacktrace = if stacktrace.trim().is_empty() {
         format!("╰╴at {}", caller)
     } else {
@@ -62,11 +71,17 @@ pub fn set_response_headers_from_ctx<B>(response: &mut http::Response<B>) -> RRe
     get_global()?.set_response_headers_from_ctx(response)
 }
 
+/// NOTE ALL LOGGING WILL CEASE AFTER A FLUSH!
 /// Force through logs, traces and metrics, useful in e.g. testing.
 ///
 /// Note there doesn't seem to be an underlying interface to force through metrics.
-pub fn flush() -> RResult<(), AnyErr> {
-    get_global()?.flush()
+pub fn flush_and_consume() -> RResult<(), AnyErr> {
+    let glob = GLOBAL_LOG.lock().take();
+    if let Some(glob) = glob {
+        glob.flush_and_consume()
+    } else {
+        Err(anyerr!("GlobalLog not registered or already consumed!"))
+    }
 }
 
 /// Shutdown the logger, traces and metrics, should be called when the program is about to exit.
@@ -76,7 +91,7 @@ pub fn shutdown() -> RResult<(), AnyErr> {
 
 fn get_global<'a>() -> RResult<MappedMutexGuard<'a, GlobalLog>, AnyErr> {
     if GLOBAL_LOG.lock().is_none() {
-        return Err(anyerr!("GlobalLog not registered!"));
+        return Err(anyerr!("GlobalLog not registered or already consumed!"));
     }
     Ok(MutexGuard::map(GLOBAL_LOG.lock(), |x| x.as_mut().unwrap()))
 }

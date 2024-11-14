@@ -6,14 +6,15 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
+use dashmap::DashSet;
 
 use super::{
     batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps},
     fuzzy::RedisFuzzy,
     pubsub::{pubsub_global::RedisPubSubGlobal, RedisChannelListener},
+    RedisJson,
 };
-use crate::{errors::prelude::*, log::record_exception, redis::RedisScript};
+use crate::{log::record_exception, redis::RedisScript};
 
 /// A lazy redis connection.
 #[derive(Debug, Clone)]
@@ -22,6 +23,7 @@ pub struct RedisConn<'a> {
     pool: &'a deadpool_redis::Pool,
     // It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
     pubsub_global: &'a Arc<RedisPubSubGlobal>,
+    scripts_loaded: &'a Arc<DashSet<String>>,
     // We used to cache the [`deadpool_redis::Connection`] conn in here,
     // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
     // so getting for each usage is fine, given:
@@ -36,11 +38,13 @@ impl<'a> RedisConn<'a> {
         pool: &'a deadpool_redis::Pool,
         prefix: &'a str,
         pubsub_global: &'a Arc<RedisPubSubGlobal>,
+        scripts_loaded: &'a Arc<DashSet<String>>,
     ) -> Self {
         Self {
             pool,
             prefix,
             pubsub_global,
+            scripts_loaded,
         }
     }
 }
@@ -54,6 +58,7 @@ pub struct RedisConnOwned {
     pool: deadpool_redis::Pool,
     // It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
     pubsub_global: Arc<RedisPubSubGlobal>,
+    scripts_loaded: Arc<DashSet<String>>,
     // We used to cache the [`deadpool_redis::Connection`] conn in here,
     // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
     // so getting for each usage is fine, given:
@@ -74,11 +79,14 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// Get the redis configured prefix.
     fn prefix(&self) -> &str;
 
+    /// Get the scripts_loaded dashset of script hashes.
+    fn scripts_loaded(&self) -> &Arc<DashSet<String>>;
+
     /// Get the redis pubsub global manager.
     fn _pubsub_global(&self) -> &Arc<RedisPubSubGlobal>;
 
     /// Convert to the owned variant.
-    fn to_owned(&self) -> RedisConnOwned;
+    fn to_conn_owned(&self) -> RedisConnOwned;
 
     /// Ping redis, returning true if it's up and responsive.
     async fn ping(&self) -> bool {
@@ -96,7 +104,7 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// Sending can be done via normal batches using [`RedisBatch::publish`].
     ///
     /// Returns None when redis unavailable for some reason, after a few seconds of trying to connect.
-    async fn subscribe<T: ToRedisArgs + FromRedisValue>(
+    async fn subscribe<T: serde::Serialize + serde::de::DeserializeOwned>(
         &self,
         namespace: &str,
         channel: &str,
@@ -118,7 +126,7 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// - h?llo subscribes to hello, hallo and hxllo
     /// - h*llo subscribes to hllo and heeeello
     /// - h[ae]llo subscribes to hello and hallo, but not hillo
-    async fn psubscribe<T: ToRedisArgs + FromRedisValue>(
+    async fn psubscribe<T: serde::Serialize + serde::de::DeserializeOwned>(
         &self,
         namespace: &str,
         channel_pattern: &str,
@@ -242,32 +250,38 @@ pub trait RedisConnLike: std::fmt::Debug + Send + Sized {
     /// The only error coming out of here should be something wrong with the external callback.
     ///
     /// Expiry accurate to a millisecond.
+    ///
+    /// Uses serde internally instead of from/to redis for ease of use.
     #[inline]
-    async fn cached_fn<'b, T, Fut, K: Into<Cow<'b, str>>>(
+    async fn cached_fn<'b, T, E, Fut, K: Into<Cow<'b, str>>>(
         &self,
         namespace: &str,
         key: K,
         expiry: Option<chrono::Duration>,
         cb: impl FnOnce() -> Fut,
-    ) -> RResult<T, AnyErr>
+    ) -> Result<T, E>
     where
-        T: FromRedisValue + ToRedisArgs,
-        Fut: Future<Output = Result<T, AnyErr>>,
+        T: serde::Serialize + serde::de::DeserializeOwned,
+        Fut: Future<Output = Result<T, E>>,
     {
         let key: Cow<'b, str> = key.into();
 
         let cached = self
             .batch()
-            .get::<T>(namespace, &key)
+            .get::<RedisJson<T>>(namespace, &key)
             .fire()
             .await
             .flatten();
         if let Some(cached) = cached {
-            Ok(cached)
+            Ok(cached.0)
         } else {
             let val = cb().await?;
-            self.batch().set(namespace, &key, &val, expiry).fire().await;
-            Ok(val)
+            let wrapped = RedisJson(val);
+            self.batch()
+                .set(namespace, &key, &wrapped, expiry)
+                .fire()
+                .await;
+            Ok(wrapped.0)
         }
     }
 }
@@ -291,12 +305,17 @@ impl<'a> RedisConnLike for RedisConn<'a> {
         self.pubsub_global
     }
 
-    fn to_owned(&self) -> RedisConnOwned {
+    fn to_conn_owned(&self) -> RedisConnOwned {
         RedisConnOwned {
             prefix: Arc::new(self.prefix.to_string()),
             pool: self.pool.clone(),
             pubsub_global: self.pubsub_global.clone(),
+            scripts_loaded: self.scripts_loaded.clone(),
         }
+    }
+
+    fn scripts_loaded(&self) -> &Arc<DashSet<String>> {
+        self.scripts_loaded
     }
 }
 
@@ -319,7 +338,11 @@ impl RedisConnLike for RedisConnOwned {
         &self.pubsub_global
     }
 
-    fn to_owned(&self) -> RedisConnOwned {
+    fn to_conn_owned(&self) -> RedisConnOwned {
         self.clone()
+    }
+
+    fn scripts_loaded(&self) -> &Arc<DashSet<String>> {
+        &self.scripts_loaded
     }
 }

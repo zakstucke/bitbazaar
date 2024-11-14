@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use redis::{from_owned_redis_value, FromRedisValue, ToRedisArgs};
+use redis::from_owned_redis_value;
 
-use crate::log::record_exception;
+use crate::{log::record_exception, redis::RedisJson};
 
 use super::pubsub_global::ChannelSubscription;
 
@@ -15,14 +15,14 @@ pub struct RedisChannelListener<T> {
     pub(crate) _t: std::marker::PhantomData<T>,
 }
 
-impl<T: ToRedisArgs + FromRedisValue> RedisChannelListener<T> {
+impl<T: serde::Serialize + serde::de::DeserializeOwned> RedisChannelListener<T> {
     /// Get a new message from the channel.
     /// The outer None indicates the channel has been closed erroneously, or the internal data could not be coerced to the target type.
     /// In either case, something's gone wrong, an exception will probably have been recorded too.
     pub async fn recv(&mut self) -> Option<T> {
         if let Some(v) = self.rx.recv().await {
-            match from_owned_redis_value(v) {
-                Ok(v) => Some(v),
+            match from_owned_redis_value::<RedisJson<T>>(v) {
+                Ok(v) => Some(v.0),
                 Err(e) => {
                     record_exception(
                         format!(

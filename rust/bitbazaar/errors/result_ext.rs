@@ -1,5 +1,7 @@
 use error_stack::Report;
 
+use crate::log::record_exception;
+
 /// Further extensions on top of [`error_stack::ResultExt`].
 pub trait BitbazaarResultExt {
     /// The [`Context`] type of the [`Result`].
@@ -27,6 +29,21 @@ impl<T, C: error_stack::Context> BitbazaarResultExt for Result<T, Report<C>> {
             Err(report) => {
                 Err(report.attach_printable(format!("at {}", std::panic::Location::caller())))
             }
+        }
+    }
+}
+
+/// Simple trait to consume a result where you want to record any exception, but don't care about the result.
+pub trait RecordAndConsumeResult {
+    /// Record any exception and consume the result.
+    fn record_and_consume(self);
+}
+
+impl<T, E: std::fmt::Debug> RecordAndConsumeResult for Result<T, E> {
+    #[track_caller]
+    fn record_and_consume(self) {
+        if let Err(e) = self {
+            record_exception("record_and_consume", format!("{:?}", e));
         }
     }
 }

@@ -351,7 +351,7 @@ mod tests {
         .change_context(AnyErr)?;
         _inner_test_opentelemetry(
             GlobalLog::builder().otlp_http(
-                &format!("http://localhost:{}", port),
+                format!("http://localhost:{}", port),
                 "rust-test",
                 "0.1.0",
             ),
@@ -423,7 +423,7 @@ mod tests {
         })?;
 
         // Make sure everything's been sent:
-        log.flush()?;
+        log.flush_and_consume()?;
 
         // Logs should now exist:
         let contents = records.lock();

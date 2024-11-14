@@ -21,11 +21,10 @@ pub use pubsub::RedisChannelListener;
 // Re-exporting redis and deadpool_redis to be used outside if needed:
 pub use deadpool_redis;
 pub use redis;
-// Re-exporting the json derive utilities to allow redis to take arbitrary json types without the need for the wrapper.
-// Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
-pub use redis_macros::{FromRedisValue, ToRedisArgs};
 pub use script::{RedisScript, RedisScriptInvoker};
-pub use temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
+pub use temp_list::{
+    RedisTempList, RedisTempListChangeEvent, RedisTempListItem, RedisTempListItemWithConn,
+};
 pub use wrapper::Redis;
 
 // Redis server can't be run on windows:
@@ -37,14 +36,12 @@ mod tests {
         sync::{atomic::AtomicU8, Arc},
     };
 
-    use chrono::TimeDelta;
+    use chrono::{TimeDelta, Utc};
 
     use super::*;
-    use crate::{chrono::chrono_format_td, errors::prelude::*, testing::prelude::*};
+    use crate::{errors::prelude::*, test::prelude::*};
 
-    #[derive(
-        PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
-    )]
+    #[derive(PartialEq, Debug, serde::Serialize, serde::Deserialize)]
     struct ExampleJson {
         ree: String,
     }
@@ -185,12 +182,17 @@ mod tests {
 
         // First should fail as not set, second should succeed:
         for (conn, exp) in [
-            (&mut work_conn, Some(vec![None, Some("bar".to_string())])),
+            (
+                &mut work_conn,
+                Some((vec![None, Some("bar".to_string())], vec![None])),
+            ),
             (&mut fail_conn, None),
         ] {
             assert_eq!(
                 conn.batch()
                     .mget("", vec!["I don't exist", "foo"])
+                    // Single nonexistent can sometimes cause problems:
+                    .mget::<String>("", vec!["nonexistent"])
                     .fire()
                     .await,
                 exp
@@ -217,14 +219,89 @@ mod tests {
 
         // <--- exists/mexists:
         for (conn, exp) in [
-            (&mut work_conn, Some((true, false, vec![true, true, false]))),
+            (
+                &mut work_conn,
+                Some((true, false, vec![], vec![true, true, false])),
+            ),
             (&mut fail_conn, None),
         ] {
             assert_eq!(
                 conn.batch()
                     .exists("", "bar")
                     .exists("", "madup")
+                    .mexists("", std::iter::empty::<String>())
                     .mexists("", vec!["bar", "foo", "madup"])
+                    .fire()
+                    .await,
+                exp
+            );
+        }
+
+        // <--- sadd/srem/smembers/smismember:
+        for (conn, exp) in [
+            (
+                &mut work_conn,
+                Some((
+                    vec![],
+                    vec![false, false],
+                    vec!["foo".to_string(), "baz".to_string(), "bash".to_string()],
+                    vec![true, false, true],
+                )),
+            ),
+            (&mut fail_conn, None),
+        ] {
+            assert_eq!(
+                conn.batch()
+                    .smismember("", "myset", std::iter::empty::<String>())
+                    .smismember("", "myset", ["foo", "bar"])
+                    .sadd(
+                        "",
+                        "myset",
+                        None,
+                        vec![
+                            "foo".to_string(),
+                            "bar".to_string(),
+                            "baz".to_string(),
+                            "raz".to_string()
+                        ]
+                    )
+                    .sadd("", "myset", None, vec!["bash".to_string()])
+                    .srem("", "myset", vec!["bar".to_string(), "raz".to_string()])
+                    .smembers("", "myset")
+                    .smismember("", "myset", ["foo", "fake", "bash"])
+                    .fire()
+                    .await,
+                exp
+            );
+        }
+
+        // <--- hset/hmget:
+        let now = Utc::now();
+        for (conn, exp) in [
+            (
+                &mut work_conn,
+                Some((
+                    vec![],
+                    vec![Some("foo".to_string()), Some("bar".to_string()), None],
+                    vec![Some(0)],
+                    vec![Some(RedisJson(now))],
+                    vec![None::<String>],
+                )),
+            ),
+            (&mut fail_conn, None),
+        ] {
+            assert_eq!(
+                conn.batch()
+                    .hset("", "myhash", None, [("foo", "foo"), ("bar", "bar")])
+                    .hset("", "myhash2", None, std::iter::empty::<(String, String)>())
+                    .hset("", "myhash2", None, [("ree", 0u64)])
+                    .hset("", "myhash2", None, [("roo", RedisJson(now))])
+                    .hmget::<String>("", "myhash", std::iter::empty::<String>())
+                    .hmget("", "myhash", ["foo", "bar", "baz"])
+                    .hmget("", "myhash2", ["ree"])
+                    .hmget("", "myhash2", ["roo"])
+                    // Single nonexistent can sometimes cause problems:
+                    .hmget("", "myhash2", ["nonexistent"])
                     .fire()
                     .await,
                 exp
@@ -285,15 +362,16 @@ mod tests {
                     .set(
                         "",
                         "foo",
-                        ExampleJson {
+                        RedisJson(ExampleJson {
                             ree: "roo".to_string()
-                        },
+                        }),
                         None
                     )
-                    .get::<ExampleJson>("", "foo")
+                    .get::<RedisJson<ExampleJson>>("", "foo")
                     .fire()
                     .await
-                    .flatten(),
+                    .flatten()
+                    .map(|r| r.0),
                 exp
             );
         }
@@ -310,7 +388,7 @@ mod tests {
                     conn.cached_fn("my_fn_group", "foo", None, || async {
                         // Add one to the call count, should only be called once:
                         called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                        Ok(ExampleJson {
+                        Ok::<_, Report<AnyErr>>(ExampleJson {
                             ree: "roo".to_string(),
                         })
                     })
@@ -338,7 +416,7 @@ mod tests {
                         || async {
                             // Add one to the call count, should only be called once:
                             called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                            Ok(ExampleJson {
+                            Ok::<_, Report<AnyErr>>(ExampleJson {
                                 ree: "roo".to_string(),
                             })
                         }
@@ -478,9 +556,6 @@ mod tests {
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
         let rconn = r.conn();
 
-        // THIS ONLY ACTUALLY WORKS FOR STRINGS and false, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
-        // None::<T>, empty vec![] and "" should all work fine as real stored values,
-        // they shouldn't be hit by the internal invalid type handling (or missing key handling) so each should still be Some():
         rconn
             .batch()
             .set("n1", "none", None::<String>, None)
@@ -500,7 +575,7 @@ mod tests {
                 .get::<bool>("n1", "false")
                 .fire()
                 .await,
-            Some((None, None, Some("".to_string()), Some(false)))
+            Some((Some(None), Some(vec![]), Some("".to_string()), Some(false)))
         );
         assert_eq!(
             rconn
@@ -512,8 +587,10 @@ mod tests {
                 .fire()
                 .await,
             Some((
-                vec![],
-                vec![],
+                // TODO: annoyingly comes out as None instead of Some(None):
+                vec![None],
+                // TODO: annoyingly comes out as None instead of Some(vec![]):
+                vec![None],
                 vec![Some("".to_string())],
                 vec![Some(false)]
             ))
@@ -562,9 +639,9 @@ mod tests {
                 .set(
                     "z1",
                     "valid",
-                    ExampleJson {
+                    RedisJson(ExampleJson {
                         ree: "roo".to_string()
-                    },
+                    }),
                     None
                 )
                 .set("z1", "corrupt", "foobar", None)
@@ -586,19 +663,6 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_redis_backoff(#[allow(unused_variables)] logging: ()) -> RResult<(), AnyErr> {
-        // TODO using now in here and dlock, should be some test utils we can use cross crate.
-        macro_rules! assert_td_in_range {
-            ($td:expr, $range:expr) => {
-                assert!(
-                    $td >= $range.start && $td <= $range.end,
-                    "Expected '{}' to be in range '{}' - '{}'.",
-                    chrono_format_td($td, true),
-                    chrono_format_td($range.start, true),
-                    chrono_format_td($range.end, true),
-                );
-            };
-        }
-
         let server = RedisStandalone::new_no_persistence().await?;
         let r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())?;
         let rconn = r.conn();
