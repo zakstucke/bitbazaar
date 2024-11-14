@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/wrapper.rs`."><title>wrapper.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/wrapper.rs`."><title>wrapper.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -100,13 +100,98 @@
 <a href="#100" id="100">100</a>
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
 
+<span class="kw">use </span>chrono::TimeDelta;
+<span class="kw">use </span>dashmap::DashSet;
 <span class="kw">use </span>deadpool_redis::{Config, Runtime};
-<span class="kw">use </span>futures::Future;
+<span class="kw">use </span>futures::{Future, FutureExt};
+<span class="kw">use </span>redis::RedisError;
 
-<span class="kw">use super</span>::{RedisConn, RedisLock, RedisLockErr};
-<span class="kw">use </span><span class="kw">crate</span>::errors::prelude::<span class="kw-2">*</span>;
+<span class="kw">use super</span>::{pubsub::pubsub_global::RedisPubSubGlobal, RedisConn, RedisLock, RedisLockErr};
+<span class="kw">use crate</span>::{errors::prelude::<span class="kw-2">*</span>, misc::Retry};
 
 <span class="doccomment">/// A wrapper around redis to make it more concise to use and not need redis in the downstream Cargo.toml.
 ///
@@ -114,32 +199,50 @@
 /// All redis errors (availability, unexpected content) will be logged as errors and results returned as `None` (or similar) where possible.
 </span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Redis {
-    pool: deadpool_redis::Pool,
+    <span class="comment">// deadpool arced internally.
+    </span>pool: deadpool_redis::Pool,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) pubsub_listener: Arc&lt;RedisPubSubGlobal&gt;,
     prefix: String,
+
+    <span class="comment">// Used to track which scripts have been called already successfully with EVAL rather than EVALSHA.
+    // This allows us to avoid the noscripterror and double pipeline send in all cases but:
+    // - Redis is restarted whilst the server is running.
+    // This is nice as it makes testing simpler, and does cover most cases, but should still assume as a user commands might be double sent.
+    // (String is the hash of the script)
+    </span>scripts_loaded: Arc&lt;DashSet&lt;String&gt;&gt;,
 }
 
 <span class="kw">impl </span>Redis {
     <span class="doccomment">/// Create a new global redis wrapper from the given Redis URL (like `redis://127.0.0.1`).
     ///
     /// Note this should only be done once at startup.
-    </span><span class="kw">pub fn </span>new&lt;A: Into&lt;String&gt;, B: Into&lt;String&gt;&gt;(
-        redis_conn_str: A,
-        prefix: B,
+    </span><span class="kw">pub fn </span>new(
+        redis_conn_str: <span class="kw">impl </span>Into&lt;String&gt;,
+        prefix: <span class="kw">impl </span>Into&lt;String&gt;,
     ) -&gt; RResult&lt;<span class="self">Self</span>, AnyErr&gt; {
-        <span class="kw">let </span>cfg = Config::from_url(redis_conn_str);
+        <span class="kw">let </span>redis_conn_str = redis_conn_str.into();
+        <span class="kw">let </span>prefix = prefix.into();
+        <span class="kw">let </span>cfg = Config::from_url(<span class="kw-2">&amp;</span>redis_conn_str);
         <span class="kw">let </span>pool = cfg
             .create_pool(<span class="prelude-val">Some</span>(Runtime::Tokio1))
             .change_context(AnyErr)<span class="question-mark">?</span>;
-
+        <span class="kw">let </span>pubsub_listener = Arc::new(RedisPubSubGlobal::new(<span class="kw-2">&amp;</span>redis_conn_str)<span class="question-mark">?</span>);
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             pool,
-            prefix: prefix.into(),
+            prefix,
+            pubsub_listener,
+            scripts_loaded: Arc::new(DashSet::new()),
         })
     }
 
     <span class="doccomment">/// Get a [`RedisConn`] redis can be called with.
     </span><span class="kw">pub fn </span>conn(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RedisConn&lt;<span class="lifetime">'_</span>&gt; {
-        RedisConn::new(<span class="kw-2">&amp;</span><span class="self">self</span>.pool, <span class="kw-2">&amp;</span><span class="self">self</span>.prefix)
+        RedisConn::new(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.pool,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.prefix,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.pubsub_listener,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.scripts_loaded,
+        )
     }
 
     <span class="doccomment">/// Get a distributed redis lock.
@@ -155,8 +258,8 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
         lock_key: <span class="kw-2">&amp;</span>str,
-        time_to_live: Duration,
-        wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+        time_to_live: TimeDelta,
+        wait_up_to: <span class="prelude-ty">Option</span>&lt;TimeDelta&gt;,
     ) -&gt; RResult&lt;RedisLock&lt;<span class="lifetime">'_</span>&gt;, RedisLockErr&gt; {
         RedisLock::new(<span class="self">self</span>, namespace, lock_key, time_to_live, wait_up_to).<span class="kw">await
     </span>}
@@ -172,7 +275,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         lock_key: <span class="kw-2">&amp;</span>str,
-        wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+        wait_up_to: <span class="prelude-ty">Option</span>&lt;TimeDelta&gt;,
         fut: Fut,
     ) -&gt; RResult&lt;R, RedisLockErr&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>lock = RedisLock::new(
@@ -181,7 +284,7 @@
             lock_key,
             <span class="comment">// 3 works well with hold_for_closure internals, means will lock again after 2 seconds, then 5, then double current processing time.
             // (albeit only if the closure hasn't already finished)
-            </span>Duration::from_secs(<span class="number">3</span>),
+            </span>TimeDelta::seconds(<span class="number">3</span>),
             wait_up_to,
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -201,5 +304,66 @@
     </span><span class="kw">pub fn </span>get_conn_to_each_server(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;RedisConn&lt;<span class="lifetime">'_</span>&gt;&gt; {
         <span class="macro">vec!</span>[<span class="self">self</span>.conn()]
     }
+
+    <span class="doccomment">/// Used by the [`redis::aio::ConnectionLike`] implementation.
+    </span><span class="kw">async fn </span>connectionlike_conn(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;deadpool_redis::Connection, RedisError&gt; {
+        <span class="kw">let </span>conn = Retry::fibonacci(TimeDelta::milliseconds(<span class="number">50</span>)).until_total_delay(TimeDelta::seconds(<span class="number">60</span>)).on_retry(|info| {
+                <span class="macro">tracing::info!</span>(
+                    <span class="string">"Redis connection for apalis failed, retrying. Last attempt no: '{}'. Error: \n{:?}"</span>,
+                    info.last_attempt_no,
+                    info.last_error
+                );
+                <span class="prelude-val">None
+            </span>}).call(|| <span class="self">self</span>.pool.get())
+            .<span class="kw">await</span>.map_err(|e|         {
+                <span class="kw">match </span>e {
+                    deadpool_redis::PoolError::Backend(e) =&gt; e,
+                    e =&gt; RedisError::from((
+                        redis::ErrorKind::ResponseError,
+                        <span class="string">"Pool -&gt; redis conn error"</span>,
+                        <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e),
+                    )),
+                }
+            })<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(conn)
+    }
+}
+
+<span class="doccomment">/// To make some external usage easier to use on top of a deadpool pool, we'll implement ConnectionLike for the redis object itself.
+/// This is useful for e.g. apalis.
+</span><span class="kw">impl </span>redis::aio::ConnectionLike <span class="kw">for </span>Redis {
+    <span class="kw">fn </span>req_packed_command&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>,
+        cmd: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>redis::Cmd,
+    ) -&gt; redis::RedisFuture&lt;<span class="lifetime">'a</span>, redis::Value&gt; {
+        <span class="kw">async move </span>{
+            <span class="self">self</span>.connectionlike_conn()
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.req_packed_command(cmd)
+                .<span class="kw">await
+        </span>}
+        .boxed()
+    }
+
+    <span class="kw">fn </span>req_packed_commands&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>,
+        cmd: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>redis::Pipeline,
+        offset: usize,
+        count: usize,
+    ) -&gt; redis::RedisFuture&lt;<span class="lifetime">'a</span>, Vec&lt;redis::Value&gt;&gt; {
+        <span class="kw">async move </span>{
+            <span class="self">self</span>.connectionlike_conn()
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.req_packed_commands(cmd, offset, count)
+                .<span class="kw">await
+        </span>}
+        .boxed()
+    }
+
+    <span class="kw">fn </span>get_db(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; i64 {
+        <span class="comment">// Redis lib itself uses 0 for clusters, we don't have a valid value for this, so copying them and returning 0.
+        // https://github.com/redis-rs/redis-rs/blob/186841ae51f21192d7c2975509ff73b3a33c29a3/redis/src/cluster.rs#L907
+        </span><span class="number">0
+    </span>}
 }
 </code></pre></div></section></main></body></html>

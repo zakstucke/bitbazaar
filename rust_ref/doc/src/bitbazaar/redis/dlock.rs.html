@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/dlock.rs`."><title>dlock.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/dlock.rs`."><title>dlock.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -551,8 +551,6 @@
 <a href="#551" id="551">551</a>
 <a href="#552" id="552">552</a>
 <a href="#553" id="553">553</a>
-<a href="#554" id="554">554</a>
-<a href="#555" id="555">555</a>
 </pre></div><pre class="rust"><code><span class="comment">// Derived from https://github.com/hexcowboy/rslock
 
 // Copyright (c) 2014-2021, Jan-Erik Rediger
@@ -565,18 +563,20 @@
 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-</span><span class="kw">use </span>std::{
-    sync::LazyLock,
-    time::{Duration, Instant},
-};
+</span><span class="kw">use </span>std::{sync::LazyLock, time::Instant};
 
+<span class="kw">use </span>chrono::TimeDelta;
 <span class="kw">use </span>error_stack::Context;
 <span class="kw">use </span>futures::{Future, FutureExt};
 <span class="kw">use </span>rand::{thread_rng, Rng, RngCore};
 <span class="kw">use </span>redis::{RedisResult, Value};
 
 <span class="kw">use super</span>::{conn::RedisConnLike, RedisBatchFire, RedisBatchReturningOps, RedisConn, RedisScript};
-<span class="kw">use crate</span>::{chrono::chrono_format_td, prelude::<span class="kw-2">*</span>};
+<span class="kw">use crate</span>::{
+    chrono::chrono_format_td,
+    misc::{sleep_compat, InstantCompat},
+    prelude::<span class="kw-2">*</span>,
+};
 
 <span class="kw">const </span>RETRY_DELAY: u32 = <span class="number">200</span>;
 <span class="kw">const </span>CLOCK_DRIFT_FACTOR: f32 = <span class="number">0.01</span>;
@@ -634,7 +634,7 @@ end
     <span class="doccomment">/// The value for this lock.
     </span><span class="kw">pub </span>val: Vec&lt;u8&gt;,
     <span class="doccomment">/// How long to wait before giving up trying to get the lock.
-    </span><span class="kw">pub </span>wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+    </span><span class="kw">pub </span>wait_up_to: <span class="prelude-ty">Option</span>&lt;TimeDelta&gt;,
     <span class="doccomment">/// The time at which the lock will expire. Must be renewed before this point to maintain.
     </span><span class="kw">pub </span>expires_at: chrono::DateTime&lt;chrono::Utc&gt;,
 }
@@ -645,10 +645,10 @@ end
         redis: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw">super</span>::Redis,
         namespace: <span class="kw-2">&amp;</span>str,
         lock_key: <span class="kw-2">&amp;</span>str,
-        ttl: Duration,
-        wait_up_to: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+        ttl: TimeDelta,
+        wait_up_to: <span class="prelude-ty">Option</span>&lt;TimeDelta&gt;,
     ) -&gt; RResult&lt;RedisLock&lt;<span class="lifetime">'a</span>&gt;, RedisLockErr&gt; {
-        <span class="kw">if </span>ttl &lt; Duration::from_millis(<span class="number">100</span>) {
+        <span class="kw">if </span>ttl &lt; TimeDelta::milliseconds(<span class="number">100</span>) {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
                 RedisLockErr::UserErr,
                 <span class="string">"Do not set time to live to less than 100 milliseconds."
@@ -666,18 +666,18 @@ end
         <span class="comment">// Need to actually lock for the first time:
         </span><span class="kw">let </span>lock_id = lock.lock_id.clone();
         <span class="kw">let </span>val = lock.val.clone();
-        lock.exec_or_retry(ttl, <span class="kw">move </span>|<span class="kw-2">mut </span>conn| {
+        lock.exec_or_retry(ttl, <span class="kw">move </span>|conn| {
             <span class="kw">let </span>lock_id = lock_id.clone();
             <span class="kw">let </span>val = val.clone();
             <span class="kw">async move </span>{
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = conn.get_inner_conn().<span class="kw">await </span>{
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>conn) = conn.get_inner_conn().<span class="kw">await </span>{
                     <span class="kw">let </span>result: RedisResult&lt;Value&gt; = redis::cmd(<span class="string">"SET"</span>)
                         .arg(lock_id)
                         .arg(val)
                         .arg(<span class="string">"NX"</span>)
                         .arg(<span class="string">"PX"</span>)
-                        .arg(ttl.as_millis() <span class="kw">as </span>usize)
-                        .query_async(conn)
+                        .arg(ttl.num_milliseconds() <span class="kw">as </span>usize)
+                        .query_async(<span class="kw-2">&amp;mut </span>conn)
                         .<span class="kw">await</span>;
 
                     <span class="kw">match </span>result {
@@ -720,12 +720,7 @@ end
                 // if there's less than a second left, just renew straight away, to prevent a small period where the lock is unlocked (assuming it takes a bit to lock).
                 </span><span class="kw">let </span>expires_in_td = <span class="self">self</span>.expires_at - now;
                 <span class="kw">if </span>expires_in_td &gt; chrono::TimeDelta::seconds(<span class="number">1</span>) {
-                    tokio::time::sleep(
-                        (expires_in_td - chrono::TimeDelta::seconds(<span class="number">1</span>))
-                            .to_std()
-                            .change_context(AnyErr)<span class="question-mark">?</span>,
-                    )
-                    .<span class="kw">await</span>;
+                    sleep_compat(expires_in_td - chrono::TimeDelta::seconds(<span class="number">1</span>)).<span class="kw">await</span>;
                 }
                 <span class="comment">// Need to extend the lock, the task might run for ages, so want to increase the length each extension the longer the call's been running:
                 // If been running for less than 3 seconds, extend by 5 seconds, otherwise, extend by been_running_for itself:
@@ -737,11 +732,7 @@ end
                 } <span class="kw">else </span>{
                     been_running_for
                 };
-                <span class="kw">if </span>!<span class="self">self
-                    </span>.extend(extend_by.to_std().change_context(AnyErr)<span class="question-mark">?</span>)
-                    .<span class="kw">await
-                    </span>.change_context(AnyErr)<span class="question-mark">?
-                </span>{
+                <span class="kw">if </span>!<span class="self">self</span>.extend(extend_by).<span class="kw">await</span>.change_context(AnyErr)<span class="question-mark">? </span>{
                     <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Failed to extend lock."</span>));
                 }
             }
@@ -770,8 +761,8 @@ end
     /// Returns:
     /// true: the lock was successfully extended.
     /// false: the lock could not be extended for some reason.
-    </span><span class="kw">pub async fn </span>extend(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_ttl: Duration) -&gt; RResult&lt;bool, RedisLockErr&gt; {
-        <span class="kw">if </span>new_ttl &lt; Duration::from_millis(<span class="number">100</span>) {
+    </span><span class="kw">pub async fn </span>extend(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_ttl: TimeDelta) -&gt; RResult&lt;bool, RedisLockErr&gt; {
+        <span class="kw">if </span>new_ttl &lt; TimeDelta::milliseconds(<span class="number">100</span>) {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
                 RedisLockErr::UserErr,
                 <span class="string">"Do not set time to live to less than 100 milliseconds."
@@ -780,7 +771,7 @@ end
 
         <span class="kw">let </span>lock_id = <span class="self">self</span>.lock_id.clone();
         <span class="kw">let </span>val = <span class="self">self</span>.val.clone();
-        <span class="self">self</span>.exec_or_retry(new_ttl, <span class="kw">move </span>|<span class="kw-2">mut </span>conn| {
+        <span class="self">self</span>.exec_or_retry(new_ttl, <span class="kw">move </span>|conn| {
             <span class="kw">let </span>lock_id = lock_id.clone();
             <span class="kw">let </span>val = val.clone();
             <span class="kw">async move </span>{
@@ -791,7 +782,7 @@ end
                             .invoker()
                             .key(lock_id)
                             .arg(val)
-                            .arg(new_ttl.as_millis() <span class="kw">as </span>usize),
+                            .arg(new_ttl.num_milliseconds() <span class="kw">as </span>usize),
                     )
                     .fire()
                     .<span class="kw">await
@@ -815,7 +806,7 @@ end
     </span><span class="kw">pub async fn </span>unlock(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; bool {
         <span class="kw">let </span>result =
             futures::future::join_all(<span class="self">self</span>.redis.get_conn_to_each_server().into_iter().map(
-                |<span class="kw-2">mut </span>conn| {
+                |conn| {
                     <span class="kw">let </span>lock_id = <span class="self">self</span>.lock_id.clone();
                     <span class="kw">let </span>val = <span class="self">self</span>.val.clone();
                     <span class="kw">async move </span>{
@@ -838,15 +829,15 @@ end
     }
 
     <span class="comment">// Error handling and retrying for a locking operation (lock/extend).
-    </span><span class="kw">async fn </span>exec_or_retry&lt;F, Fut&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ttl: Duration, cb: F) -&gt; RResult&lt;bool, RedisLockErr&gt;
+    </span><span class="kw">async fn </span>exec_or_retry&lt;F, Fut&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ttl: TimeDelta, cb: F) -&gt; RResult&lt;bool, RedisLockErr&gt;
     <span class="kw">where
         </span>F: Fn(RedisConn&lt;<span class="lifetime">'a</span>&gt;) -&gt; Fut,
         Fut: Future&lt;Output = bool&gt;,
     {
-        <span class="kw">let </span>ttl = ttl.as_millis() <span class="kw">as </span>usize;
+        <span class="kw">let </span>ttl = ttl.num_milliseconds() <span class="kw">as </span>usize;
 
-        <span class="kw">let </span>attempt_beginning = Instant::now();
-        <span class="kw">let </span>wait_up_to = <span class="self">self</span>.wait_up_to.unwrap_or(Duration::from_secs(<span class="number">0</span>));
+        <span class="kw">let </span>attempt_beginning = InstantCompat::now();
+        <span class="kw">let </span>wait_up_to = <span class="self">self</span>.wait_up_to.unwrap_or(TimeDelta::seconds(<span class="number">0</span>));
         <span class="kw">let </span><span class="kw-2">mut </span>first_run = <span class="bool-val">true</span>;
         <span class="kw">while </span>first_run || wait_up_to &gt; attempt_beginning.elapsed() {
             first_run = <span class="bool-val">false</span>;
@@ -879,14 +870,14 @@ end
             <span class="comment">// If met the quorum and ttl still holds, succeed, otherwise just unlock.
             </span><span class="kw">if </span>n &gt;= quorum &amp;&amp; validity_time_millis &gt; <span class="number">0 </span>{
                 <span class="self">self</span>.expires_at =
-                    chrono::Utc::now() + Duration::from_millis(validity_time_millis <span class="kw">as </span>u64);
+                    chrono::Utc::now() + TimeDelta::milliseconds(validity_time_millis <span class="kw">as _</span>);
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
             } <span class="kw">else </span>{
                 <span class="self">self</span>.unlock().<span class="kw">await</span>;
             }
 
             <span class="kw">let </span>n = thread_rng().gen_range(<span class="number">0</span>..RETRY_DELAY);
-            tokio::time::sleep(Duration::from_millis(n <span class="kw">as </span>u64)).<span class="kw">await</span>;
+            sleep_compat(TimeDelta::milliseconds(n <span class="kw">as _</span>)).<span class="kw">await</span>;
         }
 
         <span class="prelude-val">Err</span>(<span class="macro">err!</span>(RedisLockErr::Unavailable)).attach_printable(<span class="macro">format!</span>(
@@ -917,7 +908,7 @@ end
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::chrono::chrono_format_td;
     <span class="kw">use </span><span class="kw">crate</span>::redis::{Redis, RedisStandalone};
-    <span class="kw">use </span><span class="kw">crate</span>::testing::prelude::<span class="kw-2">*</span>;
+    <span class="kw">use </span><span class="kw">crate</span>::test::prelude::<span class="kw-2">*</span>;
 
     <span class="attr">#[rstest]
     #[tokio::test]
@@ -941,7 +932,7 @@ end
         <span class="macro">macro_rules!</span> check_lockable {
             (<span class="macro-nonterminal">$name</span>:expr) =&gt; {{
                 <span class="kw">let </span><span class="kw-2">mut </span>lock = r
-                    .dlock(NS, <span class="macro-nonterminal">$name</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
+                    .dlock(NS, <span class="macro-nonterminal">$name</span>, TimeDelta::seconds(<span class="number">1</span>), <span class="prelude-val">None</span>)
                     .<span class="kw">await
                     </span>.change_context(AnyErr)<span class="question-mark">?</span>;
                 lock.unlock().<span class="kw">await</span>;
@@ -950,7 +941,7 @@ end
 
         <span class="macro">macro_rules!</span> check_not_lockable {
             (<span class="macro-nonterminal">$name</span>:expr) =&gt; {{
-                <span class="kw">if </span>(r.dlock(NS, <span class="macro-nonterminal">$name</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>).<span class="kw">await</span>).is_ok() {
+                <span class="kw">if </span>(r.dlock(NS, <span class="macro-nonterminal">$name</span>, TimeDelta::seconds(<span class="number">1</span>), <span class="prelude-val">None</span>).<span class="kw">await</span>).is_ok() {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyerr!</span>(<span class="string">"Lock acquired, even though it should be locked"</span>));
                 }
             }};
@@ -970,7 +961,7 @@ end
 
         <span class="comment">// Manual unlock should work:
         </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
-            .dlock(NS, <span class="string">"test_lock_lock_unlock"</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
+            .dlock(NS, <span class="string">"test_lock_lock_unlock"</span>, TimeDelta::seconds(<span class="number">1</span>), <span class="prelude-val">None</span>)
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="macro">assert_td_in_range!</span>(
@@ -980,7 +971,7 @@ end
         <span class="comment">// Should fail as instantly locked:
         </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
         <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>); <span class="comment">// Purposely checking twice
-        </span>tokio::time::sleep(Duration::from_millis(<span class="number">30</span>)).<span class="kw">await</span>;
+        </span>sleep_compat(TimeDelta::milliseconds(<span class="number">30</span>)).<span class="kw">await</span>;
         <span class="comment">// Should still be locked after 30ms: (ttl is 1s)
         </span><span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_lock_unlock"</span>);
         <span class="comment">// Manual unlock should instantly allow relocking:
@@ -989,7 +980,12 @@ end
 
         <span class="comment">// Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
         </span><span class="kw">let </span>lock = r
-            .dlock(NS, <span class="string">"test_lock_autoexpire"</span>, Duration::from_millis(<span class="number">100</span>), <span class="prelude-val">None</span>)
+            .dlock(
+                NS,
+                <span class="string">"test_lock_autoexpire"</span>,
+                TimeDelta::milliseconds(<span class="number">100</span>),
+                <span class="prelude-val">None</span>,
+            )
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="macro">assert_td_in_range!</span>(
@@ -997,36 +993,36 @@ end
             TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
         );
         <span class="comment">// 50ms shouldn't be enough to unlock:
-        </span>tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+        </span>sleep_compat(TimeDelta::milliseconds(<span class="number">50</span>)).<span class="kw">await</span>;
         <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_autoexpire"</span>);
         <span class="comment">// another 50msms should be enough to unlock:
-        </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+        </span>sleep_compat(TimeDelta::milliseconds(<span class="number">60</span>)).<span class="kw">await</span>;
         <span class="macro">check_lockable!</span>(<span class="string">"test_lock_autoexpire"</span>);
 
         <span class="comment">// New test, confirm extend does extend by expected amount:
         </span><span class="kw">let </span><span class="kw-2">mut </span>lock = r
-            .dlock(NS, <span class="string">"test_lock_extend"</span>, Duration::from_millis(<span class="number">100</span>), <span class="prelude-val">None</span>)
+            .dlock(NS, <span class="string">"test_lock_extend"</span>, TimeDelta::milliseconds(<span class="number">100</span>), <span class="prelude-val">None</span>)
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="macro">assert_td_in_range!</span>(
             lock.expires_at - chrono::Utc::now(),
             TimeDelta::milliseconds(<span class="number">50</span>)..TimeDelta::milliseconds(<span class="number">99</span>)
         );
-        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+        sleep_compat(TimeDelta::milliseconds(<span class="number">50</span>)).<span class="kw">await</span>;
         <span class="comment">// This means should be valid for another 100ms:
-        </span>lock.extend(Duration::from_millis(<span class="number">100</span>))
+        </span>lock.extend(TimeDelta::milliseconds(<span class="number">100</span>))
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="comment">// Sleep for 60, would have expired original, but new will still be valid for another 40:
-        </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+        </span>sleep_compat(TimeDelta::milliseconds(<span class="number">60</span>)).<span class="kw">await</span>;
         <span class="macro">check_not_lockable!</span>(<span class="string">"test_lock_extend"</span>);
         <span class="comment">// Should now go over extension, should be relockable:
-        </span>tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+        </span>sleep_compat(TimeDelta::milliseconds(<span class="number">50</span>)).<span class="kw">await</span>;
         <span class="macro">check_lockable!</span>(<span class="string">"test_lock_extend"</span>);
 
         <span class="comment">// Confirm retries would work to wait for a lock:
         </span><span class="kw">let </span>lock = r
-            .dlock(NS, <span class="string">"test_lock_retry"</span>, Duration::from_millis(<span class="number">300</span>), <span class="prelude-val">None</span>)
+            .dlock(NS, <span class="string">"test_lock_retry"</span>, TimeDelta::milliseconds(<span class="number">300</span>), <span class="prelude-val">None</span>)
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="macro">assert_td_in_range!</span>(
@@ -1039,8 +1035,8 @@ end
         </span><span class="kw">if </span>r.dlock(
             NS,
             <span class="string">"test_lock_retry"</span>,
-            Duration::from_millis(<span class="number">100</span>),
-            <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">100</span>)),
+            TimeDelta::milliseconds(<span class="number">100</span>),
+            <span class="prelude-val">Some</span>(TimeDelta::milliseconds(<span class="number">100</span>)),
         )
         .<span class="kw">await
         </span>.is_ok()
@@ -1052,8 +1048,8 @@ end
             .dlock(
                 NS,
                 <span class="string">"test_lock_retry"</span>,
-                Duration::from_millis(<span class="number">100</span>),
-                <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">300</span>)),
+                TimeDelta::milliseconds(<span class="number">100</span>),
+                <span class="prelude-val">Some</span>(TimeDelta::milliseconds(<span class="number">300</span>)),
             )
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
@@ -1069,14 +1065,14 @@ end
             .dlock(
                 NS,
                 <span class="string">"test_lock_hold_for_fut"</span>,
-                Duration::from_millis(<span class="number">500</span>),
+                TimeDelta::milliseconds(<span class="number">500</span>),
                 <span class="prelude-val">None</span>,
             )
             .<span class="kw">await
             </span>.change_context(AnyErr)<span class="question-mark">?</span>;
         <span class="kw">let </span>lock_fut = <span class="kw">async </span>{
             lock.hold_for_fut(<span class="kw">async </span>{
-                tokio::time::sleep(Duration::from_secs(<span class="number">2</span>)).<span class="kw">await</span>;
+                sleep_compat(TimeDelta::seconds(<span class="number">2</span>)).<span class="kw">await</span>;
                 <span class="prelude-val">Ok</span>::&lt;<span class="kw">_</span>, error_stack::Report&lt;AnyErr&gt;&gt;(())
             })
             .<span class="kw">await
@@ -1086,13 +1082,13 @@ end
         };
         <span class="kw">let </span>try_get = <span class="kw">async </span>{
             <span class="kw">loop </span>{
-                <span class="kw">if </span>r.dlock(NS, <span class="string">"test_lock_hold_for_fut"</span>, Duration::from_secs(<span class="number">1</span>), <span class="prelude-val">None</span>)
+                <span class="kw">if </span>r.dlock(NS, <span class="string">"test_lock_hold_for_fut"</span>, TimeDelta::seconds(<span class="number">1</span>), <span class="prelude-val">None</span>)
                     .<span class="kw">await
                     </span>.is_ok()
                 {
                     <span class="kw">break</span>;
                 }
-                tokio::time::sleep(Duration::from_millis(<span class="number">100</span>)).<span class="kw">await</span>;
+                sleep_compat(TimeDelta::milliseconds(<span class="number">100</span>)).<span class="kw">await</span>;
             }
             <span class="macro">panic!</span>(<span class="string">"Should not have been able to lock!"</span>);
         };

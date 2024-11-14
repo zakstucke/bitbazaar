@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["fixture","rstest"],"macro":["debug","error","info","warn"]};

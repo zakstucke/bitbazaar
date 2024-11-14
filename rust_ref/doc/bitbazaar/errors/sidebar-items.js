@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["prelude"],"struct":["AnyErr"],"trait":["BitbazaarResultExt"],"type":["RResult"]};
+window.SIDEBAR_ITEMS = {"mod":["prelude"],"struct":["AnyErr"],"trait":["BitbazaarResultExt","RecordAndConsumeResult"],"type":["RResult"]};

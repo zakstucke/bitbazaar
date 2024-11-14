@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/conn.rs`."><title>conn.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/conn.rs`."><title>conn.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -301,6 +301,51 @@
 <a href="#301" id="301">301</a>
 <a href="#302" id="302">302</a>
 <a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(async_fn_in_trait)]
 
 </span><span class="kw">use </span>std::{
@@ -309,112 +354,149 @@
     sync::{Arc, LazyLock},
 };
 
-<span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, ToRedisArgs};
+<span class="kw">use </span>dashmap::DashSet;
 
-<span class="kw">use </span><span class="kw">super</span>::batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps};
-<span class="kw">use crate</span>::{errors::prelude::<span class="kw-2">*</span>, log::record_exception, redis::RedisScript};
+<span class="kw">use super</span>::{
+    batch::{RedisBatch, RedisBatchFire, RedisBatchReturningOps},
+    fuzzy::RedisFuzzy,
+    pubsub::{pubsub_global::RedisPubSubGlobal, RedisChannelListener},
+    RedisJson,
+};
+<span class="kw">use crate</span>::{log::record_exception, redis::RedisScript};
 
-<span class="doccomment">/// Wrapper around a lazy redis connection.
+<span class="doccomment">/// A lazy redis connection.
+</span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>RedisConn&lt;<span class="lifetime">'a</span>&gt; {
     <span class="kw">pub</span>(<span class="kw">crate</span>) prefix: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
     pool: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>deadpool_redis::Pool,
-    conn: <span class="prelude-ty">Option</span>&lt;deadpool_redis::Connection&gt;,
-}
+    <span class="comment">// It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
+    </span>pubsub_global: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;RedisPubSubGlobal&gt;,
+    scripts_loaded: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;DashSet&lt;String&gt;&gt;,
+    <span class="comment">// We used to cache the [`deadpool_redis::Connection`] conn in here,
+    // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
+    // so getting for each usage is fine, given:
+    // - most conns will probably be used once anyway, e.g. get a conn in a handler and do some caching or whatever in a batch().
+    // - prevents needing mutable references to the conn anymore, much nicer ergonomics.
+    // - prevents the chance of a stale cached connection, had issues before with this, deadpool handles internally.
+    // conn: Option&lt;deadpool_redis::Connection&gt;,
+</span>}
 
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; RedisConn&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(pool: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>deadpool_redis::Pool, prefix: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
+        pool: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>deadpool_redis::Pool,
+        prefix: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+        pubsub_global: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;RedisPubSubGlobal&gt;,
+        scripts_loaded: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Arc&lt;DashSet&lt;String&gt;&gt;,
+    ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             pool,
             prefix,
-            conn: <span class="prelude-val">None</span>,
+            pubsub_global,
+            scripts_loaded,
         }
     }
 }
 
-<span class="comment">// Cloning is still technically heavy for the un-owned, as the active connection can't be reused.
-</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Clone <span class="kw">for </span>RedisConn&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
-            prefix: <span class="self">self</span>.prefix,
-            pool: <span class="self">self</span>.pool,
-            conn: <span class="prelude-val">None</span>,
-        }
-    }
-}
-
-<span class="doccomment">/// An owned variant of [`RedisConn`]. Useful when parent struct lifetimes get out of hand.
-/// [`RedisConn`] is better, so keeping local in crate until a real need for it outside.
-/// (requires pool arc cloning, and prefix string cloning, so slightly less efficient).
+<span class="doccomment">/// An owned variant of [`RedisConn`].
+/// Just requires a couple of Arc clones, so still quite lightweight.
+</span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>RedisConnOwned {
     <span class="comment">// Prefix and pool both Arced now at top level for easy cloning.
-    // The conn will be reset to None on each clone, so it's a very heavy object I think.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) prefix: Arc&lt;String&gt;,
     pool: deadpool_redis::Pool,
-    conn: <span class="prelude-ty">Option</span>&lt;deadpool_redis::Connection&gt;,
-}
-
-<span class="kw">impl </span>Clone <span class="kw">for </span>RedisConnOwned {
-    <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
-            prefix: <span class="self">self</span>.prefix.clone(),
-            pool: <span class="self">self</span>.pool.clone(),
-            conn: <span class="prelude-val">None</span>,
-        }
-    }
-}
-
-<span class="macro">macro_rules!</span> impl_debug_for_conn {
-    (<span class="macro-nonterminal">$conn_type</span>:ty, <span class="macro-nonterminal">$name</span>:literal) =&gt; {
-        <span class="kw">impl </span>std::fmt::Debug <span class="kw">for </span><span class="macro-nonterminal">$conn_type </span>{
-            <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
-                f.debug_struct(<span class="macro-nonterminal">$name</span>)
-                    .field(<span class="string">"prefix"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.prefix)
-                    .field(<span class="string">"pool"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.pool)
-                    .field(<span class="string">"conn"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.conn.is_some())
-                    .finish()
-            }
-        }
-    };
-}
-
-<span class="macro">impl_debug_for_conn!</span>(RedisConn&lt;<span class="lifetime">'_</span>&gt;, <span class="string">"RedisConn"</span>);
-<span class="macro">impl_debug_for_conn!</span>(RedisConnOwned, <span class="string">"RedisConnOwned"</span>);
+    <span class="comment">// It uses it's own global connection so needed down here too, to abstract away and use from the same higher-order connection:
+    </span>pubsub_global: Arc&lt;RedisPubSubGlobal&gt;,
+    scripts_loaded: Arc&lt;DashSet&lt;String&gt;&gt;,
+    <span class="comment">// We used to cache the [`deadpool_redis::Connection`] conn in here,
+    // but after benching it literally costs about 20us to get a connection from deadpool because it rotates them internally.
+    // so getting for each usage is fine, given:
+    // - most conns will probably be used once anyway, e.g. get a conn in a handler and do some caching or whatever in a batch().
+    // - prevents needing mutable references to the conn anymore, much nicer ergonomics.
+    // - prevents the chance of a stale cached connection, had issues before with this, deadpool handles internally.
+    // conn: Option&lt;deadpool_redis::Connection&gt;,
+</span>}
 
 <span class="doccomment">/// Generic methods over the RedisConn and RedisConnOwned types.
 </span><span class="kw">pub trait </span>RedisConnLike: std::fmt::Debug + Send + Sized {
-    <span class="doccomment">/// Get an internal connection from the pool, connections are kept in the pool for reuse.
+    <span class="doccomment">/// Get an internal connection from the pool.
+    /// Despite returning an owned object, the underlying real redis connection will be reused after this user drops it.
     /// If redis is acting up and unavailable, this will return None.
     /// NOTE: this mainly is used internally, but provides a fallback to the underlying connection, if the exposed interface does not provide options that fit an external user need (which could definitely happen).
-    </span><span class="kw">async fn </span>get_inner_conn(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>deadpool_redis::Connection&gt;;
+    </span><span class="kw">async fn </span>get_inner_conn(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;deadpool_redis::Connection&gt;;
 
     <span class="doccomment">/// Get the redis configured prefix.
     </span><span class="kw">fn </span>prefix(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str;
 
-    <span class="doccomment">/// Convert to the owned variant.
-    </span><span class="kw">fn </span>into_owned(<span class="self">self</span>) -&gt; RedisConnOwned;
+    <span class="doccomment">/// Get the scripts_loaded dashset of script hashes.
+    </span><span class="kw">fn </span>scripts_loaded(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;DashSet&lt;String&gt;&gt;;
 
-    <span class="doccomment">/// Ping redis, returning true if it's up.
-    </span><span class="kw">async fn </span>ping(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; bool {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = <span class="self">self</span>.get_inner_conn().<span class="kw">await </span>{
-            redis::cmd(<span class="string">"PING"</span>).query_async::&lt;String&gt;(conn).<span class="kw">await</span>.is_ok()
-        } <span class="kw">else </span>{
-            <span class="bool-val">false
-        </span>}
+    <span class="doccomment">/// Get the redis pubsub global manager.
+    </span><span class="kw">fn </span>_pubsub_global(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;RedisPubSubGlobal&gt;;
+
+    <span class="doccomment">/// Convert to the owned variant.
+    </span><span class="kw">fn </span>to_conn_owned(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RedisConnOwned;
+
+    <span class="doccomment">/// Ping redis, returning true if it's up and responsive.
+    </span><span class="kw">async fn </span>ping(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.batch()
+            .custom::&lt;RedisFuzzy&lt;String&gt;&gt;(<span class="string">"PING"</span>)
+            .fire()
+            .<span class="kw">await
+            </span>.flatten()
+            .is_some()
     }
+
+    <span class="doccomment">/// Subscribe to a channel via pubsub, receiving messages through the returned receiver.
+    /// The subscription will be dropped when the receiver is dropped.
+    ///
+    /// Sending can be done via normal batches using [`RedisBatch::publish`].
+    ///
+    /// Returns None when redis unavailable for some reason, after a few seconds of trying to connect.
+    </span><span class="kw">async fn </span>subscribe&lt;T: serde::Serialize + serde::de::DeserializeOwned&gt;(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span>str,
+        channel: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;RedisChannelListener&lt;T&gt;&gt; {
+        <span class="self">self</span>._pubsub_global()
+            .subscribe(<span class="self">self</span>.final_key(namespace, channel.into()))
+            .<span class="kw">await
+    </span>}
+
+    <span class="doccomment">/// Subscribe to a channel pattern via pubsub, receiving messages through the returned receiver.
+    /// The subscription will be dropped when the receiver is dropped.
+    ///
+    /// Sending can be done via normal batches using [`RedisBatch::publish`].
+    ///
+    /// Returns None when redis unavailable for some reason, after a few seconds of trying to connect.
+    ///
+    /// According to redis (&lt;https://redis.io/docs/latest/commands/psubscribe/&gt;):
+    /// Supported glob-style patterns:
+    /// - h?llo subscribes to hello, hallo and hxllo
+    /// - h*llo subscribes to hllo and heeeello
+    /// - h[ae]llo subscribes to hello and hallo, but not hillo
+    </span><span class="kw">async fn </span>psubscribe&lt;T: serde::Serialize + serde::de::DeserializeOwned&gt;(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span>str,
+        channel_pattern: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;RedisChannelListener&lt;T&gt;&gt; {
+        <span class="self">self</span>._pubsub_global()
+            .psubscribe(<span class="self">self</span>.final_key(namespace, channel_pattern.into()))
+            .<span class="kw">await
+    </span>}
 
     <span class="comment">// Commented out as untested, not sure if works.
     // /// Get all data from redis, only really useful during testing.
     // ///
-    // async fn dev_all_data(&amp;mut self) -&gt; HashMap&lt;String, redis::Value&gt; {
-    //     if let Some(conn) = self.get_inner_conn().await {
+    // async fn dev_all_data(&amp;self) -&gt; HashMap&lt;String, redis::Value&gt; {
+    //     if let Some(mut conn) = self.get_inner_conn().await {
     //         let mut cmd = redis::cmd("SCAN");
     //         cmd.arg(0);
     //         let mut data = HashMap::new();
     //         loop {
-    //             let (next_cursor, keys): (i64, Vec&lt;String&gt;) = cmd.query_async(conn).await.unwrap();
+    //             let (next_cursor, keys): (i64, Vec&lt;String&gt;) = cmd.query_async(&amp;mut conn).await.unwrap();
     //             for key in keys {
     //                 let val: redis::Value =
-    //                     redis::cmd("GET").arg(&amp;key).query_async(conn).await.unwrap();
+    //                     redis::cmd("GET").arg(&amp;key).query_async(&amp;mut conn).await.unwrap();
     //                 data.insert(key, val);
     //             }
     //             if next_cursor == 0 {
@@ -429,24 +511,15 @@
     // }
 
     </span><span class="doccomment">/// Flush the whole redis cache, will delete all data.
-    </span><span class="kw">async fn </span>dev_flushall(<span class="kw-2">&amp;mut </span><span class="self">self</span>, sync: bool) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = <span class="self">self</span>.get_inner_conn().<span class="kw">await </span>{
-            <span class="kw">let </span><span class="kw-2">mut </span>cmd = redis::cmd(<span class="string">"FLUSHALL"</span>);
-            <span class="kw">if </span>sync {
-                cmd.arg(<span class="string">"SYNC"</span>);
-            } <span class="kw">else </span>{
-                cmd.arg(<span class="string">"ASYNC"</span>);
-            }
-            <span class="kw">match </span>cmd.query_async::&lt;String&gt;(conn).<span class="kw">await </span>{
-                <span class="prelude-val">Ok</span>(s) =&gt; <span class="prelude-val">Some</span>(s),
-                <span class="prelude-val">Err</span>(e) =&gt; {
-                    record_exception(<span class="string">"Failed to reset redis cache."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
-                    <span class="prelude-val">None
-                </span>}
-            }
+    /// Returns the resulting string from the command, or None if failed for some reason.
+    </span><span class="kw">async fn </span>dev_flushall(<span class="kw-2">&amp;</span><span class="self">self</span>, sync: bool) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>batch = <span class="self">self</span>.batch().custom::&lt;RedisFuzzy&lt;String&gt;&gt;(<span class="string">"FLUSHALL"</span>);
+        <span class="kw">if </span>sync {
+            batch = batch.custom_arg(<span class="string">"SYNC"</span>);
         } <span class="kw">else </span>{
-            <span class="prelude-val">None
-        </span>}
+            batch = batch.custom_arg(<span class="string">"ASYNC"</span>);
+        }
+        batch.fire().<span class="kw">await</span>.flatten()
     }
 
     <span class="doccomment">/// A simple rate_limiter/backoff helper.
@@ -465,7 +538,7 @@
     /// - `None`: Continue with the operation.
     /// - `Some&lt;chrono::Duration&gt;`: Retry after the duration.
     </span><span class="kw">async fn </span>rate_limiter(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         caller_identifier: <span class="kw-2">&amp;</span>str,
         start_delaying_after_attempt: usize,
@@ -502,7 +575,7 @@
     }
 
     <span class="doccomment">/// Get a new [`RedisBatch`] for this connection that commands can be piped together with.
-    </span><span class="kw">fn </span>batch(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; RedisBatch&lt;<span class="lifetime">'_</span>, <span class="lifetime">'_</span>, <span class="self">Self</span>, ()&gt; {
+    </span><span class="kw">fn </span>batch(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RedisBatch&lt;<span class="lifetime">'_</span>, <span class="lifetime">'_</span>, <span class="self">Self</span>, ()&gt; {
         RedisBatch::new(<span class="self">self</span>)
     }
 
@@ -525,83 +598,100 @@
     /// The only error coming out of here should be something wrong with the external callback.
     ///
     /// Expiry accurate to a millisecond.
+    ///
+    /// Uses serde internally instead of from/to redis for ease of use.
     </span><span class="attr">#[inline]
-    </span><span class="kw">async fn </span>cached_fn&lt;<span class="lifetime">'b</span>, T, Fut, K: Into&lt;Cow&lt;<span class="lifetime">'b</span>, str&gt;&gt;&gt;(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    </span><span class="kw">async fn </span>cached_fn&lt;<span class="lifetime">'b</span>, T, E, Fut, K: Into&lt;Cow&lt;<span class="lifetime">'b</span>, str&gt;&gt;&gt;(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
         key: K,
         expiry: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
         cb: <span class="kw">impl </span>FnOnce() -&gt; Fut,
-    ) -&gt; RResult&lt;T, AnyErr&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, E&gt;
     <span class="kw">where
-        </span>T: FromRedisValue + ToRedisArgs,
-        Fut: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, AnyErr&gt;&gt;,
+        </span>T: serde::Serialize + serde::de::DeserializeOwned,
+        Fut: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, E&gt;&gt;,
     {
         <span class="kw">let </span>key: Cow&lt;<span class="lifetime">'b</span>, str&gt; = key.into();
 
         <span class="kw">let </span>cached = <span class="self">self
             </span>.batch()
-            .get::&lt;T&gt;(namespace, <span class="kw-2">&amp;</span>key)
+            .get::&lt;RedisJson&lt;T&gt;&gt;(namespace, <span class="kw-2">&amp;</span>key)
             .fire()
             .<span class="kw">await
             </span>.flatten();
         <span class="kw">if let </span><span class="prelude-val">Some</span>(cached) = cached {
-            <span class="prelude-val">Ok</span>(cached)
+            <span class="prelude-val">Ok</span>(cached.<span class="number">0</span>)
         } <span class="kw">else </span>{
             <span class="kw">let </span>val = cb().<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="self">self</span>.batch().set(namespace, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>val, expiry).fire().<span class="kw">await</span>;
-            <span class="prelude-val">Ok</span>(val)
+            <span class="kw">let </span>wrapped = RedisJson(val);
+            <span class="self">self</span>.batch()
+                .set(namespace, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>wrapped, expiry)
+                .fire()
+                .<span class="kw">await</span>;
+            <span class="prelude-val">Ok</span>(wrapped.<span class="number">0</span>)
         }
     }
 }
 
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; RedisConnLike <span class="kw">for </span>RedisConn&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="kw">async fn </span>get_inner_conn(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>deadpool_redis::Connection&gt; {
-        <span class="kw">if </span><span class="self">self</span>.conn.is_none() {
-            <span class="kw">match </span><span class="self">self</span>.pool.get().<span class="kw">await </span>{
-                <span class="prelude-val">Ok</span>(conn) =&gt; <span class="self">self</span>.conn = <span class="prelude-val">Some</span>(conn),
-                <span class="prelude-val">Err</span>(e) =&gt; {
-                    record_exception(<span class="string">"Failed to get redis connection."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
-                    <span class="kw">return </span><span class="prelude-val">None</span>;
-                }
-            }
+    <span class="kw">async fn </span>get_inner_conn(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;deadpool_redis::Connection&gt; {
+        <span class="kw">match </span><span class="self">self</span>.pool.get().<span class="kw">await </span>{
+            <span class="prelude-val">Ok</span>(conn) =&gt; <span class="prelude-val">Some</span>(conn),
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                record_exception(<span class="string">"Failed to get redis connection."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
+                <span class="prelude-val">None
+            </span>}
         }
-        <span class="self">self</span>.conn.as_mut()
     }
 
     <span class="kw">fn </span>prefix(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
         <span class="self">self</span>.prefix
     }
 
-    <span class="kw">fn </span>into_owned(<span class="self">self</span>) -&gt; RedisConnOwned {
+    <span class="kw">fn </span>_pubsub_global(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;RedisPubSubGlobal&gt; {
+        <span class="self">self</span>.pubsub_global
+    }
+
+    <span class="kw">fn </span>to_conn_owned(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RedisConnOwned {
         RedisConnOwned {
             prefix: Arc::new(<span class="self">self</span>.prefix.to_string()),
             pool: <span class="self">self</span>.pool.clone(),
-            conn: <span class="self">self</span>.conn,
+            pubsub_global: <span class="self">self</span>.pubsub_global.clone(),
+            scripts_loaded: <span class="self">self</span>.scripts_loaded.clone(),
         }
+    }
+
+    <span class="kw">fn </span>scripts_loaded(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;DashSet&lt;String&gt;&gt; {
+        <span class="self">self</span>.scripts_loaded
     }
 }
 
 <span class="kw">impl </span>RedisConnLike <span class="kw">for </span>RedisConnOwned {
-    <span class="kw">async fn </span>get_inner_conn(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>deadpool_redis::Connection&gt; {
-        <span class="kw">if </span><span class="self">self</span>.conn.is_none() {
-            <span class="kw">match </span><span class="self">self</span>.pool.get().<span class="kw">await </span>{
-                <span class="prelude-val">Ok</span>(conn) =&gt; <span class="self">self</span>.conn = <span class="prelude-val">Some</span>(conn),
-                <span class="prelude-val">Err</span>(e) =&gt; {
-                    record_exception(<span class="string">"Failed to get redis connection."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
-                    <span class="kw">return </span><span class="prelude-val">None</span>;
-                }
-            }
+    <span class="kw">async fn </span>get_inner_conn(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;deadpool_redis::Connection&gt; {
+        <span class="kw">match </span><span class="self">self</span>.pool.get().<span class="kw">await </span>{
+            <span class="prelude-val">Ok</span>(conn) =&gt; <span class="prelude-val">Some</span>(conn),
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                record_exception(<span class="string">"Failed to get redis connection."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, e));
+                <span class="prelude-val">None
+            </span>}
         }
-        <span class="self">self</span>.conn.as_mut()
     }
 
     <span class="kw">fn </span>prefix(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
         <span class="kw-2">&amp;</span><span class="self">self</span>.prefix
     }
 
-    <span class="kw">fn </span>into_owned(<span class="self">self</span>) -&gt; RedisConnOwned {
-        <span class="self">self
-    </span>}
+    <span class="kw">fn </span>_pubsub_global(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;RedisPubSubGlobal&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.pubsub_global
+    }
+
+    <span class="kw">fn </span>to_conn_owned(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RedisConnOwned {
+        <span class="self">self</span>.clone()
+    }
+
+    <span class="kw">fn </span>scripts_loaded(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;DashSet&lt;String&gt;&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.scripts_loaded
+    }
 }
 </code></pre></div></section></main></body></html>

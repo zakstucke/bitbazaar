@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/mod.rs`."><title>mod.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/mod.rs`."><title>mod.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -631,11 +631,93 @@
 <a href="#631" id="631">631</a>
 <a href="#632" id="632">632</a>
 <a href="#633" id="633">633</a>
+<a href="#634" id="634">634</a>
+<a href="#635" id="635">635</a>
+<a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>batch;
 <span class="kw">mod </span>conn;
 <span class="kw">mod </span>dlock;
 <span class="kw">mod </span>fuzzy;
 <span class="kw">mod </span>json;
+<span class="kw">mod </span>pubsub;
+<span class="kw">mod </span>redis_retry;
 <span class="kw">mod </span>script;
 <span class="kw">mod </span>temp_list;
 <span class="kw">mod </span>wrapper;
@@ -648,14 +730,14 @@
 <span class="kw">pub use </span>conn::{RedisConn, RedisConnLike};
 <span class="kw">pub use </span>dlock::{RedisLock, RedisLockErr};
 <span class="kw">pub use </span>json::{RedisJson, RedisJsonBorrowed};
+<span class="kw">pub use </span>pubsub::RedisChannelListener;
 <span class="comment">// Re-exporting redis and deadpool_redis to be used outside if needed:
 </span><span class="kw">pub use </span>deadpool_redis;
 <span class="kw">pub use </span>redis;
-<span class="comment">// Re-exporting the json derive utilities to allow redis to take arbitrary json types without the need for the wrapper.
-// Both this and the custom wrapper are exported as latter works better for e.g. the temp list.
-</span><span class="kw">pub use </span>redis_macros::{FromRedisValue, ToRedisArgs};
 <span class="kw">pub use </span>script::{RedisScript, RedisScriptInvoker};
-<span class="kw">pub use </span>temp_list::{RedisTempList, RedisTempListItem, RedisTempListItemWithConn};
+<span class="kw">pub use </span>temp_list::{
+    RedisTempList, RedisTempListChangeEvent, RedisTempListItem, RedisTempListItemWithConn,
+};
 <span class="kw">pub use </span>wrapper::Redis;
 
 <span class="comment">// Redis server can't be run on windows:
@@ -667,14 +749,12 @@
         sync::{atomic::AtomicU8, Arc},
     };
 
-    <span class="kw">use </span>chrono::TimeDelta;
+    <span class="kw">use </span>chrono::{TimeDelta, Utc};
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
-    <span class="kw">use crate</span>::{chrono::chrono_format_td, errors::prelude::<span class="kw-2">*</span>, testing::prelude::<span class="kw-2">*</span>};
+    <span class="kw">use crate</span>::{errors::prelude::<span class="kw-2">*</span>, test::prelude::<span class="kw-2">*</span>};
 
-    <span class="attr">#[derive(
-        PartialEq, Debug, serde::Serialize, serde::Deserialize, FromRedisValue, ToRedisArgs,
-    )]
+    <span class="attr">#[derive(PartialEq, Debug, serde::Serialize, serde::Deserialize)]
     </span><span class="kw">struct </span>ExampleJson {
         ree: String,
     }
@@ -688,6 +768,19 @@
             <span class="macro">format!</span>(<span class="string">"test_{}"</span>, uuid::Uuid::new_v4()),
         )<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>((server, work_r, fail_r))
+    }
+
+    <span class="attr">#[rstest]
+    #[tokio::test]
+    </span><span class="kw">async fn </span>test_redis_ping(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
+        <span class="kw">let </span>(_server, work_r, fail_r) = setup_conns().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>work_conn = work_r.conn();
+        <span class="kw">let </span>fail_conn = fail_r.conn();
+
+        <span class="macro">assert!</span>(work_conn.ping().<span class="kw">await</span>);
+        <span class="macro">assert!</span>(!(fail_conn.ping().<span class="kw">await</span>));
+
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="attr">#[rstest]
@@ -802,12 +895,17 @@
 
         // First should fail as not set, second should succeed:
         </span><span class="kw">for </span>(conn, exp) <span class="kw">in </span>[
-            (<span class="kw-2">&amp;mut </span>work_conn, <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">"bar"</span>.to_string())])),
+            (
+                <span class="kw-2">&amp;mut </span>work_conn,
+                <span class="prelude-val">Some</span>((<span class="macro">vec!</span>[<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">"bar"</span>.to_string())], <span class="macro">vec!</span>[<span class="prelude-val">None</span>])),
+            ),
             (<span class="kw-2">&amp;mut </span>fail_conn, <span class="prelude-val">None</span>),
         ] {
             <span class="macro">assert_eq!</span>(
                 conn.batch()
                     .mget(<span class="string">""</span>, <span class="macro">vec!</span>[<span class="string">"I don't exist"</span>, <span class="string">"foo"</span>])
+                    <span class="comment">// Single nonexistent can sometimes cause problems:
+                    </span>.mget::&lt;String&gt;(<span class="string">""</span>, <span class="macro">vec!</span>[<span class="string">"nonexistent"</span>])
                     .fire()
                     .<span class="kw">await</span>,
                 exp
@@ -834,14 +932,89 @@
 
         <span class="comment">// &lt;--- exists/mexists:
         </span><span class="kw">for </span>(conn, exp) <span class="kw">in </span>[
-            (<span class="kw-2">&amp;mut </span>work_conn, <span class="prelude-val">Some</span>((<span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="macro">vec!</span>[<span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>]))),
+            (
+                <span class="kw-2">&amp;mut </span>work_conn,
+                <span class="prelude-val">Some</span>((<span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="macro">vec!</span>[], <span class="macro">vec!</span>[<span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>])),
+            ),
             (<span class="kw-2">&amp;mut </span>fail_conn, <span class="prelude-val">None</span>),
         ] {
             <span class="macro">assert_eq!</span>(
                 conn.batch()
                     .exists(<span class="string">""</span>, <span class="string">"bar"</span>)
                     .exists(<span class="string">""</span>, <span class="string">"madup"</span>)
+                    .mexists(<span class="string">""</span>, std::iter::empty::&lt;String&gt;())
                     .mexists(<span class="string">""</span>, <span class="macro">vec!</span>[<span class="string">"bar"</span>, <span class="string">"foo"</span>, <span class="string">"madup"</span>])
+                    .fire()
+                    .<span class="kw">await</span>,
+                exp
+            );
+        }
+
+        <span class="comment">// &lt;--- sadd/srem/smembers/smismember:
+        </span><span class="kw">for </span>(conn, exp) <span class="kw">in </span>[
+            (
+                <span class="kw-2">&amp;mut </span>work_conn,
+                <span class="prelude-val">Some</span>((
+                    <span class="macro">vec!</span>[],
+                    <span class="macro">vec!</span>[<span class="bool-val">false</span>, <span class="bool-val">false</span>],
+                    <span class="macro">vec!</span>[<span class="string">"foo"</span>.to_string(), <span class="string">"baz"</span>.to_string(), <span class="string">"bash"</span>.to_string()],
+                    <span class="macro">vec!</span>[<span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>],
+                )),
+            ),
+            (<span class="kw-2">&amp;mut </span>fail_conn, <span class="prelude-val">None</span>),
+        ] {
+            <span class="macro">assert_eq!</span>(
+                conn.batch()
+                    .smismember(<span class="string">""</span>, <span class="string">"myset"</span>, std::iter::empty::&lt;String&gt;())
+                    .smismember(<span class="string">""</span>, <span class="string">"myset"</span>, [<span class="string">"foo"</span>, <span class="string">"bar"</span>])
+                    .sadd(
+                        <span class="string">""</span>,
+                        <span class="string">"myset"</span>,
+                        <span class="prelude-val">None</span>,
+                        <span class="macro">vec!</span>[
+                            <span class="string">"foo"</span>.to_string(),
+                            <span class="string">"bar"</span>.to_string(),
+                            <span class="string">"baz"</span>.to_string(),
+                            <span class="string">"raz"</span>.to_string()
+                        ]
+                    )
+                    .sadd(<span class="string">""</span>, <span class="string">"myset"</span>, <span class="prelude-val">None</span>, <span class="macro">vec!</span>[<span class="string">"bash"</span>.to_string()])
+                    .srem(<span class="string">""</span>, <span class="string">"myset"</span>, <span class="macro">vec!</span>[<span class="string">"bar"</span>.to_string(), <span class="string">"raz"</span>.to_string()])
+                    .smembers(<span class="string">""</span>, <span class="string">"myset"</span>)
+                    .smismember(<span class="string">""</span>, <span class="string">"myset"</span>, [<span class="string">"foo"</span>, <span class="string">"fake"</span>, <span class="string">"bash"</span>])
+                    .fire()
+                    .<span class="kw">await</span>,
+                exp
+            );
+        }
+
+        <span class="comment">// &lt;--- hset/hmget:
+        </span><span class="kw">let </span>now = Utc::now();
+        <span class="kw">for </span>(conn, exp) <span class="kw">in </span>[
+            (
+                <span class="kw-2">&amp;mut </span>work_conn,
+                <span class="prelude-val">Some</span>((
+                    <span class="macro">vec!</span>[],
+                    <span class="macro">vec!</span>[<span class="prelude-val">Some</span>(<span class="string">"foo"</span>.to_string()), <span class="prelude-val">Some</span>(<span class="string">"bar"</span>.to_string()), <span class="prelude-val">None</span>],
+                    <span class="macro">vec!</span>[<span class="prelude-val">Some</span>(<span class="number">0</span>)],
+                    <span class="macro">vec!</span>[<span class="prelude-val">Some</span>(RedisJson(now))],
+                    <span class="macro">vec!</span>[<span class="prelude-val">None</span>::&lt;String&gt;],
+                )),
+            ),
+            (<span class="kw-2">&amp;mut </span>fail_conn, <span class="prelude-val">None</span>),
+        ] {
+            <span class="macro">assert_eq!</span>(
+                conn.batch()
+                    .hset(<span class="string">""</span>, <span class="string">"myhash"</span>, <span class="prelude-val">None</span>, [(<span class="string">"foo"</span>, <span class="string">"foo"</span>), (<span class="string">"bar"</span>, <span class="string">"bar"</span>)])
+                    .hset(<span class="string">""</span>, <span class="string">"myhash2"</span>, <span class="prelude-val">None</span>, std::iter::empty::&lt;(String, String)&gt;())
+                    .hset(<span class="string">""</span>, <span class="string">"myhash2"</span>, <span class="prelude-val">None</span>, [(<span class="string">"ree"</span>, <span class="number">0u64</span>)])
+                    .hset(<span class="string">""</span>, <span class="string">"myhash2"</span>, <span class="prelude-val">None</span>, [(<span class="string">"roo"</span>, RedisJson(now))])
+                    .hmget::&lt;String&gt;(<span class="string">""</span>, <span class="string">"myhash"</span>, std::iter::empty::&lt;String&gt;())
+                    .hmget(<span class="string">""</span>, <span class="string">"myhash"</span>, [<span class="string">"foo"</span>, <span class="string">"bar"</span>, <span class="string">"baz"</span>])
+                    .hmget(<span class="string">""</span>, <span class="string">"myhash2"</span>, [<span class="string">"ree"</span>])
+                    .hmget(<span class="string">""</span>, <span class="string">"myhash2"</span>, [<span class="string">"roo"</span>])
+                    <span class="comment">// Single nonexistent can sometimes cause problems:
+                    </span>.hmget(<span class="string">""</span>, <span class="string">"myhash2"</span>, [<span class="string">"nonexistent"</span>])
                     .fire()
                     .<span class="kw">await</span>,
                 exp
@@ -902,15 +1075,16 @@
                     .set(
                         <span class="string">""</span>,
                         <span class="string">"foo"</span>,
-                        ExampleJson {
+                        RedisJson(ExampleJson {
                             ree: <span class="string">"roo"</span>.to_string()
-                        },
+                        }),
                         <span class="prelude-val">None
                     </span>)
-                    .get::&lt;ExampleJson&gt;(<span class="string">""</span>, <span class="string">"foo"</span>)
+                    .get::&lt;RedisJson&lt;ExampleJson&gt;&gt;(<span class="string">""</span>, <span class="string">"foo"</span>)
                     .fire()
                     .<span class="kw">await
-                    </span>.flatten(),
+                    </span>.flatten()
+                    .map(|r| r.<span class="number">0</span>),
                 exp
             );
         }
@@ -927,7 +1101,7 @@
                     conn.cached_fn(<span class="string">"my_fn_group"</span>, <span class="string">"foo"</span>, <span class="prelude-val">None</span>, || <span class="kw">async </span>{
                         <span class="comment">// Add one to the call count, should only be called once:
                         </span>called.fetch_add(<span class="number">1</span>, std::sync::atomic::Ordering::SeqCst);
-                        <span class="prelude-val">Ok</span>(ExampleJson {
+                        <span class="prelude-val">Ok</span>::&lt;<span class="kw">_</span>, Report&lt;AnyErr&gt;&gt;(ExampleJson {
                             ree: <span class="string">"roo"</span>.to_string(),
                         })
                     })
@@ -955,7 +1129,7 @@
                         || <span class="kw">async </span>{
                             <span class="comment">// Add one to the call count, should only be called once:
                             </span>called.fetch_add(<span class="number">1</span>, std::sync::atomic::Ordering::SeqCst);
-                            <span class="prelude-val">Ok</span>(ExampleJson {
+                            <span class="prelude-val">Ok</span>::&lt;<span class="kw">_</span>, Report&lt;AnyErr&gt;&gt;(ExampleJson {
                                 ree: <span class="string">"roo"</span>.to_string(),
                             })
                         }
@@ -1093,12 +1267,9 @@
     ) -&gt; RResult&lt;(), AnyErr&gt; {
         <span class="kw">let </span>server = RedisStandalone::new_no_persistence().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>rconn = r.conn();
+        <span class="kw">let </span>rconn = r.conn();
 
-        <span class="comment">// THIS ONLY ACTUALLY WORKS FOR STRINGS and false, OTHERS ARE NONE, DUE TO REDIS LIMITATION OF RETURNING NIL FOR EMPTY ARRS AND NONE ETC.
-        // None::&lt;T&gt;, empty vec![] and "" should all work fine as real stored values,
-        // they shouldn't be hit by the internal invalid type handling (or missing key handling) so each should still be Some():
-        </span>rconn
+        rconn
             .batch()
             .set(<span class="string">"n1"</span>, <span class="string">"none"</span>, <span class="prelude-val">None</span>::&lt;String&gt;, <span class="prelude-val">None</span>)
             .set(<span class="string">"n1"</span>, <span class="string">"empty_vec"</span>, Vec::&lt;String&gt;::new(), <span class="prelude-val">None</span>)
@@ -1117,7 +1288,7 @@
                 .get::&lt;bool&gt;(<span class="string">"n1"</span>, <span class="string">"false"</span>)
                 .fire()
                 .<span class="kw">await</span>,
-            <span class="prelude-val">Some</span>((<span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string()), <span class="prelude-val">Some</span>(<span class="bool-val">false</span>)))
+            <span class="prelude-val">Some</span>((<span class="prelude-val">Some</span>(<span class="prelude-val">None</span>), <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[]), <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string()), <span class="prelude-val">Some</span>(<span class="bool-val">false</span>)))
         );
         <span class="macro">assert_eq!</span>(
             rconn
@@ -1129,8 +1300,10 @@
                 .fire()
                 .<span class="kw">await</span>,
             <span class="prelude-val">Some</span>((
-                <span class="macro">vec!</span>[],
-                <span class="macro">vec!</span>[],
+                <span class="comment">// TODO: annoyingly comes out as None instead of Some(None):
+                </span><span class="macro">vec!</span>[<span class="prelude-val">None</span>],
+                <span class="comment">// TODO: annoyingly comes out as None instead of Some(vec![]):
+                </span><span class="macro">vec!</span>[<span class="prelude-val">None</span>],
                 <span class="macro">vec!</span>[<span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())],
                 <span class="macro">vec!</span>[<span class="prelude-val">Some</span>(<span class="bool-val">false</span>)]
             ))
@@ -1179,9 +1352,9 @@
                 .set(
                     <span class="string">"z1"</span>,
                     <span class="string">"valid"</span>,
-                    ExampleJson {
+                    RedisJson(ExampleJson {
                         ree: <span class="string">"roo"</span>.to_string()
-                    },
+                    }),
                     <span class="prelude-val">None
                 </span>)
                 .set(<span class="string">"z1"</span>, <span class="string">"corrupt"</span>, <span class="string">"foobar"</span>, <span class="prelude-val">None</span>)
@@ -1203,22 +1376,9 @@
     <span class="attr">#[rstest]
     #[tokio::test]
     </span><span class="kw">async fn </span>test_redis_backoff(<span class="attr">#[allow(unused_variables)] </span>logging: ()) -&gt; RResult&lt;(), AnyErr&gt; {
-        <span class="comment">// TODO using now in here and dlock, should be some test utils we can use cross crate.
-        </span><span class="macro">macro_rules!</span> assert_td_in_range {
-            (<span class="macro-nonterminal">$td</span>:expr, <span class="macro-nonterminal">$range</span>:expr) =&gt; {
-                <span class="macro">assert!</span>(
-                    <span class="macro-nonterminal">$td </span>&gt;= <span class="macro-nonterminal">$range</span>.start &amp;&amp; <span class="macro-nonterminal">$td </span>&lt;= <span class="macro-nonterminal">$range</span>.end,
-                    <span class="string">"Expected '{}' to be in range '{}' - '{}'."</span>,
-                    chrono_format_td(<span class="macro-nonterminal">$td</span>, <span class="bool-val">true</span>),
-                    chrono_format_td(<span class="macro-nonterminal">$range</span>.start, <span class="bool-val">true</span>),
-                    chrono_format_td(<span class="macro-nonterminal">$range</span>.end, <span class="bool-val">true</span>),
-                );
-            };
-        }
-
         <span class="kw">let </span>server = RedisStandalone::new_no_persistence().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>r = Redis::new(server.client_conn_str(), uuid::Uuid::new_v4())<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>rconn = r.conn();
+        <span class="kw">let </span>rconn = r.conn();
 
         <span class="macro">macro_rules!</span> call {
             () =&gt; {

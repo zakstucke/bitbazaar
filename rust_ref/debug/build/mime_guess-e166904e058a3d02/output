@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/home/runner/work/bitbazaar/bitbazaar/./docs/rust_ref/debug/build/mime_guess-e166904e058a3d02/out/mime_types_generated.rs

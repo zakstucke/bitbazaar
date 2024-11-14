@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["BatchLimit"],"fn":["batch_futures_descendants","batch_futures_descendants_stream_async_cb","batch_futures_descendants_stream_sync_cb","batch_futures_flat","batch_futures_flat_stream_async_cb","batch_futures_flat_stream_sync_cb","run_cpu_intensive"]};
+window.SIDEBAR_ITEMS = {"fn":["hint_stream_cb","new_fut_runner","run_cpu_intensive"],"static":["FUT_RUNNER_PRIORITY_DEFAULT"],"struct":["FutRunner","FutRunnerBuilder","FutRunnerShared"]};

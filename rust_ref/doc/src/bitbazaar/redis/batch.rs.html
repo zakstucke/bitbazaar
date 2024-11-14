@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/redis/batch.rs`."><title>batch.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -673,18 +673,313 @@
 <a href="#673" id="673">673</a>
 <a href="#674" id="674">674</a>
 <a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
+<a href="#732" id="732">732</a>
+<a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+<a href="#852" id="852">852</a>
+<a href="#853" id="853">853</a>
+<a href="#854" id="854">854</a>
+<a href="#855" id="855">855</a>
+<a href="#856" id="856">856</a>
+<a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
+<a href="#883" id="883">883</a>
+<a href="#884" id="884">884</a>
+<a href="#885" id="885">885</a>
+<a href="#886" id="886">886</a>
+<a href="#887" id="887">887</a>
+<a href="#888" id="888">888</a>
+<a href="#889" id="889">889</a>
+<a href="#890" id="890">890</a>
+<a href="#891" id="891">891</a>
+<a href="#892" id="892">892</a>
+<a href="#893" id="893">893</a>
+<a href="#894" id="894">894</a>
+<a href="#895" id="895">895</a>
+<a href="#896" id="896">896</a>
+<a href="#897" id="897">897</a>
+<a href="#898" id="898">898</a>
+<a href="#899" id="899">899</a>
+<a href="#900" id="900">900</a>
+<a href="#901" id="901">901</a>
+<a href="#902" id="902">902</a>
+<a href="#903" id="903">903</a>
+<a href="#904" id="904">904</a>
+<a href="#905" id="905">905</a>
+<a href="#906" id="906">906</a>
+<a href="#907" id="907">907</a>
+<a href="#908" id="908">908</a>
+<a href="#909" id="909">909</a>
+<a href="#910" id="910">910</a>
+<a href="#911" id="911">911</a>
+<a href="#912" id="912">912</a>
+<a href="#913" id="913">913</a>
+<a href="#914" id="914">914</a>
+<a href="#915" id="915">915</a>
+<a href="#916" id="916">916</a>
+<a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(private_interfaces)]
 
-</span><span class="kw">use </span>std::{collections::HashSet, marker::PhantomData, sync::LazyLock};
+</span><span class="kw">use </span>std::{borrow::Cow, collections::HashSet, marker::PhantomData, sync::LazyLock};
 
 <span class="kw">use </span>deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
 
-<span class="kw">use crate</span>::{log::record_exception, misc::Retry, retry_flexi};
+<span class="kw">use crate</span>::{log::record_exception, retry_flexi};
 
 <span class="kw">use super</span>::{
     conn::RedisConnLike,
-    fuzzy::{RedisFuzzy, RedisFuzzyUnwrap},
-    RedisScript, RedisScriptInvoker,
+    fuzzy::{FuzzyFromRedisValue, Nilcase, RedisFuzzy, RedisFuzzyUnwrap},
+    redis_retry::redis_retry_config,
+    RedisJson, RedisScript, RedisScriptInvoker,
 };
 
 <span class="kw">static </span>CLEAR_NAMESPACE_SCRIPT: LazyLock&lt;RedisScript&gt; =
@@ -702,14 +997,14 @@
 /// Note each command may be run twice, if scripts needed caching to redis.
 </span><span class="kw">pub struct </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, ReturnType&gt; {
     _returns: PhantomData&lt;ReturnType&gt;,
-    redis_conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>ConnType,
+    redis_conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ConnType,
     pipe: Pipeline,
     <span class="doccomment">/// Need to keep a reference to used scripts, these will all be reloaded to redis errors because one wasn't cached on the server.
     </span>used_scripts: HashSet&lt;<span class="kw-2">&amp;</span><span class="lifetime">'c </span>RedisScript&gt;,
 }
 
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, ReturnType&gt; RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, ReturnType&gt; {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(redis_conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>ConnType) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(redis_conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ConnType) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             _returns: PhantomData,
             redis_conn,
@@ -718,32 +1013,19 @@
         }
     }
 
-    <span class="kw">async fn </span>inner_fire&lt;R: FromRedisValue&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;R&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(conn) = <span class="self">self</span>.redis_conn.get_inner_conn().<span class="kw">await </span>{
+    <span class="kw">async fn </span>inner_fire&lt;R: FuzzyFromRedisValue&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;R&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>conn) = <span class="self">self</span>.redis_conn.get_inner_conn().<span class="kw">await </span>{
             <span class="comment">// Handling retryable errors internally:
-            </span><span class="kw">let </span>retry = Retry::&lt;redis::RedisError&gt;::fibonacci(chrono::Duration::milliseconds(<span class="number">10</span>))
-            <span class="comment">// Will cumulatively delay for up to 6 seconds.
-            // SHOULDN'T BE LONGER, considering outer code may then handle the redis failure,
-            // in e.g. web request, any longer would then be harmful.
-            </span>.until_total_delay(chrono::Duration::seconds(<span class="number">5</span>))
-                .on_retry(<span class="kw">move </span>|info| <span class="kw">match </span>info.last_error.kind() {
-                    <span class="comment">// These should all be automatically retried:
-                    </span>redis::ErrorKind::BusyLoadingError
-                    | redis::ErrorKind::TryAgain
-                    | redis::ErrorKind::MasterDown =&gt; {
-                        <span class="macro">tracing::warn!</span>(
-                            <span class="string">"Redis command failed with retryable error, retrying in {}. Last attempt no: '{}'.\nErr:\n{:?}."</span>,
-                            info.delay_till_next_attempt,
-                            info.last_attempt_no,
-                            info.last_error
-                        );
-                        <span class="prelude-val">None
-                    </span>},
-                    <span class="comment">// Everything else should just exit straight away, no point retrying internally.
-                    </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Some</span>(info.last_error),
-                });
-
-            <span class="kw">match </span><span class="macro">retry_flexi!</span>(retry.clone(), { <span class="self">self</span>.pipe.query_async(conn).<span class="kw">await </span>}) {
+            </span><span class="kw">let </span>result = <span class="kw">match </span><span class="macro">retry_flexi!</span>(redis_retry_config(), {
+                <span class="comment">// Testing:
+                // tracing::info!("{:?}", std::any::type_name::&lt;R&gt;());
+                // let s = self.pipe.query_async::&lt;redis::Value&gt;(&amp;mut conn).await;
+                // tracing::info!("{:?}", s);
+                </span><span class="kw">match </span><span class="self">self</span>.pipe.query_async::&lt;redis::Value&gt;(<span class="kw-2">&amp;mut </span>conn).<span class="kw">await </span>{
+                    <span class="prelude-val">Ok</span>(v) =&gt; R::fuzzy_from_redis_value(<span class="kw-2">&amp;</span>v),
+                    <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e),
+                }
+            }) {
                 <span class="prelude-val">Ok</span>(v) =&gt; <span class="prelude-val">Some</span>(v),
                 <span class="prelude-val">Err</span>(e) =&gt; {
                     <span class="comment">// Load the scripts into Redis if the any of the scripts weren't there before.
@@ -754,7 +1036,7 @@
                         }
 
                         <span class="macro">tracing::debug!</span>(
-                            <span class="string">"Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Err: '{:?}'"</span>,
+                            <span class="string">"Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Probably occurred due to a redis restart during this program's execution. Err: '{:?}'"</span>,
                             <span class="self">self</span>.used_scripts.len(),
                             <span class="kw">if </span><span class="self">self</span>.used_scripts.len() == <span class="number">1 </span>{ <span class="string">"" </span>} <span class="kw">else </span>{ <span class="string">"s" </span>},
                             e
@@ -764,17 +1046,22 @@
                         <span class="kw">for </span>script <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.used_scripts {
                             load_pipe.add_command(script.load_cmd());
                         }
-                        <span class="kw">match </span><span class="macro">retry_flexi!</span>(retry, {
-                            load_pipe.query_async::&lt;redis::Value&gt;(conn).<span class="kw">await
+                        <span class="kw">match </span><span class="macro">retry_flexi!</span>(redis_retry_config(), {
+                            load_pipe.query_async::&lt;redis::Value&gt;(<span class="kw-2">&amp;mut </span>conn).<span class="kw">await
                         </span>}) {
                             <span class="comment">// Now loaded the scripts, rerun the batch:
-                            </span><span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="kw">match </span><span class="self">self</span>.pipe.query_async(conn).<span class="kw">await </span>{
-                                <span class="prelude-val">Ok</span>(result) =&gt; <span class="prelude-val">Some</span>(result),
-                                <span class="prelude-val">Err</span>(err) =&gt; {
-                                    record_exception(<span class="string">"Redis batch failed. Pipe returned NoScriptError, but we've just loaded all scripts."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, err));
-                                    <span class="prelude-val">None
-                                </span>}
-                            },
+                            </span><span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
+                                <span class="kw">match match </span><span class="self">self</span>.pipe.query_async::&lt;redis::Value&gt;(<span class="kw-2">&amp;mut </span>conn).<span class="kw">await </span>{
+                                    <span class="prelude-val">Ok</span>(v) =&gt; R::fuzzy_from_redis_value(<span class="kw-2">&amp;</span>v),
+                                    <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e),
+                                } {
+                                    <span class="prelude-val">Ok</span>(v) =&gt; <span class="prelude-val">Some</span>(v),
+                                    <span class="prelude-val">Err</span>(err) =&gt; {
+                                        record_exception(<span class="string">"Redis batch failed. Pipe returned NoScriptError, but we've just loaded all scripts."</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, err));
+                                        <span class="prelude-val">None
+                                    </span>}
+                                }
+                            }
                             <span class="prelude-val">Err</span>(err) =&gt; {
                                 record_exception(
                                     <span class="string">"Redis script reload during batch failed."</span>,
@@ -788,7 +1075,17 @@
                         <span class="prelude-val">None
                     </span>}
                 }
+            };
+
+            <span class="comment">// When the pipeline is successful, update internally the scripts we know to be loaded.
+            </span><span class="kw">if </span>result.is_some() {
+                <span class="kw">let </span>sl = <span class="self">self</span>.redis_conn.scripts_loaded();
+                <span class="kw">for </span>script <span class="kw">in </span><span class="self">self</span>.used_scripts.iter() {
+                    sl.insert(script.hash.clone());
+                }
             }
+
+            result
         } <span class="kw">else </span>{
             <span class="prelude-val">None
         </span>}
@@ -797,7 +1094,15 @@
     <span class="doccomment">/// Run an arbitrary redis (lua script). But discards any return value.
     </span><span class="kw">pub fn </span>script_no_return(<span class="kw-2">mut </span><span class="self">self</span>, script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;) -&gt; <span class="self">Self </span>{
         <span class="comment">// Adding ignore() to ignore response.
-        </span><span class="self">self</span>.pipe.add_command(script_invokation.eval_cmd()).ignore();
+        </span><span class="self">self</span>.pipe
+            .add_command(
+                script_invokation.eval_cmd(
+                    <span class="self">self</span>.redis_conn
+                        .scripts_loaded()
+                        .contains(<span class="kw-2">&amp;</span>script_invokation.script.hash),
+                ),
+            )
+            .ignore();
         <span class="self">self</span>.used_scripts.insert(script_invokation.script);
         RedisBatch {
             _returns: PhantomData,
@@ -806,6 +1111,38 @@
             used_scripts: <span class="self">self</span>.used_scripts,
         }
     }
+
+    <span class="doccomment">/// Low-level backdoor. Pass in a custom redis command to run, but don't expect a return value.
+    /// After calling this, custom_arg() can be used to add arguments.
+    ///
+    /// E.g. `batch.custom_no_return("SET").custom_arg("key").custom_arg("value").fire().await;`
+    </span><span class="kw">pub fn </span>custom_no_return(<span class="kw-2">mut </span><span class="self">self</span>, cmd: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.pipe.cmd(cmd).ignore();
+        <span class="self">self
+    </span>}
+
+    <span class="doccomment">/// Low-level backdoor. Add a custom argument to the last custom command added with either `custom_no_return()` or `custom()`.
+    </span><span class="kw">pub fn </span>custom_arg(<span class="kw-2">mut </span><span class="self">self</span>, arg: <span class="kw">impl </span>ToRedisArgs) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.pipe.arg(arg);
+        <span class="self">self
+    </span>}
+
+    <span class="doccomment">/// Publish a message to a pubsub channel.
+    /// Json wrapped internally, makes easier to work with.
+    </span><span class="kw">pub fn </span>publish(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        namespace: <span class="kw-2">&amp;</span>str,
+        channel: <span class="kw-2">&amp;</span>str,
+        message: <span class="kw">impl </span>serde::Serialize + <span class="kw">for</span>&lt;<span class="lifetime">'b</span>&gt; serde::Deserialize&lt;<span class="lifetime">'b</span>&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.pipe
+            .publish(
+                <span class="self">self</span>.redis_conn.final_key(namespace, channel.into()),
+                RedisJson(message),
+            )
+            .ignore();
+        <span class="self">self
+    </span>}
 
     <span class="doccomment">/// Expire an existing key with a new/updated ttl.
     ///
@@ -819,6 +1156,133 @@
             <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
             </span>.ignore();
 
+        RedisBatch {
+            _returns: PhantomData,
+            redis_conn: <span class="self">self</span>.redis_conn,
+            pipe: <span class="self">self</span>.pipe,
+            used_scripts: <span class="self">self</span>.used_scripts,
+        }
+    }
+
+    <span class="doccomment">/// Add entries to a hashmap (auto creating the hashmap if it doesn't exist).
+    /// &lt;https://redis.io/docs/latest/commands/hset/&gt;
+    ///
+    /// Arguments:
+    /// - `hashmap_namespace`: The namespace of the hashmap.
+    /// - `hashmap_key`: The key of the hashmap.
+    /// - `hashmap_ttl`: The time to live of the hashmap. This will reset on each addition, meaning after the last update the hashmap will expire after this time.
+    /// - `entries`: The key/value pairs to add.
+    </span><span class="kw">pub fn </span>hset&lt;S: AsRef&lt;str&gt;, Value: ToRedisArgs&gt;(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        hashmap_namespace: <span class="kw-2">&amp;</span>str,
+        hashmap_key: <span class="kw-2">&amp;</span>str,
+        hashmap_ttl: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
+        entries: <span class="kw">impl </span>IntoIterator&lt;Item = (S, Value)&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>entries = entries
+            .into_iter()
+            .map(|(k, v)| (k.as_ref().to_string(), v))
+            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+        <span class="comment">// No-op if no entries so skip (redis would actually error if empty anyway)
+        </span><span class="kw">if </span>entries.is_empty() {
+            <span class="kw">return </span><span class="self">self</span>;
+        }
+
+        <span class="self">self</span>.pipe
+            .hset_multiple(
+                <span class="self">self</span>.redis_conn
+                    .final_key(hashmap_namespace, hashmap_key.into()),
+                <span class="kw-2">&amp;</span>entries,
+            )
+            <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
+            </span>.ignore();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(set_ttl) = hashmap_ttl {
+            <span class="self">self</span>.expire(hashmap_namespace, hashmap_key, set_ttl)
+        } <span class="kw">else </span>{
+            RedisBatch {
+                _returns: PhantomData,
+                redis_conn: <span class="self">self</span>.redis_conn,
+                pipe: <span class="self">self</span>.pipe,
+                used_scripts: <span class="self">self</span>.used_scripts,
+            }
+        }
+    }
+
+    <span class="doccomment">/// Add an entry to a set (auto creating the set if it doesn't exist).
+    /// &lt;https://redis.io/commands/sadd/&gt;
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
+    /// - `items`: The items to add, values of sets must be strings.
+    </span><span class="kw">pub fn </span>sadd&lt;S: AsRef&lt;str&gt;&gt;(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        set_namespace: <span class="kw-2">&amp;</span>str,
+        set_key: <span class="kw-2">&amp;</span>str,
+        set_ttl: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
+        items: <span class="kw">impl </span>IntoIterator&lt;Item = S&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>items = items
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+        <span class="comment">// No-op if no items so skip (redis would actually error if empty anyway)
+        </span><span class="kw">if </span>items.is_empty() {
+            <span class="kw">return </span><span class="self">self</span>;
+        }
+
+        <span class="self">self</span>.pipe
+            .sadd(
+                <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
+                items,
+            )
+            <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
+            </span>.ignore();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(set_ttl) = set_ttl {
+            <span class="self">self</span>.expire(set_namespace, set_key, set_ttl)
+        } <span class="kw">else </span>{
+            RedisBatch {
+                _returns: PhantomData,
+                redis_conn: <span class="self">self</span>.redis_conn,
+                pipe: <span class="self">self</span>.pipe,
+                used_scripts: <span class="self">self</span>.used_scripts,
+            }
+        }
+    }
+
+    <span class="doccomment">/// remove an entries from a set.
+    /// &lt;https://redis.io/commands/srem/&gt;
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `values`: The values to remove as an iterator.
+    </span><span class="kw">pub fn </span>srem&lt;S: AsRef&lt;str&gt;&gt;(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        set_namespace: <span class="kw-2">&amp;</span>str,
+        set_key: <span class="kw-2">&amp;</span>str,
+        items: <span class="kw">impl </span>IntoIterator&lt;Item = S&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>items = items
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+        <span class="comment">// No-op if no items so skip (redis would actually error if empty anyway)
+        </span><span class="kw">if </span>items.is_empty() {
+            <span class="kw">return </span><span class="self">self</span>;
+        }
+
+        <span class="self">self</span>.pipe
+            .srem(
+                <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
+                items,
+            )
+            <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
+            </span>.ignore();
         RedisBatch {
             _returns: PhantomData,
             redis_conn: <span class="self">self</span>.redis_conn,
@@ -912,6 +1376,11 @@
         set_ttl: <span class="prelude-ty">Option</span>&lt;chrono::Duration&gt;,
         items: <span class="kw-2">&amp;</span>[(i64, <span class="kw">impl </span>ToRedisArgs)],
     ) -&gt; <span class="self">Self </span>{
+        <span class="comment">// No-op if no items so skip (redis would actually error if empty anyway)
+        </span><span class="kw">if </span>items.is_empty() {
+            <span class="kw">return </span><span class="self">self</span>;
+        }
+
         <span class="self">self</span>.pipe
             .zadd_multiple(
                 <span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()),
@@ -1040,15 +1509,17 @@
     }
 
     <span class="doccomment">/// Clear one or more keys.
-    </span><span class="kw">pub fn </span>clear&lt;<span class="lifetime">'key</span>&gt;(
+    </span><span class="kw">pub fn </span>clear&lt;S: AsRef&lt;str&gt;&gt;(
         <span class="kw-2">mut </span><span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
-        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = S&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>final_keys = keys
             .into_iter()
-            .map(Into::into)
-            .map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key))
+            .map(|key| {
+                <span class="self">self</span>.redis_conn
+                    .final_key(namespace, Cow::Borrowed(key.as_ref()))
+            })
             .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
         <span class="comment">// Ignoring so it doesn't take up a space in the tuple response.
         </span><span class="self">self</span>.pipe.del(final_keys).ignore();
@@ -1081,22 +1552,22 @@
 }
 
 <span class="comment">// The special singular variant that returns the command output directly.
-</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap&gt; RedisBatchFire
+</span><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap + Nilcase&gt; RedisBatchFire
     <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, (R,)&gt;
 {
     <span class="kw">type </span>ReturnType = R;
 
-    <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output {
+    <span class="kw">async fn </span>fire(<span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::ReturnType&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output {
         <span class="self">self</span>.inner_fire::&lt;(R,)&gt;().<span class="kw">await</span>.map(|(r,)| r).fuzzy_unwrap()
     }
 }
 
 <span class="macro">macro_rules!</span> impl_batch_fire {
     ( $(<span class="macro-nonterminal">$tup_item</span>:ident)* ) =&gt; (
-        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, $(<span class="macro-nonterminal">$tup_item</span>: FromRedisValue + RedisFuzzyUnwrap),<span class="kw-2">*</span>&gt; RedisBatchFire <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType: RedisConnLike, $(<span class="macro-nonterminal">$tup_item</span>: FromRedisValue + RedisFuzzyUnwrap + Nilcase),<span class="kw-2">*</span>&gt; RedisBatchFire <span class="kw">for </span>RedisBatch&lt;<span class="lifetime">'a</span>, <span class="lifetime">'c</span>, ConnType, ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; {
             <span class="kw">type </span>ReturnType = ($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>);
 
-            <span class="kw">async fn </span>fire(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output {
+            <span class="kw">async fn </span>fire(<span class="self">self</span>) -&gt; &lt;<span class="prelude-ty">Option</span>&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt; <span class="kw">as </span>RedisFuzzyUnwrap&gt;::Output {
                 <span class="self">self</span>.inner_fire::&lt;($(<span class="macro-nonterminal">$tup_item</span>,)<span class="kw-2">*</span>)&gt;().<span class="kw">await</span>.fuzzy_unwrap()
             }
         }
@@ -1122,14 +1593,17 @@
         script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;RedisFuzzy&lt;ScriptOutput&gt;&gt;;
 
+    <span class="doccomment">/// Low-level backdoor. Pass in a custom redis command to run, specifying the return value to coerce to.
+    </span><span class="kw">fn </span>custom&lt;T: FromRedisValue&gt;(<span class="self">self</span>, cmd: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;T&gt;;
+
     <span class="doccomment">/// Check if a key exists.
     </span><span class="kw">fn </span>exists(<span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt;;
 
     <span class="doccomment">/// Check if multiple keys exists.
-    </span><span class="kw">fn </span>mexists&lt;<span class="lifetime">'key</span>&gt;(
+    </span><span class="kw">fn </span>mexists(
         <span class="self">self</span>,
         namespace: <span class="kw-2">&amp;</span>str,
-        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt;;
 
     <span class="doccomment">/// Get a value from a key. Returning `None` if the key doesn't exist.
@@ -1145,6 +1619,26 @@
         namespace: <span class="kw-2">&amp;</span>str,
         keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
     ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RedisFuzzy&lt;Value&gt;&gt;&gt;;
+
+    <span class="doccomment">/// Get multiple values from a hashmap of the same type at once. Returning `None` for each key that didn't exist.
+    /// &lt;https://redis.io/docs/latest/commands/hmget/&gt;
+    </span><span class="kw">fn </span>hmget&lt;Value: FromRedisValue&gt;(
+        <span class="self">self</span>,
+        hashmap_namespace: <span class="kw-2">&amp;</span>str,
+        hashmap_key: <span class="kw-2">&amp;</span>str,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RedisFuzzy&lt;Value&gt;&gt;&gt;;
+
+    <span class="doccomment">/// Get all members of a set.
+    </span><span class="kw">fn </span>smembers(<span class="self">self</span>, set_namespace: <span class="kw-2">&amp;</span>str, set_key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;String&gt;&gt;;
+
+    <span class="doccomment">/// Check whether the provided keys are members of the set (if it exists).
+    </span><span class="kw">fn </span>smismember(
+        <span class="self">self</span>,
+        set_namespace: <span class="kw-2">&amp;</span>str,
+        set_key: <span class="kw-2">&amp;</span>str,
+        keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
+    ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt;;
 
     <span class="doccomment">/// HIGHEST TO LOWEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -1201,7 +1695,9 @@
                 <span class="kw-2">mut </span><span class="self">self</span>,
                 script_invokation: RedisScriptInvoker&lt;<span class="lifetime">'c</span>&gt;,
             ) -&gt; <span class="self">Self</span>::NextType&lt;ScriptOutput&gt; {
-                <span class="self">self</span>.pipe.add_command(script_invokation.eval_cmd());
+                <span class="self">self</span>.pipe.add_command(script_invokation.eval_cmd(
+                    <span class="self">self</span>.redis_conn.scripts_loaded().contains(<span class="kw-2">&amp;</span>script_invokation.script.hash)
+                ));
                 <span class="self">self</span>.used_scripts.insert(script_invokation.script);
                 RedisBatch {
                     _returns: PhantomData,
@@ -1218,6 +1714,16 @@
                 <span class="self">self</span>.script_no_decode_protection(script_invokation)
             }
 
+            <span class="kw">fn </span>custom&lt;T: FromRedisValue&gt;(<span class="kw-2">mut </span><span class="self">self</span>, cmd: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;T&gt; {
+                <span class="self">self</span>.pipe.cmd(cmd);
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: <span class="self">self</span>.redis_conn,
+                    pipe: <span class="self">self</span>.pipe,
+                    used_scripts: <span class="self">self</span>.used_scripts
+                }
+            }
+
             <span class="kw">fn </span>exists(<span class="kw-2">mut </span><span class="self">self</span>, namespace: <span class="kw-2">&amp;</span>str, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;bool&gt; {
                 <span class="self">self</span>.pipe.exists(<span class="self">self</span>.redis_conn.final_key(namespace, key.into()));
                 RedisBatch {
@@ -1228,17 +1734,29 @@
                 }
             }
 
-            <span class="kw">fn </span>mexists&lt;<span class="lifetime">'key</span>&gt;(
-                <span class="self">self</span>,
+            <span class="kw">fn </span>mexists(
+                <span class="kw-2">mut </span><span class="self">self</span>,
                 namespace: <span class="kw-2">&amp;</span>str,
-                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'key </span>str&gt;,
+                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
             ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt; {
-                <span class="kw">let </span>final_keys = keys.into_iter().map(Into::into).map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key)).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-                <span class="kw">let </span><span class="kw-2">mut </span>invoker = MEXISTS_SCRIPT.invoker();
-                <span class="kw">for </span>key <span class="kw">in </span><span class="kw-2">&amp;</span>final_keys {
-                    invoker = invoker.key(key);
+                <span class="kw">let </span>keys = keys.into_iter().map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into())).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+                <span class="comment">// Command might would otherwise fail with an empty vec:
+                </span><span class="kw">if </span>keys.is_empty() {
+                    pipe_return_empty_vec(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pipe);
+                    RedisBatch {
+                        _returns: PhantomData,
+                        redis_conn: <span class="self">self</span>.redis_conn,
+                        pipe: <span class="self">self</span>.pipe,
+                        used_scripts: <span class="self">self</span>.used_scripts
+                    }
+                } <span class="kw">else </span>{
+                    <span class="kw">let </span><span class="kw-2">mut </span>invoker = MEXISTS_SCRIPT.invoker();
+                    <span class="kw">for </span>key <span class="kw">in </span><span class="kw-2">&amp;</span>keys {
+                        invoker = invoker.key(key);
+                    }
+                    <span class="self">self</span>.script_no_decode_protection::&lt;Vec&lt;bool&gt;&gt;(invoker)
                 }
-                <span class="self">self</span>.script_no_decode_protection::&lt;Vec&lt;bool&gt;&gt;(invoker)
             }
 
             <span class="kw">fn </span>get&lt;Value: FromRedisValue&gt;(
@@ -1260,8 +1778,17 @@
                 namespace: <span class="kw-2">&amp;</span>str,
                 keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
             ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RedisFuzzy&lt;Value&gt;&gt;&gt; {
-                <span class="kw">let </span>final_keys = keys.into_iter().map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into())).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-                <span class="self">self</span>.pipe.get(final_keys);
+                <span class="kw">let </span>keys = keys.into_iter().map(|key| <span class="self">self</span>.redis_conn.final_key(namespace, key.as_ref().into())).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+                <span class="comment">// Command might would otherwise fail with an empty vec:
+                </span><span class="kw">if </span>keys.is_empty() {
+                    pipe_return_empty_vec(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pipe);
+                } <span class="kw">else </span>{
+                    <span class="comment">// self.pipe.hget internally switches between GET and MGET depending on the number of keys.
+                    // but this causes problems with decoding, better to always use MGET.
+                    </span><span class="self">self</span>.pipe.cmd(<span class="string">"MGET"</span>).arg(keys);
+                }
+
                 RedisBatch {
                     _returns: PhantomData,
                     redis_conn: <span class="self">self</span>.redis_conn,
@@ -1269,6 +1796,61 @@
                     used_scripts: <span class="self">self</span>.used_scripts
                 }
             }
+
+            <span class="kw">fn </span>hmget&lt;Value: FromRedisValue&gt;(
+                <span class="kw-2">mut </span><span class="self">self</span>,
+                hashmap_namespace: <span class="kw-2">&amp;</span>str,
+                hashmap_key: <span class="kw-2">&amp;</span>str,
+                keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
+            ) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;RedisFuzzy&lt;Value&gt;&gt;&gt; {
+                <span class="kw">let </span>keys = keys.into_iter().map(|key| key.as_ref().to_string()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+                <span class="comment">// Command might would otherwise fail with an empty vec:
+                </span><span class="kw">if </span>keys.is_empty() {
+                    pipe_return_empty_vec(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pipe);
+                } <span class="kw">else </span>{
+                    <span class="comment">// self.pipe.hget internally switches between HGET and HMGET depending on the number of keys.
+                    // but this causes problems with decoding, better to always use HMGET.
+                    </span><span class="self">self</span>.pipe.cmd(<span class="string">"HMGET"</span>).arg(<span class="self">self</span>.redis_conn.final_key(hashmap_namespace, hashmap_key.into())).arg(keys);
+                }
+
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: <span class="self">self</span>.redis_conn,
+                    pipe: <span class="self">self</span>.pipe,
+                    used_scripts: <span class="self">self</span>.used_scripts
+                }
+            }
+
+            <span class="kw">fn </span>smembers(<span class="kw-2">mut </span><span class="self">self</span>, set_namespace: <span class="kw-2">&amp;</span>str, set_key: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;String&gt;&gt; {
+                <span class="self">self</span>.pipe
+                    .smembers(<span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()));
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: <span class="self">self</span>.redis_conn,
+                    pipe: <span class="self">self</span>.pipe,
+                    used_scripts: <span class="self">self</span>.used_scripts,
+                }
+            }
+
+            <span class="kw">fn </span>smismember(<span class="kw-2">mut </span><span class="self">self</span>, set_namespace: <span class="kw-2">&amp;</span>str, set_key: <span class="kw-2">&amp;</span>str, keys: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw">impl </span>AsRef&lt;str&gt;&gt;) -&gt; <span class="self">Self</span>::NextType&lt;Vec&lt;bool&gt;&gt; {
+                <span class="kw">let </span>keys = keys.into_iter().map(|key| key.as_ref().to_string()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+
+                <span class="comment">// Command might would otherwise fail with an empty vec:
+                </span><span class="kw">if </span>keys.is_empty() {
+                    pipe_return_empty_vec(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pipe);
+                } <span class="kw">else </span>{
+                    <span class="self">self</span>.pipe.smismember(<span class="self">self</span>.redis_conn.final_key(set_namespace, set_key.into()), keys);
+                }
+
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: <span class="self">self</span>.redis_conn,
+                    pipe: <span class="self">self</span>.pipe,
+                    used_scripts: <span class="self">self</span>.used_scripts,
+                }
+            }
+
 
             <span class="kw">fn </span>zrangebyscore_high_to_low&lt;Value: FromRedisValue&gt;(
                 <span class="kw-2">mut </span><span class="self">self</span>,
@@ -1317,6 +1899,12 @@
             }
         }
     );
+}
+
+<span class="kw">fn </span>pipe_return_empty_vec(pipe: <span class="kw-2">&amp;mut </span>Pipeline) {
+    <span class="comment">// Just run inline script to return nil, which will be fuzzy deserialized to an empty vec:
+    // https://redis.io/docs/latest/commands/eval/
+    </span>pipe.cmd(<span class="string">"EVAL"</span>).arg(<span class="string">""</span>).arg(<span class="number">0</span>);
 }
 
 <span class="comment">// fire() trait for up to 12 operations:

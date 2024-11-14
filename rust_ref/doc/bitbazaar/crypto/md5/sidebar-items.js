@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["md5"]};
+window.SIDEBAR_ITEMS = {"fn":["md5","md5_raw"]};

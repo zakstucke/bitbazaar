@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/log/global_log/builder.rs`."><title>builder.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bitbazaar/log/global_log/builder.rs`."><title>builder.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bitbazaar" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -269,9 +269,15 @@
 <a href="#269" id="269">269</a>
 <a href="#270" id="270">270</a>
 <a href="#271" id="271">271</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::path::PathBuf;
-
-<span class="kw">use </span>tracing::Level;
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>tracing::Level;
 
 <span class="kw">use </span><span class="kw">super</span>::GlobalLog;
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
@@ -306,11 +312,13 @@
     <span class="kw">pub </span>shared: SharedOpts,
 }
 
-<span class="kw">pub struct </span>FileConf {
+<span class="comment">// Files logging obviously not available in browser.
+</span><span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+</span><span class="kw">pub struct </span>FileConf {
     <span class="doccomment">/// The prefix for the filenames, e.g. "graphs.log" which will come out as "graphs.log.2021-01-21,
     </span><span class="kw">pub </span>file_prefix: String,
     <span class="doccomment">/// The directory to hold the log files, e.g. "./logs/", will create if missing.
-    </span><span class="kw">pub </span>dir: PathBuf,
+    </span><span class="kw">pub </span>dir: std::path::PathBuf,
     <span class="kw">pub </span>shared: SharedOpts,
 }
 
@@ -376,12 +384,17 @@
         <span class="self">self
     </span>}
 
-    <span class="doccomment">/// Write to a file:
+    <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+    </span><span class="doccomment">/// Write to a file:
     ///
     /// Arguments:
     /// - `file_prefix`: The prefix for the filenames, e.g. "graphs.log" which will come out as "graphs.log.2021-01-21,
     /// - `dir`: The directory to hold the log files, e.g. "./logs/", will create if missing.
-    </span><span class="kw">pub fn </span>file(<span class="kw-2">mut </span><span class="self">self</span>, file_prefix: <span class="kw">impl </span>Into&lt;String&gt;, dir: <span class="kw">impl </span>Into&lt;PathBuf&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>file(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        file_prefix: <span class="kw">impl </span>Into&lt;String&gt;,
+        dir: <span class="kw">impl </span>Into&lt;std::path::PathBuf&gt;,
+    ) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.outputs.push(Output::File(FileConf {
             file_prefix: file_prefix.into(),
             dir: dir.into(),
@@ -507,7 +520,8 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = <span class="self">self</span>.outputs.last_mut() {
             <span class="prelude-val">Ok</span>(<span class="kw">match </span>output {
                 Output::Stdout(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
-                Output::File(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
+                <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+                </span>Output::File(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
                 Output::Custom(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
                 <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
                 </span>Output::Otlp(conf) =&gt; <span class="kw-2">&amp;mut </span>conf.shared,
@@ -522,7 +536,8 @@
 
 <span class="kw">pub enum </span>Output {
     Stdout(StdoutConf),
-    File(FileConf),
+    <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+    </span>File(FileConf),
     Custom(CustomConf),
     <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
     </span>Otlp(OtlpConf),
@@ -533,7 +548,8 @@
     </span><span class="kw">pub fn </span>shared_opts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>SharedOpts {
         <span class="kw">match </span><span class="self">self </span>{
             Output::Stdout(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
-            Output::File(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
+            <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
+            </span>Output::File(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
             Output::Custom(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,
             <span class="attr">#[cfg(any(feature = <span class="string">"opentelemetry-grpc"</span>, feature = <span class="string">"opentelemetry-http"</span>))]
             </span>Output::Otlp(conf) =&gt; <span class="kw-2">&amp;</span>conf.shared,

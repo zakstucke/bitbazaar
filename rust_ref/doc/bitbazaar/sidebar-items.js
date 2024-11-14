@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"macro":["anyerr","err","panic_on_err","panic_on_err_async","retry_flexi","timeit","warn_user_once","warn_user_once_by_id"],"mod":["chrono","cli","command","cookies","crypto","errors","file","log","misc","redis","threads","timing"]};
+window.SIDEBAR_ITEMS = {"macro":["anyerr","assert_td_in_range","err","panic_on_err","panic_on_err_async","retry_flexi","timeit","warn_user_once","warn_user_once_by_id"],"mod":["chrono","cli","command","cookies","crypto","errors","file","log","misc","redis","test","threads","timing"]};
