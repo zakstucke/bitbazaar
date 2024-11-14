@@ -68,7 +68,7 @@ pub fn architecture_type() -> Arch {
 mod tests {
     use super::*;
 
-    use crate::testing::prelude::*;
+    use crate::test::prelude::*;
 
     #[rstest]
     fn test_platform_os_type() {

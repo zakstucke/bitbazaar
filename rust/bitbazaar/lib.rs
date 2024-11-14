@@ -38,11 +38,12 @@ pub mod misc;
 #[cfg(feature = "redis")]
 /// Redis utilities
 pub mod redis;
+#[cfg(feature = "test")]
+/// Useful and reusable testing utilities.
+/// Should only be enabled as a feature in dev-dependencies.
+pub mod test;
 /// Concurrency/parallelism utilities
 pub mod threads;
 #[cfg(feature = "timing")]
 /// Timing utilities
 pub mod timing;
-
-#[cfg(test)]
-mod testing;

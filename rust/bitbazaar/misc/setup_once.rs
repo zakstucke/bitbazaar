@@ -2,7 +2,6 @@ use std::{future::Future, path::PathBuf, sync::LazyLock};
 
 use crate::prelude::*;
 
-#[cfg(not(target_arch = "wasm32"))]
 /// Clear all data for a given id.
 pub async fn setup_once_clear(id: &str) -> RResult<(), AnyErr> {
     let workspace_dir = WORKSPACE_DIR_PARENT.join(id);
@@ -14,14 +13,11 @@ pub async fn setup_once_clear(id: &str) -> RResult<(), AnyErr> {
     Ok(())
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 /// Get the outer path all data is stored in.
 pub fn setup_once_storage_path() -> &'static std::path::Path {
     &WORKSPACE_DIR_PARENT
 }
 
-/// Not available on wasm, requires global_lock_host_async which is filesystem based.
-#[cfg(not(target_arch = "wasm32"))]
 /// Setup something once for a given version on the current host.
 /// E.g. installing a package, downloading a file, etc.
 /// - setup callback and otherwise callback passed a dedicated shared filespace for that version.
@@ -107,7 +103,6 @@ pub async fn setup_once<
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 static WORKSPACE_DIR_PARENT: LazyLock<PathBuf> = LazyLock::new(|| {
     std::env::temp_dir().join(format!(
         "bitbazaar_{}_setup_once_storage",
@@ -124,7 +119,7 @@ mod tests {
 
     use super::*;
 
-    use crate::testing::prelude::*;
+    use crate::test::prelude::*;
 
     #[rstest]
     #[tokio::test]

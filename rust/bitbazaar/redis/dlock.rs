@@ -10,18 +10,20 @@
 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-use std::{
-    sync::LazyLock,
-    time::{Duration, Instant},
-};
+use std::{sync::LazyLock, time::Instant};
 
+use chrono::TimeDelta;
 use error_stack::Context;
 use futures::{Future, FutureExt};
 use rand::{thread_rng, Rng, RngCore};
 use redis::{RedisResult, Value};
 
 use super::{conn::RedisConnLike, RedisBatchFire, RedisBatchReturningOps, RedisConn, RedisScript};
-use crate::{chrono::chrono_format_td, prelude::*};
+use crate::{
+    chrono::chrono_format_td,
+    misc::{sleep_compat, InstantCompat},
+    prelude::*,
+};
 
 const RETRY_DELAY: u32 = 200;
 const CLOCK_DRIFT_FACTOR: f32 = 0.01;
@@ -79,7 +81,7 @@ pub struct RedisLock<'a> {
     /// The value for this lock.
     pub val: Vec<u8>,
     /// How long to wait before giving up trying to get the lock.
-    pub wait_up_to: Option<Duration>,
+    pub wait_up_to: Option<TimeDelta>,
     /// The time at which the lock will expire. Must be renewed before this point to maintain.
     pub expires_at: chrono::DateTime<chrono::Utc>,
 }
@@ -90,10 +92,10 @@ impl<'a> RedisLock<'a> {
         redis: &'a super::Redis,
         namespace: &str,
         lock_key: &str,
-        ttl: Duration,
-        wait_up_to: Option<Duration>,
+        ttl: TimeDelta,
+        wait_up_to: Option<TimeDelta>,
     ) -> RResult<RedisLock<'a>, RedisLockErr> {
-        if ttl < Duration::from_millis(100) {
+        if ttl < TimeDelta::milliseconds(100) {
             return Err(err!(
                 RedisLockErr::UserErr,
                 "Do not set time to live to less than 100 milliseconds."
@@ -121,7 +123,7 @@ impl<'a> RedisLock<'a> {
                         .arg(val)
                         .arg("NX")
                         .arg("PX")
-                        .arg(ttl.as_millis() as usize)
+                        .arg(ttl.num_milliseconds() as usize)
                         .query_async(&mut conn)
                         .await;
 
@@ -165,12 +167,7 @@ impl<'a> RedisLock<'a> {
                 // if there's less than a second left, just renew straight away, to prevent a small period where the lock is unlocked (assuming it takes a bit to lock).
                 let expires_in_td = self.expires_at - now;
                 if expires_in_td > chrono::TimeDelta::seconds(1) {
-                    tokio::time::sleep(
-                        (expires_in_td - chrono::TimeDelta::seconds(1))
-                            .to_std()
-                            .change_context(AnyErr)?,
-                    )
-                    .await;
+                    sleep_compat(expires_in_td - chrono::TimeDelta::seconds(1)).await;
                 }
                 // Need to extend the lock, the task might run for ages, so want to increase the length each extension the longer the call's been running:
                 // If been running for less than 3 seconds, extend by 5 seconds, otherwise, extend by been_running_for itself:
@@ -182,11 +179,7 @@ impl<'a> RedisLock<'a> {
                 } else {
                     been_running_for
                 };
-                if !self
-                    .extend(extend_by.to_std().change_context(AnyErr)?)
-                    .await
-                    .change_context(AnyErr)?
-                {
+                if !self.extend(extend_by).await.change_context(AnyErr)? {
                     return Err(anyerr!("Failed to extend lock."));
                 }
             }
@@ -215,8 +208,8 @@ impl<'a> RedisLock<'a> {
     /// Returns:
     /// true: the lock was successfully extended.
     /// false: the lock could not be extended for some reason.
-    pub async fn extend(&mut self, new_ttl: Duration) -> RResult<bool, RedisLockErr> {
-        if new_ttl < Duration::from_millis(100) {
+    pub async fn extend(&mut self, new_ttl: TimeDelta) -> RResult<bool, RedisLockErr> {
+        if new_ttl < TimeDelta::milliseconds(100) {
             return Err(err!(
                 RedisLockErr::UserErr,
                 "Do not set time to live to less than 100 milliseconds."
@@ -236,7 +229,7 @@ impl<'a> RedisLock<'a> {
                             .invoker()
                             .key(lock_id)
                             .arg(val)
-                            .arg(new_ttl.as_millis() as usize),
+                            .arg(new_ttl.num_milliseconds() as usize),
                     )
                     .fire()
                     .await
@@ -283,15 +276,15 @@ impl<'a> RedisLock<'a> {
     }
 
     // Error handling and retrying for a locking operation (lock/extend).
-    async fn exec_or_retry<F, Fut>(&mut self, ttl: Duration, cb: F) -> RResult<bool, RedisLockErr>
+    async fn exec_or_retry<F, Fut>(&mut self, ttl: TimeDelta, cb: F) -> RResult<bool, RedisLockErr>
     where
         F: Fn(RedisConn<'a>) -> Fut,
         Fut: Future<Output = bool>,
     {
-        let ttl = ttl.as_millis() as usize;
+        let ttl = ttl.num_milliseconds() as usize;
 
-        let attempt_beginning = Instant::now();
-        let wait_up_to = self.wait_up_to.unwrap_or(Duration::from_secs(0));
+        let attempt_beginning = InstantCompat::now();
+        let wait_up_to = self.wait_up_to.unwrap_or(TimeDelta::seconds(0));
         let mut first_run = true;
         while first_run || wait_up_to > attempt_beginning.elapsed() {
             first_run = false;
@@ -324,14 +317,14 @@ impl<'a> RedisLock<'a> {
             // If met the quorum and ttl still holds, succeed, otherwise just unlock.
             if n >= quorum && validity_time_millis > 0 {
                 self.expires_at =
-                    chrono::Utc::now() + Duration::from_millis(validity_time_millis as u64);
+                    chrono::Utc::now() + TimeDelta::milliseconds(validity_time_millis as _);
                 return Ok(true);
             } else {
                 self.unlock().await;
             }
 
             let n = thread_rng().gen_range(0..RETRY_DELAY);
-            tokio::time::sleep(Duration::from_millis(n as u64)).await;
+            sleep_compat(TimeDelta::milliseconds(n as _)).await;
         }
 
         Err(err!(RedisLockErr::Unavailable)).attach_printable(format!(
@@ -362,7 +355,7 @@ mod tests {
     use super::*;
     use crate::chrono::chrono_format_td;
     use crate::redis::{Redis, RedisStandalone};
-    use crate::testing::prelude::*;
+    use crate::test::prelude::*;
 
     #[rstest]
     #[tokio::test]
@@ -386,7 +379,7 @@ mod tests {
         macro_rules! check_lockable {
             ($name:expr) => {{
                 let mut lock = r
-                    .dlock(NS, $name, Duration::from_secs(1), None)
+                    .dlock(NS, $name, TimeDelta::seconds(1), None)
                     .await
                     .change_context(AnyErr)?;
                 lock.unlock().await;
@@ -395,7 +388,7 @@ mod tests {
 
         macro_rules! check_not_lockable {
             ($name:expr) => {{
-                if (r.dlock(NS, $name, Duration::from_secs(1), None).await).is_ok() {
+                if (r.dlock(NS, $name, TimeDelta::seconds(1), None).await).is_ok() {
                     return Err(anyerr!("Lock acquired, even though it should be locked"));
                 }
             }};
@@ -415,7 +408,7 @@ mod tests {
 
         // Manual unlock should work:
         let mut lock = r
-            .dlock(NS, "test_lock_lock_unlock", Duration::from_secs(1), None)
+            .dlock(NS, "test_lock_lock_unlock", TimeDelta::seconds(1), None)
             .await
             .change_context(AnyErr)?;
         assert_td_in_range!(
@@ -425,7 +418,7 @@ mod tests {
         // Should fail as instantly locked:
         check_not_lockable!("test_lock_lock_unlock");
         check_not_lockable!("test_lock_lock_unlock"); // Purposely checking twice
-        tokio::time::sleep(Duration::from_millis(30)).await;
+        sleep_compat(TimeDelta::milliseconds(30)).await;
         // Should still be locked after 30ms: (ttl is 1s)
         check_not_lockable!("test_lock_lock_unlock");
         // Manual unlock should instantly allow relocking:
@@ -434,7 +427,12 @@ mod tests {
 
         // Make lock live for 100ms, after 50ms should fail, after 110ms should succeed with no manual unlock:
         let lock = r
-            .dlock(NS, "test_lock_autoexpire", Duration::from_millis(100), None)
+            .dlock(
+                NS,
+                "test_lock_autoexpire",
+                TimeDelta::milliseconds(100),
+                None,
+            )
             .await
             .change_context(AnyErr)?;
         assert_td_in_range!(
@@ -442,36 +440,36 @@ mod tests {
             TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
         );
         // 50ms shouldn't be enough to unlock:
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        sleep_compat(TimeDelta::milliseconds(50)).await;
         check_not_lockable!("test_lock_autoexpire");
         // another 50msms should be enough to unlock:
-        tokio::time::sleep(Duration::from_millis(60)).await;
+        sleep_compat(TimeDelta::milliseconds(60)).await;
         check_lockable!("test_lock_autoexpire");
 
         // New test, confirm extend does extend by expected amount:
         let mut lock = r
-            .dlock(NS, "test_lock_extend", Duration::from_millis(100), None)
+            .dlock(NS, "test_lock_extend", TimeDelta::milliseconds(100), None)
             .await
             .change_context(AnyErr)?;
         assert_td_in_range!(
             lock.expires_at - chrono::Utc::now(),
             TimeDelta::milliseconds(50)..TimeDelta::milliseconds(99)
         );
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        sleep_compat(TimeDelta::milliseconds(50)).await;
         // This means should be valid for another 100ms:
-        lock.extend(Duration::from_millis(100))
+        lock.extend(TimeDelta::milliseconds(100))
             .await
             .change_context(AnyErr)?;
         // Sleep for 60, would have expired original, but new will still be valid for another 40:
-        tokio::time::sleep(Duration::from_millis(60)).await;
+        sleep_compat(TimeDelta::milliseconds(60)).await;
         check_not_lockable!("test_lock_extend");
         // Should now go over extension, should be relockable:
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        sleep_compat(TimeDelta::milliseconds(50)).await;
         check_lockable!("test_lock_extend");
 
         // Confirm retries would work to wait for a lock:
         let lock = r
-            .dlock(NS, "test_lock_retry", Duration::from_millis(300), None)
+            .dlock(NS, "test_lock_retry", TimeDelta::milliseconds(300), None)
             .await
             .change_context(AnyErr)?;
         assert_td_in_range!(
@@ -484,8 +482,8 @@ mod tests {
         if r.dlock(
             NS,
             "test_lock_retry",
-            Duration::from_millis(100),
-            Some(Duration::from_millis(100)),
+            TimeDelta::milliseconds(100),
+            Some(TimeDelta::milliseconds(100)),
         )
         .await
         .is_ok()
@@ -497,8 +495,8 @@ mod tests {
             .dlock(
                 NS,
                 "test_lock_retry",
-                Duration::from_millis(100),
-                Some(Duration::from_millis(300)),
+                TimeDelta::milliseconds(100),
+                Some(TimeDelta::milliseconds(300)),
             )
             .await
             .change_context(AnyErr)?;
@@ -514,14 +512,14 @@ mod tests {
             .dlock(
                 NS,
                 "test_lock_hold_for_fut",
-                Duration::from_millis(500),
+                TimeDelta::milliseconds(500),
                 None,
             )
             .await
             .change_context(AnyErr)?;
         let lock_fut = async {
             lock.hold_for_fut(async {
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                sleep_compat(TimeDelta::seconds(2)).await;
                 Ok::<_, error_stack::Report<AnyErr>>(())
             })
             .await
@@ -531,13 +529,13 @@ mod tests {
         };
         let try_get = async {
             loop {
-                if r.dlock(NS, "test_lock_hold_for_fut", Duration::from_secs(1), None)
+                if r.dlock(NS, "test_lock_hold_for_fut", TimeDelta::seconds(1), None)
                     .await
                     .is_ok()
                 {
                     break;
                 }
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                sleep_compat(TimeDelta::milliseconds(100)).await;
             }
             panic!("Should not have been able to lock!");
         };

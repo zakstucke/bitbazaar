@@ -80,7 +80,7 @@ mod tests {
     use serde::{Deserialize, Serialize};
 
     use super::*;
-    use crate::testing::prelude::*;
+    use crate::test::prelude::*;
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     struct V1 {

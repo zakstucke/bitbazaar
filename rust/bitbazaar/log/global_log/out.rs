@@ -148,8 +148,10 @@ impl GlobalLog {
         }
     }
 
-    /// See [`super::global_fns::flush`]`
-    pub fn flush(&self) -> RResult<(), AnyErr> {
+    /// See [`super::global_fns::flush_and_consume`]`
+    pub fn flush_and_consume(self) -> RResult<(), AnyErr> {
+        // Stdout is flushed when guards are dropped, which'll happen because this consumes self.
+
         #[cfg(any(feature = "opentelemetry-grpc", feature = "opentelemetry-http"))]
         {
             if let Some(prov) = &self.otlp_providers.logger_provider {

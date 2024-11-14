@@ -12,7 +12,7 @@ mod tests {
 
     use crate::misc::with_timeout;
     use crate::redis::{Redis, RedisBatchFire, RedisConnLike, RedisStandalone};
-    use crate::testing::prelude::*;
+    use crate::test::prelude::*;
 
     async fn setup_conns() -> RResult<(RedisStandalone, Redis, Redis), AnyErr> {
         let server = RedisStandalone::new_no_persistence().await?;
@@ -102,13 +102,13 @@ mod tests {
 
         assert!(work_conn_1
             .batch()
-            .publish("", "foo", "conn_1_msg")
+            .publish("", "foo", "conn_1_msg".to_string())
             .fire()
             .await
             .is_some());
         assert!(work_conn_2
             .batch()
-            .publish("", "foo", "conn_2_msg")
+            .publish("", "foo", "conn_2_msg".to_string())
             .fire()
             .await
             .is_some());
@@ -164,8 +164,8 @@ mod tests {
         // All 3 receivers should receive these messages:
         assert!(work_conn
             .batch()
-            .publish("n1", "foo", "first_msg")
-            .publish("n1", "foo", "second_msg")
+            .publish("n1", "foo", "first_msg".to_string())
+            .publish("n1", "foo", "second_msg".to_string())
             .fire()
             .await
             .is_some());
@@ -239,7 +239,7 @@ mod tests {
         assert!(client
             .conn()
             .batch()
-            .publish("lah", "loo", "baz")
+            .publish("lah", "loo", "baz".to_string())
             .fire()
             .await
             .is_some());
@@ -249,8 +249,8 @@ mod tests {
         assert!(client
             .conn()
             .batch()
-            .publish("n1", "foo", "first_msg")
-            .publish("n1", "foo", "second_msg")
+            .publish("n1", "foo", "first_msg".to_string())
+            .publish("n1", "foo", "second_msg".to_string())
             .fire()
             .await
             .is_some());
@@ -295,8 +295,8 @@ mod tests {
 
         assert!(work_conn
             .batch()
-            .publish("n1", "foo", "only_pattern")
-            .publish("n1", "f*o", "both")
+            .publish("n1", "foo", "only_pattern".to_string())
+            .publish("n1", "f*o", "both".to_string())
             .fire()
             .await
             .is_some());
@@ -346,8 +346,8 @@ mod tests {
 
         assert!(work_conn
             .batch()
-            .publish("n1", "foo", "first_msg")
-            .publish("n1", "foo", "second_msg")
+            .publish("n1", "foo", "first_msg".to_string())
+            .publish("n1", "foo", "second_msg".to_string())
             .fire()
             .await
             .is_some());

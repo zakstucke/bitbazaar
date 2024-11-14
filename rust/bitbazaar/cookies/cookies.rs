@@ -45,7 +45,7 @@ pub fn get_cookie_raw(name: &str) -> Option<String> {
     #[cfg(all(not(target_arch = "wasm32"), feature = "cookies_ssr"))]
     {
         use axum_extra::extract::cookie::CookieJar;
-        if let Some(req) = leptos::use_context::<http::request::Parts>() {
+        if let Some(req) = leptos::prelude::use_context::<http::request::Parts>() {
             let cookies = CookieJar::from_headers(&req.headers);
             if let Some(cookie) = cookies.get(name) {
                 return Some(cookie.value().to_string());
@@ -80,7 +80,7 @@ pub fn set_cookie_raw(name: &str, value: &str, options: CookieOptions<'_>) {
 
         use crate::prelude::*;
 
-        if let Some(resp_opts) = leptos::use_context::<leptos_axum::ResponseOptions>() {
+        if let Some(resp_opts) = leptos::prelude::use_context::<leptos_axum::ResponseOptions>() {
             let mut cookie = Cookie::build((name, value)).http_only(options.http_only);
             if let Some(path) = options.path {
                 cookie = cookie.path(path);

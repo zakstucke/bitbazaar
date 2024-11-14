@@ -35,7 +35,7 @@ pub fn auto_trace_panics() {
     });
 }
 
-fn panic_hook(panic_info: &std::panic::PanicInfo) {
+fn panic_hook(panic_info: &std::panic::PanicHookInfo) {
     let payload = panic_info.payload();
 
     #[allow(clippy::manual_map)]

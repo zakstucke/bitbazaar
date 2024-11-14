@@ -4,6 +4,7 @@ use crate::prelude::*;
 /// - Handles logging top-level errors and panics.
 /// - Ensures all logging/tracing is flushed before exiting.
 /// - Error exit codes, can still pass through downstream codes on happy path.
+#[track_caller]
 pub fn main_wrapper(
     main: impl FnOnce() -> RResult<std::process::ExitCode, AnyErr> + std::panic::UnwindSafe,
 ) -> std::process::ExitCode {
@@ -27,7 +28,7 @@ pub fn main_wrapper(
     };
 
     // Try and make sure all telemetry has left the system before exiting, to prevent crucial error logs being lost:
-    match crate::log::flush() {
+    match crate::log::flush_and_consume() {
         Ok(_) => (),
         Err(err) => {
             // Should be an eprintln as something going wrong with logs, if we used logs it probably wouldn't make it out in time before exiting.

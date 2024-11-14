@@ -18,7 +18,7 @@ pub mod prelude {
     pub use error_stack::{Report, ResultExt};
 
     #[allow(unused_imports)]
-    pub use super::{AnyErr, BitbazaarResultExt, RResult};
+    pub use super::{AnyErr, BitbazaarResultExt, RResult, RecordAndConsumeResult};
 
     #[allow(unused_imports)]
     pub use crate::{anyerr, err, panic_on_err, panic_on_err_async};

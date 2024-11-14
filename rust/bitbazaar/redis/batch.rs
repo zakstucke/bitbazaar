@@ -1,6 +1,6 @@
 #![allow(private_interfaces)]
 
-use std::{collections::HashSet, marker::PhantomData, sync::LazyLock};
+use std::{borrow::Cow, collections::HashSet, marker::PhantomData, sync::LazyLock};
 
 use deadpool_redis::redis::{FromRedisValue, Pipeline, ToRedisArgs};
 
@@ -8,9 +8,9 @@ use crate::{log::record_exception, retry_flexi};
 
 use super::{
     conn::RedisConnLike,
-    fuzzy::{RedisFuzzy, RedisFuzzyUnwrap},
+    fuzzy::{FuzzyFromRedisValue, Nilcase, RedisFuzzy, RedisFuzzyUnwrap},
     redis_retry::redis_retry_config,
-    RedisScript, RedisScriptInvoker,
+    RedisJson, RedisScript, RedisScriptInvoker,
 };
 
 static CLEAR_NAMESPACE_SCRIPT: LazyLock<RedisScript> =
@@ -44,11 +44,18 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
         }
     }
 
-    async fn inner_fire<R: FromRedisValue>(&self) -> Option<R> {
+    async fn inner_fire<R: FuzzyFromRedisValue>(&self) -> Option<R> {
         if let Some(mut conn) = self.redis_conn.get_inner_conn().await {
             // Handling retryable errors internally:
-            match retry_flexi!(redis_retry_config(), {
-                self.pipe.query_async(&mut conn).await
+            let result = match retry_flexi!(redis_retry_config(), {
+                // Testing:
+                // tracing::info!("{:?}", std::any::type_name::<R>());
+                // let s = self.pipe.query_async::<redis::Value>(&mut conn).await;
+                // tracing::info!("{:?}", s);
+                match self.pipe.query_async::<redis::Value>(&mut conn).await {
+                    Ok(v) => R::fuzzy_from_redis_value(&v),
+                    Err(e) => Err(e),
+                }
             }) {
                 Ok(v) => Some(v),
                 Err(e) => {
@@ -60,7 +67,7 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                         }
 
                         tracing::debug!(
-                            "Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Err: '{:?}'",
+                            "Redis batch will auto re-run. Pipe returned NoScriptError, reloading {} script{} to redis. Probably occurred due to a redis restart during this program's execution. Err: '{:?}'",
                             self.used_scripts.len(),
                             if self.used_scripts.len() == 1 { "" } else { "s" },
                             e
@@ -74,13 +81,18 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                             load_pipe.query_async::<redis::Value>(&mut conn).await
                         }) {
                             // Now loaded the scripts, rerun the batch:
-                            Ok(_) => match self.pipe.query_async(&mut conn).await {
-                                Ok(result) => Some(result),
-                                Err(err) => {
-                                    record_exception("Redis batch failed. Pipe returned NoScriptError, but we've just loaded all scripts.", format!("{:?}", err));
-                                    None
+                            Ok(_) => {
+                                match match self.pipe.query_async::<redis::Value>(&mut conn).await {
+                                    Ok(v) => R::fuzzy_from_redis_value(&v),
+                                    Err(e) => Err(e),
+                                } {
+                                    Ok(v) => Some(v),
+                                    Err(err) => {
+                                        record_exception("Redis batch failed. Pipe returned NoScriptError, but we've just loaded all scripts.", format!("{:?}", err));
+                                        None
+                                    }
                                 }
-                            },
+                            }
                             Err(err) => {
                                 record_exception(
                                     "Redis script reload during batch failed.",
@@ -94,7 +106,17 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
                         None
                     }
                 }
+            };
+
+            // When the pipeline is successful, update internally the scripts we know to be loaded.
+            if result.is_some() {
+                let sl = self.redis_conn.scripts_loaded();
+                for script in self.used_scripts.iter() {
+                    sl.insert(script.hash.clone());
+                }
             }
+
+            result
         } else {
             None
         }
@@ -103,7 +125,15 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     /// Run an arbitrary redis (lua script). But discards any return value.
     pub fn script_no_return(mut self, script_invokation: RedisScriptInvoker<'c>) -> Self {
         // Adding ignore() to ignore response.
-        self.pipe.add_command(script_invokation.eval_cmd()).ignore();
+        self.pipe
+            .add_command(
+                script_invokation.eval_cmd(
+                    self.redis_conn
+                        .scripts_loaded()
+                        .contains(&script_invokation.script.hash),
+                ),
+            )
+            .ignore();
         self.used_scripts.insert(script_invokation.script);
         RedisBatch {
             _returns: PhantomData,
@@ -129,12 +159,17 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     }
 
     /// Publish a message to a pubsub channel.
-    /// Use [`RedisConnLike::pubsub_listen`] to listen for messages.
-    pub fn publish(mut self, namespace: &str, channel: &str, message: impl ToRedisArgs) -> Self {
+    /// Json wrapped internally, makes easier to work with.
+    pub fn publish(
+        mut self,
+        namespace: &str,
+        channel: &str,
+        message: impl serde::Serialize + for<'b> serde::Deserialize<'b>,
+    ) -> Self {
         self.pipe
             .publish(
                 self.redis_conn.final_key(namespace, channel.into()),
-                message,
+                RedisJson(message),
             )
             .ignore();
         self
@@ -152,6 +187,133 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
             // Ignoring so it doesn't take up a space in the tuple response.
             .ignore();
 
+        RedisBatch {
+            _returns: PhantomData,
+            redis_conn: self.redis_conn,
+            pipe: self.pipe,
+            used_scripts: self.used_scripts,
+        }
+    }
+
+    /// Add entries to a hashmap (auto creating the hashmap if it doesn't exist).
+    /// <https://redis.io/docs/latest/commands/hset/>
+    ///
+    /// Arguments:
+    /// - `hashmap_namespace`: The namespace of the hashmap.
+    /// - `hashmap_key`: The key of the hashmap.
+    /// - `hashmap_ttl`: The time to live of the hashmap. This will reset on each addition, meaning after the last update the hashmap will expire after this time.
+    /// - `entries`: The key/value pairs to add.
+    pub fn hset<S: AsRef<str>, Value: ToRedisArgs>(
+        mut self,
+        hashmap_namespace: &str,
+        hashmap_key: &str,
+        hashmap_ttl: Option<chrono::Duration>,
+        entries: impl IntoIterator<Item = (S, Value)>,
+    ) -> Self {
+        let entries = entries
+            .into_iter()
+            .map(|(k, v)| (k.as_ref().to_string(), v))
+            .collect::<Vec<_>>();
+
+        // No-op if no entries so skip (redis would actually error if empty anyway)
+        if entries.is_empty() {
+            return self;
+        }
+
+        self.pipe
+            .hset_multiple(
+                self.redis_conn
+                    .final_key(hashmap_namespace, hashmap_key.into()),
+                &entries,
+            )
+            // Ignoring so it doesn't take up a space in the tuple response.
+            .ignore();
+        if let Some(set_ttl) = hashmap_ttl {
+            self.expire(hashmap_namespace, hashmap_key, set_ttl)
+        } else {
+            RedisBatch {
+                _returns: PhantomData,
+                redis_conn: self.redis_conn,
+                pipe: self.pipe,
+                used_scripts: self.used_scripts,
+            }
+        }
+    }
+
+    /// Add an entry to a set (auto creating the set if it doesn't exist).
+    /// <https://redis.io/commands/sadd/>
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `set_ttl`: The time to live of the set. This will reset on each addition, meaning after the last update the set will expire after this time.
+    /// - `items`: The items to add, values of sets must be strings.
+    pub fn sadd<S: AsRef<str>>(
+        mut self,
+        set_namespace: &str,
+        set_key: &str,
+        set_ttl: Option<chrono::Duration>,
+        items: impl IntoIterator<Item = S>,
+    ) -> Self {
+        let items = items
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect::<Vec<_>>();
+
+        // No-op if no items so skip (redis would actually error if empty anyway)
+        if items.is_empty() {
+            return self;
+        }
+
+        self.pipe
+            .sadd(
+                self.redis_conn.final_key(set_namespace, set_key.into()),
+                items,
+            )
+            // Ignoring so it doesn't take up a space in the tuple response.
+            .ignore();
+        if let Some(set_ttl) = set_ttl {
+            self.expire(set_namespace, set_key, set_ttl)
+        } else {
+            RedisBatch {
+                _returns: PhantomData,
+                redis_conn: self.redis_conn,
+                pipe: self.pipe,
+                used_scripts: self.used_scripts,
+            }
+        }
+    }
+
+    /// remove an entries from a set.
+    /// <https://redis.io/commands/srem/>
+    ///
+    /// Arguments:
+    /// - `set_namespace`: The namespace of the set.
+    /// - `set_key`: The key of the set.
+    /// - `values`: The values to remove as an iterator.
+    pub fn srem<S: AsRef<str>>(
+        mut self,
+        set_namespace: &str,
+        set_key: &str,
+        items: impl IntoIterator<Item = S>,
+    ) -> Self {
+        let items = items
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect::<Vec<_>>();
+
+        // No-op if no items so skip (redis would actually error if empty anyway)
+        if items.is_empty() {
+            return self;
+        }
+
+        self.pipe
+            .srem(
+                self.redis_conn.final_key(set_namespace, set_key.into()),
+                items,
+            )
+            // Ignoring so it doesn't take up a space in the tuple response.
+            .ignore();
         RedisBatch {
             _returns: PhantomData,
             redis_conn: self.redis_conn,
@@ -245,6 +407,11 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
         set_ttl: Option<chrono::Duration>,
         items: &[(i64, impl ToRedisArgs)],
     ) -> Self {
+        // No-op if no items so skip (redis would actually error if empty anyway)
+        if items.is_empty() {
+            return self;
+        }
+
         self.pipe
             .zadd_multiple(
                 self.redis_conn.final_key(set_namespace, set_key.into()),
@@ -373,15 +540,17 @@ impl<'a, 'c, ConnType: RedisConnLike, ReturnType> RedisBatch<'a, 'c, ConnType, R
     }
 
     /// Clear one or more keys.
-    pub fn clear<'key>(
+    pub fn clear<S: AsRef<str>>(
         mut self,
         namespace: &str,
-        keys: impl IntoIterator<Item = &'key str>,
+        keys: impl IntoIterator<Item = S>,
     ) -> Self {
         let final_keys = keys
             .into_iter()
-            .map(Into::into)
-            .map(|key| self.redis_conn.final_key(namespace, key))
+            .map(|key| {
+                self.redis_conn
+                    .final_key(namespace, Cow::Borrowed(key.as_ref()))
+            })
             .collect::<Vec<_>>();
         // Ignoring so it doesn't take up a space in the tuple response.
         self.pipe.del(final_keys).ignore();
@@ -414,7 +583,7 @@ pub trait RedisBatchFire {
 }
 
 // The special singular variant that returns the command output directly.
-impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap> RedisBatchFire
+impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap + Nilcase> RedisBatchFire
     for RedisBatch<'a, 'c, ConnType, (R,)>
 {
     type ReturnType = R;
@@ -426,7 +595,7 @@ impl<'a, 'c, ConnType: RedisConnLike, R: FromRedisValue + RedisFuzzyUnwrap> Redi
 
 macro_rules! impl_batch_fire {
     ( $($tup_item:ident)* ) => (
-        impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue + RedisFuzzyUnwrap),*> RedisBatchFire for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
+        impl<'a, 'c, ConnType: RedisConnLike, $($tup_item: FromRedisValue + RedisFuzzyUnwrap + Nilcase),*> RedisBatchFire for RedisBatch<'a, 'c, ConnType, ($($tup_item,)*)> {
             type ReturnType = ($($tup_item,)*);
 
             async fn fire(self) -> <Option<($($tup_item,)*)> as RedisFuzzyUnwrap>::Output {
@@ -462,10 +631,10 @@ pub trait RedisBatchReturningOps<'c> {
     fn exists(self, namespace: &str, key: &str) -> Self::NextType<bool>;
 
     /// Check if multiple keys exists.
-    fn mexists<'key>(
+    fn mexists(
         self,
         namespace: &str,
-        keys: impl IntoIterator<Item = &'key str>,
+        keys: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Self::NextType<Vec<bool>>;
 
     /// Get a value from a key. Returning `None` if the key doesn't exist.
@@ -481,6 +650,26 @@ pub trait RedisBatchReturningOps<'c> {
         namespace: &str,
         keys: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Self::NextType<Vec<RedisFuzzy<Value>>>;
+
+    /// Get multiple values from a hashmap of the same type at once. Returning `None` for each key that didn't exist.
+    /// <https://redis.io/docs/latest/commands/hmget/>
+    fn hmget<Value: FromRedisValue>(
+        self,
+        hashmap_namespace: &str,
+        hashmap_key: &str,
+        keys: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Self::NextType<Vec<RedisFuzzy<Value>>>;
+
+    /// Get all members of a set.
+    fn smembers(self, set_namespace: &str, set_key: &str) -> Self::NextType<Vec<String>>;
+
+    /// Check whether the provided keys are members of the set (if it exists).
+    fn smismember(
+        self,
+        set_namespace: &str,
+        set_key: &str,
+        keys: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Self::NextType<Vec<bool>>;
 
     /// HIGHEST TO LOWEST SCORES.
     /// Retrieve entries from an ordered set by score range. (range is inclusive)
@@ -537,7 +726,9 @@ macro_rules! impl_batch_ops {
                 mut self,
                 script_invokation: RedisScriptInvoker<'c>,
             ) -> Self::NextType<ScriptOutput> {
-                self.pipe.add_command(script_invokation.eval_cmd());
+                self.pipe.add_command(script_invokation.eval_cmd(
+                    self.redis_conn.scripts_loaded().contains(&script_invokation.script.hash)
+                ));
                 self.used_scripts.insert(script_invokation.script);
                 RedisBatch {
                     _returns: PhantomData,
@@ -574,17 +765,29 @@ macro_rules! impl_batch_ops {
                 }
             }
 
-            fn mexists<'key>(
-                self,
+            fn mexists(
+                mut self,
                 namespace: &str,
-                keys: impl IntoIterator<Item = &'key str>,
+                keys: impl IntoIterator<Item = impl AsRef<str>>,
             ) -> Self::NextType<Vec<bool>> {
-                let final_keys = keys.into_iter().map(Into::into).map(|key| self.redis_conn.final_key(namespace, key)).collect::<Vec<_>>();
-                let mut invoker = MEXISTS_SCRIPT.invoker();
-                for key in &final_keys {
-                    invoker = invoker.key(key);
+                let keys = keys.into_iter().map(|key| self.redis_conn.final_key(namespace, key.as_ref().into())).collect::<Vec<_>>();
+
+                // Command might would otherwise fail with an empty vec:
+                if keys.is_empty() {
+                    pipe_return_empty_vec(&mut self.pipe);
+                    RedisBatch {
+                        _returns: PhantomData,
+                        redis_conn: self.redis_conn,
+                        pipe: self.pipe,
+                        used_scripts: self.used_scripts
+                    }
+                } else {
+                    let mut invoker = MEXISTS_SCRIPT.invoker();
+                    for key in &keys {
+                        invoker = invoker.key(key);
+                    }
+                    self.script_no_decode_protection::<Vec<bool>>(invoker)
                 }
-                self.script_no_decode_protection::<Vec<bool>>(invoker)
             }
 
             fn get<Value: FromRedisValue>(
@@ -606,8 +809,17 @@ macro_rules! impl_batch_ops {
                 namespace: &str,
                 keys: impl IntoIterator<Item = impl AsRef<str>>,
             ) -> Self::NextType<Vec<RedisFuzzy<Value>>> {
-                let final_keys = keys.into_iter().map(|key| self.redis_conn.final_key(namespace, key.as_ref().into())).collect::<Vec<_>>();
-                self.pipe.get(final_keys);
+                let keys = keys.into_iter().map(|key| self.redis_conn.final_key(namespace, key.as_ref().into())).collect::<Vec<_>>();
+
+                // Command might would otherwise fail with an empty vec:
+                if keys.is_empty() {
+                    pipe_return_empty_vec(&mut self.pipe);
+                } else {
+                    // self.pipe.hget internally switches between GET and MGET depending on the number of keys.
+                    // but this causes problems with decoding, better to always use MGET.
+                    self.pipe.cmd("MGET").arg(keys);
+                }
+
                 RedisBatch {
                     _returns: PhantomData,
                     redis_conn: self.redis_conn,
@@ -615,6 +827,61 @@ macro_rules! impl_batch_ops {
                     used_scripts: self.used_scripts
                 }
             }
+
+            fn hmget<Value: FromRedisValue>(
+                mut self,
+                hashmap_namespace: &str,
+                hashmap_key: &str,
+                keys: impl IntoIterator<Item = impl AsRef<str>>,
+            ) -> Self::NextType<Vec<RedisFuzzy<Value>>> {
+                let keys = keys.into_iter().map(|key| key.as_ref().to_string()).collect::<Vec<_>>();
+
+                // Command might would otherwise fail with an empty vec:
+                if keys.is_empty() {
+                    pipe_return_empty_vec(&mut self.pipe);
+                } else {
+                    // self.pipe.hget internally switches between HGET and HMGET depending on the number of keys.
+                    // but this causes problems with decoding, better to always use HMGET.
+                    self.pipe.cmd("HMGET").arg(self.redis_conn.final_key(hashmap_namespace, hashmap_key.into())).arg(keys);
+                }
+
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: self.redis_conn,
+                    pipe: self.pipe,
+                    used_scripts: self.used_scripts
+                }
+            }
+
+            fn smembers(mut self, set_namespace: &str, set_key: &str) -> Self::NextType<Vec<String>> {
+                self.pipe
+                    .smembers(self.redis_conn.final_key(set_namespace, set_key.into()));
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: self.redis_conn,
+                    pipe: self.pipe,
+                    used_scripts: self.used_scripts,
+                }
+            }
+
+            fn smismember(mut self, set_namespace: &str, set_key: &str, keys: impl IntoIterator<Item = impl AsRef<str>>) -> Self::NextType<Vec<bool>> {
+                let keys = keys.into_iter().map(|key| key.as_ref().to_string()).collect::<Vec<_>>();
+
+                // Command might would otherwise fail with an empty vec:
+                if keys.is_empty() {
+                    pipe_return_empty_vec(&mut self.pipe);
+                } else {
+                    self.pipe.smismember(self.redis_conn.final_key(set_namespace, set_key.into()), keys);
+                }
+
+                RedisBatch {
+                    _returns: PhantomData,
+                    redis_conn: self.redis_conn,
+                    pipe: self.pipe,
+                    used_scripts: self.used_scripts,
+                }
+            }
+
 
             fn zrangebyscore_high_to_low<Value: FromRedisValue>(
                 mut self,
@@ -663,6 +930,12 @@ macro_rules! impl_batch_ops {
             }
         }
     );
+}
+
+fn pipe_return_empty_vec(pipe: &mut Pipeline) {
+    // Just run inline script to return nil, which will be fuzzy deserialized to an empty vec:
+    // https://redis.io/docs/latest/commands/eval/
+    pipe.cmd("EVAL").arg("").arg(0);
 }
 
 // fire() trait for up to 12 operations:
